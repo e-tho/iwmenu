@@ -1,0 +1,20 @@
+[package]
+name = "iwmenu"
+version = "0.1.0"
+edition = "2018"
+authors = ["Etho Ledroy <etho.ledroy@pm.me>"]
+license = "GPL-3.0"
+readme = "README.md"
+homepage = "https://github.com/e-tho/iwmenu"
+repository = "https://github.com/e-tho/iwmenu"
+
+[dependencies]
+iwdrs = "0.1"
+anyhow = "1.0"
+tokio = { version = "1", features = ["full"] }
+futures = "0.3"
+clap = { version = "3", features = ["derive"] }
+chrono =  "0.4"
+
+[profile.release]
+strip = true

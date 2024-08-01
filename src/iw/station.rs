@@ -1,0 +1,193 @@
+use anyhow::Result;
+use futures::future::join_all;
+use iwdrs::session::Session;
+use std::sync::Arc;
+use tokio::sync::mpsc::UnboundedSender;
+
+use crate::iw::network::Network;
+
+#[derive(Debug, Clone)]
+pub struct Station {
+    pub session: Arc<Session>,
+    pub state: String,
+    pub is_scanning: bool,
+    pub connected_network: Option<Network>,
+    pub new_networks: Vec<(Network, i16)>,
+    pub known_networks: Vec<(Network, i16)>,
+}
+
+impl Station {
+    pub async fn new(session: Arc<Session>) -> Result<Self> {
+        let iwd_station = session.station().unwrap();
+
+        let state = iwd_station.state().await?;
+        let connected_network = {
+            if let Some(n) = iwd_station.connected_network().await? {
+                let network = Network::new(n.clone()).await?;
+                Some(network)
+            } else {
+                None
+            }
+        };
+
+        let is_scanning = iwd_station.is_scanning().await?;
+        let discovered_networks = iwd_station.discovered_networks().await?;
+        let networks = {
+            let collected_futures = discovered_networks
+                .iter()
+                .map(|(n, signal)| async move {
+                    match Network::new(n.clone()).await {
+                        Ok(network) => Ok((network, signal.to_owned())),
+                        Err(e) => Err(e),
+                    }
+                })
+                .collect::<Vec<_>>();
+            let results = join_all(collected_futures).await;
+            results
+                .into_iter()
+                .filter_map(Result::ok)
+                .collect::<Vec<(Network, i16)>>()
+        };
+
+        let new_networks: Vec<(Network, i16)> = networks
+            .clone()
+            .into_iter()
+            .filter(|(net, _signal)| net.known_network.is_none())
+            .collect();
+
+        let known_networks: Vec<(Network, i16)> = networks
+            .into_iter()
+            .filter(|(net, _signal)| net.known_network.is_some())
+            .collect();
+
+        Ok(Self {
+            session,
+            state,
+            is_scanning,
+            connected_network,
+            new_networks,
+            known_networks,
+        })
+    }
+
+    pub async fn refresh(&mut self) -> Result<()> {
+        let iwd_station = self.session.station().unwrap();
+
+        let state = iwd_station.state().await?;
+        let is_scanning = iwd_station.is_scanning().await?;
+        let connected_network = {
+            if let Some(n) = iwd_station.connected_network().await? {
+                let network = Network::new(n.clone()).await?;
+                Some(network.to_owned())
+            } else {
+                None
+            }
+        };
+        let discovered_networks = iwd_station.discovered_networks().await?;
+        let networks = {
+            let collected_futures = discovered_networks
+                .iter()
+                .map(|(n, signal)| async move {
+                    match Network::new(n.clone()).await {
+                        Ok(network) => Ok((network, signal.to_owned())),
+                        Err(e) => Err(e),
+                    }
+                })
+                .collect::<Vec<_>>();
+            let results = join_all(collected_futures).await;
+            results
+                .into_iter()
+                .filter_map(Result::ok)
+                .collect::<Vec<(Network, i16)>>()
+        };
+
+        let new_networks: Vec<(Network, i16)> = networks
+            .clone()
+            .into_iter()
+            .filter(|(net, _signal)| net.known_network.is_none())
+            .collect();
+
+        let known_networks: Vec<(Network, i16)> = networks
+            .into_iter()
+            .filter(|(net, _signal)| net.known_network.is_some())
+            .collect();
+
+        self.state = state;
+        self.is_scanning = is_scanning;
+
+        if self.new_networks.len() != new_networks.len() {
+            self.new_networks = new_networks;
+        } else {
+            self.new_networks.iter_mut().for_each(|(net, signal)| {
+                let n = new_networks
+                    .iter()
+                    .find(|(refreshed_net, _signal)| refreshed_net.name == net.name);
+
+                if let Some((_, refreshed_signal)) = n {
+                    *signal = *refreshed_signal;
+                }
+            })
+        }
+
+        if self.known_networks.len() != known_networks.len() {
+            self.known_networks = known_networks;
+        } else {
+            self.known_networks.iter_mut().for_each(|(net, signal)| {
+                let n = known_networks
+                    .iter()
+                    .find(|(refreshed_net, _signal)| refreshed_net.name == net.name);
+
+                if let Some((refreshed_net, refreshed_signal)) = n {
+                    net.known_network.as_mut().unwrap().is_autoconnect =
+                        refreshed_net.known_network.as_ref().unwrap().is_autoconnect;
+                    *signal = *refreshed_signal;
+                }
+            })
+        }
+
+        self.connected_network = connected_network;
+
+        Ok(())
+    }
+
+    pub async fn scan(&self, sender: UnboundedSender<String>) -> Result<()> {
+        let iwd_station = self.session.station().unwrap();
+        match iwd_station.scan().await {
+            Ok(_) => {
+                let msg = "Start Scanning".to_string();
+                sender
+                    .send(msg)
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                sender
+                    .send(msg)
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            }
+        }
+        Ok(())
+    }
+
+    pub async fn disconnect(&self, sender: UnboundedSender<String>) -> Result<()> {
+        let iwd_station = self.session.station().unwrap();
+        match iwd_station.disconnect().await {
+            Ok(_) => {
+                let msg = format!(
+                    "Disconnected from {}",
+                    self.connected_network.as_ref().unwrap().name
+                );
+                sender
+                    .send(msg)
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                sender
+                    .send(msg)
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            }
+        }
+        Ok(())
+    }
+}
