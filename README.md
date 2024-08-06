@@ -33,6 +33,20 @@ cargo build --release
 
 An executable file will be generated at `target/release/iwmenu`, which you can then copy to a directory in your `$PATH`.
 
+### Nix
+
+Add the flake as an input:
+
+```nix
+iwmenu.url = "github:e-tho/iwmenu";
+```
+
+Install the package:
+
+```nix
+environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
+```
+
 ## Usage
 
 Specify a dmenu backend using `-d` or `--dmenu` option.
