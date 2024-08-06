@@ -5,6 +5,7 @@ use crate::{
     iw::{agent::AgentManager, station::Station},
     menu::Menu,
 };
+
 pub struct App {
     station: Station,
     agent_manager: AgentManager,
@@ -26,8 +27,6 @@ impl App {
     }
 
     pub async fn run(&self, menu: Menu) -> Result<()> {
-        self.station.scan(self.log_sender.clone()).await?;
-
         if let Some(ssid) = menu.select_ssid(&self.station).await? {
             let (network, _) = self
                 .station
@@ -39,10 +38,11 @@ impl App {
 
             if let Some(known_network) = &network.known_network {
                 if known_network.is_autoconnect {
-                    let auto_connect_msg =
-                        format!("Auto-connecting to known network: {}", network.name);
                     self.log_sender
-                        .send(auto_connect_msg)
+                        .send(format!(
+                            "Auto-connecting to known network: {}",
+                            network.name
+                        ))
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     network.connect(self.log_sender.clone()).await?;
                     return Ok(());
