@@ -19,12 +19,12 @@ impl Menu {
     pub async fn select_ssid(&self, station: &Station) -> Result<Option<String>> {
         let mut input = String::new();
 
-        for (network, signal_strength) in &station.new_networks {
+        for (network, signal_strength) in &station.known_networks {
             let network_info = format!("{} - {}", network.name, signal_strength);
             input.push_str(&format!("{}\n", network_info));
         }
 
-        for (network, signal_strength) in &station.known_networks {
+        for (network, signal_strength) in &station.new_networks {
             let network_info = format!("{} - {}", network.name, signal_strength);
             input.push_str(&format!("{}\n", network_info));
         }
