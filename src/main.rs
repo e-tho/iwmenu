@@ -31,8 +31,13 @@ async fn main() -> Result<()> {
         }
     });
 
-    let app = App::new(menu.clone(), log_sender).await?;
-    app.run(menu).await?;
+    let mut app: App = App::new(menu.clone(), log_sender.clone()).await?;
+
+    if let Some(ssid) = app.run(menu).await? {
+        log_sender
+            .send(format!("Connected to network: {}", ssid))
+            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+    }
 
     Ok(())
 }

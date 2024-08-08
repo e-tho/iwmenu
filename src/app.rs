@@ -26,8 +26,11 @@ impl App {
         })
     }
 
-    pub async fn run(&self, menu: Menu) -> Result<()> {
-        if let Some(ssid) = menu.select_ssid(&self.station).await? {
+    pub async fn run(&mut self, menu: Menu) -> Result<Option<String>> {
+        if let Some(ssid) = menu
+            .select_ssid(&mut self.station, self.log_sender.clone())
+            .await?
+        {
             let (network, _) = self
                 .station
                 .new_networks
@@ -45,7 +48,7 @@ impl App {
                         ))
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     network.connect(self.log_sender.clone()).await?;
-                    return Ok(());
+                    return Ok(Some(ssid));
                 }
             }
 
@@ -56,12 +59,12 @@ impl App {
             }
 
             network.connect(self.log_sender.clone()).await?;
+            return Ok(Some(ssid));
         } else {
             self.log_sender
                 .send("No network selected".to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            return Ok(None);
         }
-
-        Ok(())
     }
 }

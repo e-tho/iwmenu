@@ -4,6 +4,7 @@ use std::{
     io::Write,
     process::{Command, Stdio},
 };
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::iw::station::Station;
 
@@ -16,33 +17,47 @@ pub enum Menu {
 }
 
 impl Menu {
-    pub async fn select_ssid(&self, station: &Station) -> Result<Option<String>> {
-        let mut input = String::new();
+    pub async fn select_ssid(
+        &self,
+        station: &mut Station,
+        sender: UnboundedSender<String>,
+    ) -> Result<Option<String>> {
+        loop {
+            let mut input = "Scan\n".to_string();
 
-        for (network, signal_strength) in &station.known_networks {
-            let network_info = format!("{} - {}", network.name, signal_strength);
-            input.push_str(&format!("{}\n", network_info));
-        }
-
-        for (network, signal_strength) in &station.new_networks {
-            let network_info = format!("{} - {}", network.name, signal_strength);
-            input.push_str(&format!("{}\n", network_info));
-        }
-
-        match self.show_menu(&input) {
-            Some(menu_output) => {
-                let selected_network = station
-                    .new_networks
-                    .iter()
-                    .chain(station.known_networks.iter())
-                    .find(|(network, signal_strength)| {
-                        format!("{} - {}", network.name, signal_strength) == menu_output
-                    })
-                    .map(|(network, _)| network.name.clone());
-
-                Ok(selected_network)
+            for (network, signal_strength) in &station.known_networks {
+                let network_info = format!("{} - {}", network.name, signal_strength);
+                input.push_str(&format!("{}\n", network_info));
             }
-            None => Ok(None),
+
+            for (network, signal_strength) in &station.new_networks {
+                let network_info = format!("{} - {}", network.name, signal_strength);
+                input.push_str(&format!("{}\n", network_info));
+            }
+
+            let menu_output = self.show_menu(&input);
+
+            match menu_output {
+                Some(output) if output == "Scan" => {
+                    println!("Scanning for networks...");
+                    station.scan(sender.clone()).await?;
+                    station.refresh().await?;
+                    continue;
+                }
+                Some(output) => {
+                    let selected_network = station
+                        .new_networks
+                        .iter()
+                        .chain(station.known_networks.iter())
+                        .find(|(network, signal_strength)| {
+                            format!("{} - {}", network.name, signal_strength) == output
+                        })
+                        .map(|(network, _)| network.name.clone());
+
+                    return Ok(selected_network);
+                }
+                None => return Ok(None),
+            }
         }
     }
 
