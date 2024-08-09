@@ -39,7 +39,6 @@ impl Menu {
 
             match menu_output {
                 Some(output) if output == "Scan" => {
-                    println!("Scanning for networks...");
                     station.scan(sender.clone()).await?;
                     station.refresh().await?;
                     continue;

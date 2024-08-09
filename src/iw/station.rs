@@ -2,7 +2,10 @@ use anyhow::Result;
 use futures::future::join_all;
 use iwdrs::session::Session;
 use std::sync::Arc;
-use tokio::sync::mpsc::UnboundedSender;
+use tokio::{
+    sync::mpsc::UnboundedSender,
+    time::{sleep, Duration},
+};
 
 use crate::iw::network::Network;
 
@@ -175,7 +178,7 @@ impl Station {
         }
 
         loop {
-            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            sleep(Duration::from_secs(1)).await;
             if !iwd_station.is_scanning().await? {
                 break;
             }
