@@ -51,7 +51,7 @@ impl App {
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     self.station.disconnect(self.log_sender.clone()).await?;
                     self.station.refresh().await?;
-                    continue; // Refresh the menu after disconnection
+                    continue;
                 }
 
                 if let Some(known_network) = &network.known_network {
