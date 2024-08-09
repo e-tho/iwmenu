@@ -178,7 +178,7 @@ impl Station {
         }
 
         loop {
-            sleep(Duration::from_secs(1)).await;
+            sleep(Duration::from_millis(500)).await;
             if !iwd_station.is_scanning().await? {
                 break;
             }
