@@ -152,20 +152,39 @@ impl Station {
 
     pub async fn scan(&self, sender: UnboundedSender<String>) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
+
+        if iwd_station.is_scanning().await? {
+            sender
+                .send("Scan already in progress, waiting...".to_string())
+                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            return Ok(());
+        }
+
         match iwd_station.scan().await {
             Ok(_) => {
-                let msg = "Start Scanning".to_string();
                 sender
-                    .send(msg)
+                    .send("Start Scanning".to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
             }
             Err(e) => {
-                let msg = e.to_string();
                 sender
-                    .send(msg)
+                    .send(e.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                return Err(e.into());
             }
         }
+
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            if !iwd_station.is_scanning().await? {
+                break;
+            }
+        }
+
+        sender
+            .send("Scan completed.".to_string())
+            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
         Ok(())
     }
 
