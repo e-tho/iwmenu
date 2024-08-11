@@ -146,7 +146,7 @@ impl Station {
                 .send((
                     None,
                     Some("Scan already in progress, waiting...".to_string()),
-                    Some("network-wifi".to_string()),
+                    None,
                     None,
                 ))
                 .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
@@ -164,7 +164,7 @@ impl Station {
                     .send((
                         None,
                         Some("Starting Wi-Fi scan...".to_string()),
-                        Some("network-wifi".to_string()),
+                        None,
                         None,
                     ))
                     .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
@@ -178,7 +178,7 @@ impl Station {
                     .send((
                         None,
                         Some(e.to_string()),
-                        Some("dialog-error".to_string()),
+                        None,
                         None,
                     ))
                     .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
