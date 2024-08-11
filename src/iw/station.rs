@@ -1,6 +1,7 @@
 use anyhow::Result;
 use futures::future::join_all;
 use iwdrs::session::Session;
+use notify_rust::Timeout;
 use std::sync::Arc;
 use tokio::{
     sync::mpsc::UnboundedSender,
@@ -153,13 +154,32 @@ impl Station {
         Ok(())
     }
 
-    pub async fn scan(&self, sender: UnboundedSender<String>) -> Result<()> {
+    pub async fn scan(
+        &self,
+        sender: UnboundedSender<String>,
+        notification_sender: UnboundedSender<(
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<Timeout>,
+        )>,
+    ) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
 
         if iwd_station.is_scanning().await? {
             sender
                 .send("Scan already in progress, waiting...".to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+            notification_sender
+                .send((
+                    None,
+                    Some("Scan already in progress, waiting...".to_string()),
+                    Some("network-wifi".to_string()),
+                    None,
+                ))
+                .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+
             return Ok(());
         }
 
@@ -168,11 +188,30 @@ impl Station {
                 sender
                     .send("Start Scanning".to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+                notification_sender
+                    .send((
+                        None,
+                        Some("Starting Wi-Fi scan...".to_string()),
+                        Some("network-wifi".to_string()),
+                        None,
+                    ))
+                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
             }
             Err(e) => {
                 sender
                     .send(e.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+                notification_sender
+                    .send((
+                        None,
+                        Some(e.to_string()),
+                        Some("dialog-error".to_string()),
+                        None,
+                    ))
+                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+
                 return Err(e.into());
             }
         }

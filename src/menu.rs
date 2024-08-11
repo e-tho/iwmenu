@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::ArgEnum;
+use notify_rust::Timeout;
 use std::{
     io::Write,
     process::{Command, Stdio},
@@ -20,7 +21,13 @@ impl Menu {
     pub async fn select_ssid(
         &self,
         station: &mut Station,
-        sender: UnboundedSender<String>,
+        log_sender: UnboundedSender<String>,
+        notification_sender: UnboundedSender<(
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<Timeout>,
+        )>,
     ) -> Result<Option<String>> {
         loop {
             let mut input = "Scan\n".to_string();
@@ -39,7 +46,9 @@ impl Menu {
 
             match menu_output {
                 Some(output) if output == "Scan" => {
-                    station.scan(sender.clone()).await?;
+                    station
+                        .scan(log_sender.clone(), notification_sender.clone())
+                        .await?;
                     station.refresh().await?;
                     continue;
                 }
