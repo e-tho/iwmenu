@@ -118,38 +118,9 @@ impl Station {
 
         self.state = state;
         self.is_scanning = is_scanning;
-
-        if self.new_networks.len() != new_networks.len() {
-            self.new_networks = new_networks;
-        } else {
-            self.new_networks.iter_mut().for_each(|(net, signal)| {
-                let n = new_networks
-                    .iter()
-                    .find(|(refreshed_net, _signal)| refreshed_net.name == net.name);
-
-                if let Some((_, refreshed_signal)) = n {
-                    *signal = *refreshed_signal;
-                }
-            })
-        }
-
-        if self.known_networks.len() != known_networks.len() {
-            self.known_networks = known_networks;
-        } else {
-            self.known_networks.iter_mut().for_each(|(net, signal)| {
-                let n = known_networks
-                    .iter()
-                    .find(|(refreshed_net, _signal)| refreshed_net.name == net.name);
-
-                if let Some((refreshed_net, refreshed_signal)) = n {
-                    net.known_network.as_mut().unwrap().is_autoconnect =
-                        refreshed_net.known_network.as_ref().unwrap().is_autoconnect;
-                    *signal = *refreshed_signal;
-                }
-            })
-        }
-
         self.connected_network = connected_network;
+        self.new_networks = new_networks;
+        self.known_networks = known_networks;
 
         Ok(())
     }
