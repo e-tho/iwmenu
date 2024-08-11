@@ -1,19 +1,34 @@
 use anyhow::Result;
+use notify_rust::Timeout;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     iw::{agent::AgentManager, station::Station},
     menu::Menu,
 };
-
 pub struct App {
     station: Station,
     agent_manager: AgentManager,
     log_sender: UnboundedSender<String>,
+    notification_sender: UnboundedSender<(
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<Timeout>,
+    )>,
 }
 
 impl App {
-    pub async fn new(_menu: Menu, log_sender: UnboundedSender<String>) -> Result<Self> {
+    pub async fn new(
+        _menu: Menu,
+        log_sender: UnboundedSender<String>,
+        notification_sender: UnboundedSender<(
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<Timeout>,
+        )>,
+    ) -> Result<Self> {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
 
@@ -23,13 +38,17 @@ impl App {
             station,
             agent_manager,
             log_sender,
+            notification_sender,
         })
     }
-
     pub async fn run(&mut self, menu: Menu) -> Result<Option<String>> {
         loop {
             if let Some(ssid) = menu
-                .select_ssid(&mut self.station, self.log_sender.clone())
+                .select_ssid(
+                    &mut self.station,
+                    self.log_sender.clone(),
+                    self.notification_sender.clone(),
+                )
                 .await?
             {
                 let (network, _) = self
@@ -49,6 +68,14 @@ impl App {
                     self.log_sender
                         .send(format!("Disconnecting from network: {}", ssid))
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    self.notification_sender
+                        .send((
+                            None,
+                            Some(format!("Disconnecting from {}", ssid)),
+                            Some("network-wireless".to_string()),
+                            None,
+                        ))
+                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
                     self.station.disconnect(self.log_sender.clone()).await?;
                     self.station.refresh().await?;
                     continue;
@@ -62,6 +89,14 @@ impl App {
                                 network.name
                             ))
                             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                        self.notification_sender
+                            .send((
+                                None,
+                                Some(format!("Connecting to {}", network.name)),
+                                Some("network-wireless".to_string()),
+                                None,
+                            ))
+                            .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
                         network.connect(self.log_sender.clone()).await?;
                         return Ok(Some(ssid));
                     }
@@ -74,11 +109,27 @@ impl App {
                 }
 
                 network.connect(self.log_sender.clone()).await?;
+                self.notification_sender
+                    .send((
+                        None,
+                        Some(format!("Connected to {}", ssid)),
+                        Some("network-wireless".to_string()),
+                        None,
+                    ))
+                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
                 return Ok(Some(ssid));
             } else {
                 self.log_sender
                     .send("No network selected".to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                self.notification_sender
+                    .send((
+                        None,
+                        Some("No network was selected".to_string()),
+                        None,
+                        None,
+                    ))
+                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
                 return Ok(None);
             }
         }
