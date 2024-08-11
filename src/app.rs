@@ -122,14 +122,6 @@ impl App {
                 self.log_sender
                     .send("No network selected".to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                self.notification_sender
-                    .send((
-                        None,
-                        Some("No network was selected".to_string()),
-                        None,
-                        None,
-                    ))
-                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
                 return Ok(None);
             }
         }

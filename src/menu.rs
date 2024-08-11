@@ -44,12 +44,13 @@ impl Menu {
 
     fn format_network_display(&self, network: &Network, signal_strength: i16) -> String {
         let signal_icon = Self::get_signal_icon(signal_strength, &network.network_type);
+
         let connected_icon = if network.is_connected {
             Self::add_spacing('\u{f0133}', 10, true)
         } else {
             String::new()
         };
-        println!("is_connected {}", network.is_connected);
+
         format!("{}{}{}", signal_icon, network.name, connected_icon)
     }
 
