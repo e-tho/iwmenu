@@ -201,7 +201,7 @@ impl Station {
         Ok(())
     }
 
-    pub async fn disconnect(&self, sender: UnboundedSender<String>) -> Result<()> {
+    pub async fn disconnect(&mut self, sender: UnboundedSender<String>) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
         match iwd_station.disconnect().await {
             Ok(_) => {
@@ -220,6 +220,9 @@ impl Station {
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
             }
         }
+
+        self.refresh().await?;
+
         Ok(())
     }
 }
