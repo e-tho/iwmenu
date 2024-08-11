@@ -72,7 +72,7 @@ impl App {
                         .send((
                             None,
                             Some(format!("Disconnecting from {}", ssid)),
-                            Some("network-wireless".to_string()),
+                            None,
                             None,
                         ))
                         .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
@@ -93,7 +93,7 @@ impl App {
                             .send((
                                 None,
                                 Some(format!("Connecting to {}", network.name)),
-                                Some("network-wireless".to_string()),
+                                None,
                                 None,
                             ))
                             .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
@@ -113,7 +113,7 @@ impl App {
                     .send((
                         None,
                         Some(format!("Connected to {}", ssid)),
-                        Some("network-wireless".to_string()),
+                        None,
                         None,
                     ))
                     .unwrap_or_else(|err| println!("Failed to send notification: {}", err));

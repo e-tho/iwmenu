@@ -49,9 +49,8 @@ async fn main() -> Result<()> {
                 notification.body(body);
             }
 
-            if let Some(icon) = icon {
-                notification.icon(&icon);
-            }
+            let icon_str = icon.as_deref().unwrap_or("network-wireless");
+            notification.icon(icon_str);
 
             notification.timeout(timeout.unwrap_or(Timeout::Milliseconds(3000)));
 
