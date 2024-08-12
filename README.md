@@ -55,6 +55,13 @@ Specify a dmenu backend using `-d` or `--dmenu` option.
 iwmenu -d fuzzel
 ```
 
+### Available Options
+
+| Argument        | Description                       | Supported Values                  | Default Value |
+| --------------- | --------------------------------- | --------------------------------- | ------------- |
+| `-d`, `--dmenu` | Specify the dmenu backend to use. | `dmenu`, `rofi`, `wofi`, `fuzzel` | `dmenu`       |
+| `-i`, `--icon`  | Specify the icon type to use.     | `font`, `xdg`                     | `font`        |
+
 ## License
 
 GPLv3
