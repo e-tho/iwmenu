@@ -20,9 +20,19 @@ async fn main() -> Result<()> {
                 .default_value("dmenu")
                 .help("Dmenu backend to use (dmenu, rofi, wofi, fuzzel)"),
         )
+        .arg(
+            Arg::new("icon")
+                .short('i')
+                .long("icon")
+                .takes_value(true)
+                .possible_values(["font", "xdg"])
+                .default_value("font")
+                .help("Choose the type of icons to use (font or xdg)"),
+        )
         .get_matches();
 
     let menu: Menu = matches.get_one::<Menu>("dmenu").cloned().unwrap();
+    let icon_type = matches.get_one::<String>("icon").cloned().unwrap();
 
     let (log_sender, mut log_receiver) = unbounded_channel::<String>();
     let (notification_sender, mut notification_receiver) = unbounded_channel::<(
@@ -67,7 +77,7 @@ async fn main() -> Result<()> {
     )
     .await?;
 
-    if let Some(ssid) = app.run(menu).await? {
+    if let Some(ssid) = app.run(menu, &icon_type).await? {
         log_sender
             .send(format!("Connected to network: {}", ssid))
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));

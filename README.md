@@ -10,7 +10,7 @@
 
 [iwd](https://iwd.wiki.kernel.org/) must be installed, along with one of the supported dmenu backends.
 
-> To ensure correct icon display, please install [nerdfonts](https://www.nerdfonts.com/); their use is however optional.
+> To ensure proper icon display, you can either install [nerdfonts](https://www.nerdfonts.com/) for font-based icons (usage is optional) or specify the `--icon xdg` option to use image-based icons from your XDG theme.
 
 ### Compatibility
 
