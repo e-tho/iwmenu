@@ -26,32 +26,60 @@ impl Menu {
         }
     }
 
-    fn get_signal_icon(signal_strength: i16, network_type: &str) -> String {
-        let (level1, level2, level3, level4) = match network_type {
-            "open" => ('\u{f16cb}', '\u{f16cc}', '\u{f16cd}', '\u{f16ce}'),
-            _ => ('\u{f0921}', '\u{f0924}', '\u{f0927}', '\u{f092a}'),
+    fn get_signal_icon(signal_strength: i16, network: &Network, icon_type: &str) -> String {
+        if icon_type == "font" {
+            let icon_name = match signal_strength {
+                -10000..=-7500 => match network.network_type.as_str() {
+                    "open" => '\u{f16cb}',
+                    _ => '\u{f0921}',
+                },
+                -7499..=-5000 => match network.network_type.as_str() {
+                    "open" => '\u{f16cc}',
+                    _ => '\u{f0924}',
+                },
+                -4999..=-2500 => match network.network_type.as_str() {
+                    "open" => '\u{f16cd}',
+                    _ => '\u{f0927}',
+                },
+                _ => match network.network_type.as_str() {
+                    "open" => '\u{f16ce}',
+                    _ => '\u{f092a}',
+                },
+            };
+
+            return Self::add_spacing(icon_name, 10, false);
+        }
+
+        let icon_name = match signal_strength {
+            -10000..=-7500 => "network-wireless-signal-weak",
+            -7499..=-5000 => "network-wireless-signal-ok",
+            -4999..=-2500 => "network-wireless-signal-good",
+            _ => "network-wireless-signal-excellent",
         };
 
-        let icon = match signal_strength {
-            -10000..=-7500 => level1,
-            -7499..=-5000 => level2,
-            -4999..=-2500 => level3,
-            _ => level4,
+        let suffix = if network.network_type == "open" {
+            "-symbolic"
+        } else {
+            "-secure-symbolic"
         };
 
-        Self::add_spacing(icon, 10, false)
+        format!("{}{}", icon_name, suffix)
     }
 
-    fn format_network_display(&self, network: &Network, signal_strength: i16) -> String {
-        let signal_icon = Self::get_signal_icon(signal_strength, &network.network_type);
+    fn format_network_display(network: &Network, signal_strength: i16, icon_type: &str) -> String {
+        let signal_icon = Self::get_signal_icon(signal_strength, network, icon_type);
 
-        let connected_icon = if network.is_connected {
+        let connected_icon = if network.is_connected && icon_type == "font" {
             Self::add_spacing('\u{f0133}', 10, true)
         } else {
             String::new()
         };
 
-        format!("{}{}{}", signal_icon, network.name, connected_icon)
+        if icon_type == "xdg" {
+            format!("{}\0icon\x1f{}", network.name, signal_icon)
+        } else {
+            format!("{}{}{}", signal_icon, network.name, connected_icon)
+        }
     }
 
     pub async fn select_ssid(
@@ -64,17 +92,20 @@ impl Menu {
             Option<String>,
             Option<Timeout>,
         )>,
+        icon_type: &str,
     ) -> Result<Option<String>> {
         loop {
             let mut input = "Scan\n".to_string();
 
             for (network, signal_strength) in &station.known_networks {
-                let network_info = self.format_network_display(network, *signal_strength);
+                let network_info =
+                    Self::format_network_display(network, *signal_strength, icon_type);
                 input.push_str(&format!("{}\n", network_info));
             }
 
             for (network, signal_strength) in &station.new_networks {
-                let network_info = self.format_network_display(network, *signal_strength);
+                let network_info =
+                    Self::format_network_display(network, *signal_strength, icon_type);
                 input.push_str(&format!("{}\n", network_info));
             }
 
@@ -94,7 +125,16 @@ impl Menu {
                         .iter()
                         .chain(station.known_networks.iter())
                         .find(|(network, signal_strength)| {
-                            self.format_network_display(network, *signal_strength) == output
+                            let formatted_network =
+                                Self::format_network_display(network, *signal_strength, icon_type);
+
+                            if icon_type == "xdg" {
+                                let output_without_icon = output.split('\0').next().unwrap_or("");
+                                formatted_network.split('\0').next().unwrap_or("")
+                                    == output_without_icon
+                            } else {
+                                formatted_network == output
+                            }
                         })
                         .map(|(network, _)| network.name.clone());
 

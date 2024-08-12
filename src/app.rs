@@ -41,13 +41,14 @@ impl App {
             notification_sender,
         })
     }
-    pub async fn run(&mut self, menu: Menu) -> Result<Option<String>> {
+    pub async fn run(&mut self, menu: Menu, icon_type: &str) -> Result<Option<String>> {
         loop {
             if let Some(ssid) = menu
                 .select_ssid(
                     &mut self.station,
                     self.log_sender.clone(),
                     self.notification_sender.clone(),
+                    icon_type,
                 )
                 .await?
             {
