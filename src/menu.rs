@@ -95,7 +95,14 @@ impl Menu {
         icon_type: &str,
     ) -> Result<Option<String>> {
         loop {
-            let mut input = "Scan\n".to_string();
+            let scan_icon = match icon_type {
+                "font" => {
+                    format!("{}{}", Self::add_spacing('\u{f46a}', 10, false), "Scan")
+                }
+                "xdg" => "Scan\0icon\x1femblem-synchronizing-symbolic".to_string(),
+                _ => "Scan".to_string(),
+            };
+            let mut input = format!("{}\n", scan_icon);
 
             for (network, signal_strength) in &station.known_networks {
                 let network_info =
@@ -112,14 +119,15 @@ impl Menu {
             let menu_output = self.show_menu(&input);
 
             match menu_output {
-                Some(output) if output == "Scan" => {
-                    station
-                        .scan(log_sender.clone(), notification_sender.clone())
-                        .await?;
-                    station.refresh().await?;
-                    continue;
-                }
                 Some(output) => {
+                    if output == "Scan" || output.contains("Scan") {
+                        station
+                            .scan(log_sender.clone(), notification_sender.clone())
+                            .await?;
+                        station.refresh().await?;
+                        continue;
+                    }
+
                     let selected_network = station
                         .new_networks
                         .iter()
