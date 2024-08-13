@@ -10,7 +10,7 @@
 
 [iwd](https://iwd.wiki.kernel.org/) must be installed, along with one of the supported dmenu backends.
 
-> To ensure proper icon display, you can either install [nerdfonts](https://www.nerdfonts.com/) for font-based icons (usage is optional) or specify the `--icon xdg` option to use image-based icons from your XDG theme.
+> To ensure proper icon display, you can either install [nerdfonts](https://www.nerdfonts.com/) for font-based icons (usage is optional) or use the `--icon xdg` flag for image-based icons from your XDG theme.
 
 ### Compatibility
 
@@ -49,7 +49,7 @@ environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
 
 ## Usage
 
-Specify a dmenu backend using `-d` or `--dmenu` option.
+Specify a dmenu backend using `-d` or `--dmenu` flag.
 
 ```
 iwmenu -d fuzzel
@@ -57,7 +57,7 @@ iwmenu -d fuzzel
 
 ### Available Options
 
-| Argument        | Description                       | Supported Values                  | Default Value |
+| Flag            | Description                       | Supported Values                  | Default Value |
 | --------------- | --------------------------------- | --------------------------------- | ------------- |
 | `-d`, `--dmenu` | Specify the dmenu backend to use. | `dmenu`, `rofi`, `wofi`, `fuzzel` | `dmenu`       |
 | `-i`, `--icon`  | Specify the icon type to use.     | `font`, `xdg`                     | `font`        |
