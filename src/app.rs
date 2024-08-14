@@ -6,6 +6,7 @@ use crate::{
     iw::{agent::AgentManager, station::Station},
     menu::Menu,
 };
+
 pub struct App {
     station: Station,
     agent_manager: AgentManager,
@@ -41,6 +42,7 @@ impl App {
             notification_sender,
         })
     }
+
     pub async fn run(&mut self, menu: Menu, icon_type: &str) -> Result<Option<String>> {
         loop {
             if let Some(ssid) = menu
@@ -95,6 +97,7 @@ impl App {
                         network
                             .connect(self.log_sender.clone(), self.notification_sender.clone())
                             .await?;
+                        self.station.refresh().await?;
                         return Ok(Some(ssid));
                     }
                 }
@@ -108,6 +111,7 @@ impl App {
                 network
                     .connect(self.log_sender.clone(), self.notification_sender.clone())
                     .await?;
+                self.station.refresh().await?;
             } else {
                 self.log_sender
                     .send("No network selected".to_string())

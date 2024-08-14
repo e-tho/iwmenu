@@ -222,9 +222,6 @@ impl Station {
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
             }
         }
-
-        self.refresh().await?;
-
         Ok(())
     }
 }
