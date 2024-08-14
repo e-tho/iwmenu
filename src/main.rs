@@ -77,11 +77,7 @@ async fn main() -> Result<()> {
     )
     .await?;
 
-    if let Some(ssid) = app.run(menu, &icon_type).await? {
-        log_sender
-            .send(format!("Connected to network: {}", ssid))
-            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-    }
+    app.run(menu, &icon_type).await?;
 
     Ok(())
 }

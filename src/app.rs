@@ -66,20 +66,22 @@ impl App {
                     .as_ref()
                     .map_or(false, |cn| cn.name == ssid)
                 {
-                    self.log_sender
-                        .send(format!("Disconnecting from network: {}", ssid))
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    self.notification_sender
-                        .send((
-                            None,
-                            Some(format!("Disconnecting from {}", ssid)),
-                            None,
-                            None,
-                        ))
-                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
-                    self.station.disconnect(self.log_sender.clone()).await?;
+                    self.station
+                        .disconnect(self.log_sender.clone(), self.notification_sender.clone())
+                        .await?;
                     self.station.refresh().await?;
                     continue;
+                }
+
+                if self
+                    .station
+                    .new_networks
+                    .iter()
+                    .any(|(n, _)| n.name == ssid)
+                {
+                    self.log_sender
+                        .send(format!("Connecting to new network: {}", ssid))
+                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                 }
 
                 if let Some(known_network) = &network.known_network {
@@ -90,15 +92,9 @@ impl App {
                                 network.name
                             ))
                             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                        self.notification_sender
-                            .send((
-                                None,
-                                Some(format!("Connecting to {}", network.name)),
-                                None,
-                                None,
-                            ))
-                            .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
-                        network.connect(self.log_sender.clone()).await?;
+                        network
+                            .connect(self.log_sender.clone(), self.notification_sender.clone())
+                            .await?;
                         return Ok(Some(ssid));
                     }
                 }
@@ -109,16 +105,9 @@ impl App {
                     self.agent_manager.cancel_auth()?;
                 }
 
-                network.connect(self.log_sender.clone()).await?;
-                self.notification_sender
-                    .send((
-                        None,
-                        Some(format!("Connected to {}", ssid)),
-                        None,
-                        None,
-                    ))
-                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
-                return Ok(Some(ssid));
+                network
+                    .connect(self.log_sender.clone(), self.notification_sender.clone())
+                    .await?;
             } else {
                 self.log_sender
                     .send("No network selected".to_string())
