@@ -161,12 +161,7 @@ impl Station {
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
                 notification_sender
-                    .send((
-                        None,
-                        Some("Starting Wi-Fi scan...".to_string()),
-                        None,
-                        None,
-                    ))
+                    .send((None, Some("Starting Wi-Fi scan...".to_string()), None, None))
                     .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
             }
             Err(e) => {
@@ -175,12 +170,7 @@ impl Station {
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
                 notification_sender
-                    .send((
-                        None,
-                        Some(e.to_string()),
-                        None,
-                        None,
-                    ))
+                    .send((None, Some(e.to_string()), None, None))
                     .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
 
                 return Err(e.into());
@@ -195,13 +185,22 @@ impl Station {
         }
 
         sender
-            .send("Scan completed.".to_string())
+            .send("Scan completed".to_string())
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
         Ok(())
     }
 
-    pub async fn disconnect(&mut self, sender: UnboundedSender<String>) -> Result<()> {
+    pub async fn disconnect(
+        &mut self,
+        sender: UnboundedSender<String>,
+        notification_sender: UnboundedSender<(
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<Timeout>,
+        )>,
+    ) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
         match iwd_station.disconnect().await {
             Ok(_) => {
@@ -210,8 +209,11 @@ impl Station {
                     self.connected_network.as_ref().unwrap().name
                 );
                 sender
-                    .send(msg)
+                    .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                notification_sender
+                    .send((None, Some(msg.clone()), None, None))
+                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
             }
             Err(e) => {
                 let msg = e.to_string();
