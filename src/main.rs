@@ -77,7 +77,7 @@ async fn main() -> Result<()> {
     )
     .await?;
 
-    app.run(menu, &icon_type).await?;
+    app.run(&menu, &icon_type).await?;
 
     Ok(())
 }
