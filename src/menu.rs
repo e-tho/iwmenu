@@ -255,12 +255,19 @@ impl Menu {
         let menu_output = self.run_dmenu_backend(&input);
 
         if let Some(output) = menu_output {
+            let output_without_icon = if icon_type == "xdg" {
+                output.split('\0').next().unwrap_or("")
+            } else {
+                &output
+            };
+
             let selected_known_network = station
                 .known_networks
                 .iter()
                 .find(|(network, _)| {
                     if let Some(ref known_network) = network.known_network {
-                        Self::format_known_network_display(known_network, icon_type) == output
+                        Self::format_known_network_display(known_network, icon_type)
+                            .starts_with(output_without_icon)
                     } else {
                         false
                     }
