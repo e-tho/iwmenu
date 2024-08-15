@@ -183,7 +183,7 @@ impl Menu {
             .find(|(network, signal_strength)| {
                 let formatted_network =
                     Self::format_network_display(network, *signal_strength, icon_type);
-    
+
                 if icon_type == "xdg" {
                     let output_without_icon = output.split('\0').next().unwrap_or("");
                     formatted_network.split('\0').next().unwrap_or("") == output_without_icon
@@ -193,7 +193,6 @@ impl Menu {
             })
             .cloned()
     }
-    
 
     pub fn prompt_passphrase(&self, ssid: &str) -> Option<String> {
         let prompt = format!("Enter passphrase for {}: ", ssid);
@@ -207,17 +206,17 @@ impl Menu {
     ) -> Result<Option<String>> {
         let scan_icon = match icon_type {
             "font" => format!("{}{}", Self::add_spacing('\u{f46a}', 10, false), "Scan"),
-            "xdg" => "Scan\0icon\x1femblem-synchronizing-symbolic".to_string(),
+            "xdg" => "Scan\0icon\x1fview-refresh-symbolic".to_string(),
             _ => "Scan".to_string(),
         };
 
         let known_networks_icon = match icon_type {
             "font" => format!(
                 "{}{}",
-                Self::add_spacing('\u{f16bd}', 10, false),
+                Self::add_spacing('\u{f05e1}', 10, false),
                 "Known Networks"
             ),
-            "xdg" => "Known Networks\0icon\x1fnetwork-wireless-connected-symbolic".to_string(),
+            "xdg" => "Known Networks\0icon\x1femblem-default-symbolic".to_string(),
             _ => "Known Networks".to_string(),
         };
 
