@@ -1,11 +1,9 @@
 use anyhow::Result;
 use clap::ArgEnum;
-use notify_rust::Timeout;
 use std::{
     io::Write,
     process::{Command, Stdio},
 };
-use tokio::sync::mpsc::UnboundedSender;
 
 use crate::iw::{known_network::KnownNetwork, network::Network, station::Station};
 
@@ -93,186 +91,7 @@ impl Menu {
         }
     }
 
-    pub async fn show_known_networks_menu(
-        &self,
-        station: &mut Station,
-        log_sender: UnboundedSender<String>,
-        notification_sender: UnboundedSender<(
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<Timeout>,
-        )>,
-        icon_type: &str,
-    ) -> Result<()> {
-        let mut input = String::new();
-
-        for (network, _signal_strength) in &station.known_networks {
-            if let Some(ref known_network) = network.known_network {
-                let network_info = Self::format_known_network_display(known_network, icon_type);
-                input.push_str(&format!("{}\n", network_info));
-            }
-        }
-
-        let menu_output = self.show_menu(&input);
-
-        if let Some(output) = menu_output {
-            let selected_known_network = station
-                .known_networks
-                .iter()
-                .find(|(network, _)| {
-                    if let Some(ref known_network) = network.known_network {
-                        Self::format_known_network_display(known_network, icon_type) == output
-                    } else {
-                        false
-                    }
-                })
-                .and_then(|(network, _)| network.known_network.clone());
-
-            if let Some(known_network) = selected_known_network {
-                self.show_known_network_options(
-                    station,
-                    &known_network,
-                    log_sender,
-                    notification_sender,
-                )
-                .await?;
-            }
-        }
-
-        Ok(())
-    }
-
-    pub async fn show_known_network_options(
-        &self,
-        station: &mut Station,
-        known_network: &KnownNetwork,
-        log_sender: UnboundedSender<String>,
-        notification_sender: UnboundedSender<(
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<Timeout>,
-        )>,
-    ) -> Result<()> {
-        let mut input = String::new();
-        input.push_str("Toggle Autoconnect\n");
-        input.push_str("Forget Network\n");
-
-        let menu_output = self.show_menu(&input);
-
-        match menu_output.as_deref() {
-            Some("Toggle Autoconnect") => {
-                known_network
-                    .toggle_autoconnect(log_sender, notification_sender)
-                    .await?;
-            }
-            Some("Forget Network") => {
-                known_network
-                    .forget(log_sender, notification_sender)
-                    .await?;
-                station.refresh().await?;
-            }
-            _ => {}
-        }
-
-        Ok(())
-    }
-
-    pub async fn select_ssid(
-        &self,
-        station: &mut Station,
-        log_sender: UnboundedSender<String>,
-        notification_sender: UnboundedSender<(
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<Timeout>,
-        )>,
-        icon_type: &str,
-    ) -> Result<Option<String>> {
-        loop {
-            let scan_icon = match icon_type {
-                "font" => {
-                    format!("{}{}", Self::add_spacing('\u{f46a}', 10, false), "Scan")
-                }
-                "xdg" => "Scan\0icon\x1femblem-synchronizing-symbolic".to_string(),
-                _ => "Scan".to_string(),
-            };
-
-            let known_networks_icon = match icon_type {
-                "font" => {
-                    format!(
-                        "{}{}",
-                        Self::add_spacing('\u{f16bd}', 10, false),
-                        "Known Networks"
-                    )
-                }
-                "xdg" => "Known Networks\0icon\x1fnetwork-wireless-connected-symbolic".to_string(),
-                _ => "Known Networks".to_string(),
-            };
-
-            let mut input = format!("{}\n{}\n", scan_icon, known_networks_icon);
-
-            for (network, signal_strength) in &station.known_networks {
-                let network_info =
-                    Self::format_network_display(network, *signal_strength, icon_type);
-                input.push_str(&format!("{}\n", network_info));
-            }
-
-            for (network, signal_strength) in &station.new_networks {
-                let network_info =
-                    Self::format_network_display(network, *signal_strength, icon_type);
-                input.push_str(&format!("{}\n", network_info));
-            }
-
-            let menu_output = self.show_menu(&input);
-
-            match menu_output {
-                Some(output) => {
-                    if output == "Scan" || output.contains("Scan") {
-                        station
-                            .scan(log_sender.clone(), notification_sender.clone())
-                            .await?;
-                        station.refresh().await?;
-                        continue;
-                    } else if output == "Known Networks" || output.contains("Known Networks") {
-                        self.show_known_networks_menu(
-                            station,
-                            log_sender.clone(),
-                            notification_sender.clone(),
-                            icon_type,
-                        )
-                        .await?;
-                        continue;
-                    }
-
-                    let selected_network = station
-                        .new_networks
-                        .iter()
-                        .chain(station.known_networks.iter())
-                        .find(|(network, signal_strength)| {
-                            let formatted_network =
-                                Self::format_network_display(network, *signal_strength, icon_type);
-
-                            if icon_type == "xdg" {
-                                let output_without_icon = output.split('\0').next().unwrap_or("");
-                                formatted_network.split('\0').next().unwrap_or("")
-                                    == output_without_icon
-                            } else {
-                                formatted_network == output
-                            }
-                        })
-                        .map(|(network, _)| network.name.clone());
-
-                    return Ok(selected_network);
-                }
-                None => return Ok(None),
-            }
-        }
-    }
-
-    fn show_menu(&self, input: &str) -> Option<String> {
+    pub fn run_dmenu_backend(&self, input: &str) -> Option<String> {
         let output = match self {
             Menu::Fuzzel => Command::new("fuzzel")
                 .arg("-d")
@@ -351,8 +170,119 @@ impl Menu {
         }
     }
 
+    pub fn select_network<'a, I>(
+        &self,
+        mut networks: I,
+        output: String,
+        icon_type: &str,
+    ) -> Option<(Network, i16)>
+    where
+        I: Iterator<Item = &'a (Network, i16)>,
+    {
+        networks
+            .find(|(network, signal_strength)| {
+                let formatted_network =
+                    Self::format_network_display(network, *signal_strength, icon_type);
+    
+                if icon_type == "xdg" {
+                    let output_without_icon = output.split('\0').next().unwrap_or("");
+                    formatted_network.split('\0').next().unwrap_or("") == output_without_icon
+                } else {
+                    formatted_network == output
+                }
+            })
+            .cloned()
+    }
+    
+
     pub fn prompt_passphrase(&self, ssid: &str) -> Option<String> {
         let prompt = format!("Enter passphrase for {}: ", ssid);
-        self.show_menu(&prompt)
+        self.run_dmenu_backend(&prompt)
+    }
+
+    pub async fn show_menu(
+        &self,
+        station: &mut Station,
+        icon_type: &str,
+    ) -> Result<Option<String>> {
+        let scan_icon = match icon_type {
+            "font" => format!("{}{}", Self::add_spacing('\u{f46a}', 10, false), "Scan"),
+            "xdg" => "Scan\0icon\x1femblem-synchronizing-symbolic".to_string(),
+            _ => "Scan".to_string(),
+        };
+
+        let known_networks_icon = match icon_type {
+            "font" => format!(
+                "{}{}",
+                Self::add_spacing('\u{f16bd}', 10, false),
+                "Known Networks"
+            ),
+            "xdg" => "Known Networks\0icon\x1fnetwork-wireless-connected-symbolic".to_string(),
+            _ => "Known Networks".to_string(),
+        };
+
+        let mut input = format!("{}\n{}\n", scan_icon, known_networks_icon);
+
+        for (network, signal_strength) in &station.known_networks {
+            let network_info = Self::format_network_display(network, *signal_strength, icon_type);
+            input.push_str(&format!("{}\n", network_info));
+        }
+
+        for (network, signal_strength) in &station.new_networks {
+            let network_info = Self::format_network_display(network, *signal_strength, icon_type);
+            input.push_str(&format!("{}\n", network_info));
+        }
+
+        let menu_output = self.run_dmenu_backend(&input);
+
+        Ok(menu_output)
+    }
+
+    pub async fn show_known_networks_menu(
+        &self,
+        station: &mut Station,
+        icon_type: &str,
+    ) -> Result<Option<KnownNetwork>> {
+        let mut input = String::new();
+
+        for (network, _signal_strength) in &station.known_networks {
+            if let Some(ref known_network) = network.known_network {
+                let network_info = Self::format_known_network_display(known_network, icon_type);
+                input.push_str(&format!("{}\n", network_info));
+            }
+        }
+
+        let menu_output = self.run_dmenu_backend(&input);
+
+        if let Some(output) = menu_output {
+            let selected_known_network = station
+                .known_networks
+                .iter()
+                .find(|(network, _)| {
+                    if let Some(ref known_network) = network.known_network {
+                        Self::format_known_network_display(known_network, icon_type) == output
+                    } else {
+                        false
+                    }
+                })
+                .and_then(|(network, _)| network.known_network.clone());
+
+            Ok(selected_known_network)
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub async fn show_known_network_options(
+        &self,
+        _known_network: &KnownNetwork,
+    ) -> Result<Option<String>> {
+        let mut input = String::new();
+        input.push_str("Toggle Autoconnect\n");
+        input.push_str("Forget Network\n");
+
+        let menu_output = self.run_dmenu_backend(&input);
+
+        Ok(menu_output)
     }
 }
