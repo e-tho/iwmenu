@@ -1,6 +1,7 @@
 use anyhow::Result;
 use chrono::{DateTime, FixedOffset};
 use iwdrs::known_netowk::KnownNetwork as IwdKnownNetwork;
+use notify_rust::Timeout;
 use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug, Clone)]
@@ -34,38 +35,68 @@ impl KnownNetwork {
         })
     }
 
-    pub async fn forget(&self, sender: UnboundedSender<String>) -> Result<()> {
+    pub async fn forget(
+        &self,
+        sender: UnboundedSender<String>,
+        notification_sender: UnboundedSender<(
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<Timeout>,
+        )>,
+    ) -> Result<()> {
         match self.n.forget().await {
             Ok(_) => {
                 let msg = "Network Removed".to_string();
                 sender
-                    .send(msg)
+                    .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                notification_sender
+                    .send((None, Some(msg.clone()), None, None))
+                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
             }
             Err(e) => {
                 let msg = e.to_string();
                 sender
-                    .send(msg)
+                    .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                notification_sender
+                    .send((None, Some(msg.clone()), None, None))
+                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
             }
         }
         Ok(())
     }
 
-    pub async fn toggle_autoconnect(&self, sender: UnboundedSender<String>) -> Result<()> {
+    pub async fn toggle_autoconnect(
+        &self,
+        sender: UnboundedSender<String>,
+        notification_sender: UnboundedSender<(
+            Option<String>,
+            Option<String>,
+            Option<String>,
+            Option<Timeout>,
+        )>,
+    ) -> Result<()> {
         if self.is_autoconnect {
             match self.n.set_autoconnect(false).await {
                 Ok(_) => {
                     let msg = format!("Disable Autoconnect for: {}", self.name);
                     sender
-                        .send(msg)
+                        .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    notification_sender
+                        .send((None, Some(msg.clone()), None, None))
+                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
                 }
                 Err(e) => {
                     let msg = e.to_string();
                     sender
-                        .send(msg)
+                        .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    notification_sender
+                        .send((None, Some(msg.clone()), None, None))
+                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
                 }
             }
         } else {
@@ -73,14 +104,20 @@ impl KnownNetwork {
                 Ok(_) => {
                     let msg = format!("Enable Autoconnect for: {}", self.name);
                     sender
-                        .send(msg)
+                        .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    notification_sender
+                        .send((None, Some(msg.clone()), None, None))
+                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
                 }
                 Err(e) => {
                     let msg = e.to_string();
                     sender
-                        .send(msg)
+                        .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    notification_sender
+                        .send((None, Some(msg.clone()), None, None))
+                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
                 }
             }
         }
