@@ -53,7 +53,7 @@ impl App {
                         .show_known_networks_menu(&mut self.station, icon_type)
                         .await?
                     {
-                        self.handle_known_network_options(menu, &known_network)
+                        self.handle_known_network_options(menu, &known_network, icon_type)
                             .await?;
                     }
                 } else if let Some(ssid) = self
@@ -83,8 +83,12 @@ impl App {
         &mut self,
         menu: &Menu,
         known_network: &KnownNetwork,
+        icon_type: &str,
     ) -> Result<()> {
-        if let Some(option) = menu.show_known_network_options(known_network).await? {
+        if let Some(option) = menu
+            .show_known_network_options(known_network, icon_type)
+            .await?
+        {
             match option.as_str() {
                 "Toggle Autoconnect" => {
                     known_network

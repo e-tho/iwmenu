@@ -283,10 +283,31 @@ impl Menu {
     pub async fn show_known_network_options(
         &self,
         _known_network: &KnownNetwork,
+        icon_type: &str,
     ) -> Result<Option<String>> {
         let mut input = String::new();
-        input.push_str("Toggle Autoconnect\n");
-        input.push_str("Forget Network\n");
+
+        let toggle_autoconnect_icon = match icon_type {
+            "font" => format!(
+                "{}{}",
+                Self::add_spacing('\u{f0456}', 10, false),
+                "Toggle Autoconnect"
+            ),
+            "xdg" => "Toggle Autoconnect\0icon\x1fmedia-playlist-repeat-symbolic".to_string(),
+            _ => "Toggle Autoconnect".to_string(),
+        };
+
+        let forget_icon = match icon_type {
+            "font" => format!(
+                "{}{}",
+                Self::add_spacing('\u{f0156}', 10, false),
+                "Forget Network"
+            ),
+            "xdg" => "Forget Network\0icon\x1fclose-symbolic".to_string(),
+            _ => "Forget Network".to_string(),
+        };
+
+        input.push_str(&format!("{}\n{}\n", toggle_autoconnect_icon, forget_icon));
 
         let menu_output = self.run_dmenu_backend(&input);
 
