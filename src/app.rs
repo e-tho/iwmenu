@@ -90,15 +90,19 @@ impl App {
             .await?
         {
             match option.as_str() {
-                "Toggle Autoconnect" => {
+                option
+                    if option.contains("Disable Autoconnect")
+                        || option.contains("Enable Autoconnect") =>
+                {
                     known_network
                         .toggle_autoconnect(
                             self.log_sender.clone(),
                             self.notification_sender.clone(),
                         )
                         .await?;
+                    self.station.refresh().await?;
                 }
-                "Forget Network" => {
+                option if option.contains("Forget Network") => {
                     known_network
                         .forget(self.log_sender.clone(), self.notification_sender.clone())
                         .await?;
