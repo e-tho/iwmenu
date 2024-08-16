@@ -281,32 +281,46 @@ impl Menu {
 
     pub async fn show_known_network_options(
         &self,
-        _known_network: &KnownNetwork,
+        known_network: &KnownNetwork,
         icon_type: &str,
     ) -> Result<Option<String>> {
         let mut input = String::new();
-
-        let toggle_autoconnect_icon = match icon_type {
-            "font" => format!(
-                "{}{}",
-                Self::add_spacing('\u{f0456}', 10, false),
-                "Toggle Autoconnect"
-            ),
-            "xdg" => "Toggle Autoconnect\0icon\x1fmedia-playlist-repeat-symbolic".to_string(),
-            _ => "Toggle Autoconnect".to_string(),
+        let toggle_autoconnect_option = if known_network.is_autoconnect {
+            match icon_type {
+                "font" => format!(
+                    "{}{}",
+                    Self::add_spacing('\u{f0547}', 10, false),
+                    "Disable Autoconnect"
+                ),
+                "xdg" => "Disable Autoconnect\0icon\x1fmedia-playlist-repeat-symbolic".to_string(),
+                _ => "Disable Autoconnect".to_string(),
+            }
+        } else {
+            match icon_type {
+                "font" => format!(
+                    "{}{}",
+                    Self::add_spacing('\u{f0547}', 10, false),
+                    "Enable Autoconnect"
+                ),
+                "xdg" => "Enable Autoconnect\0icon\x1fmedia-playlist-repeat-symbolic".to_string(),
+                _ => "Enable Autoconnect".to_string(),
+            }
         };
 
-        let forget_icon = match icon_type {
+        let forget_option = match icon_type {
             "font" => format!(
                 "{}{}",
-                Self::add_spacing('\u{f0156}', 10, false),
+                Self::add_spacing('\u{f01b4}', 10, false),
                 "Forget Network"
             ),
             "xdg" => "Forget Network\0icon\x1fclose-symbolic".to_string(),
             _ => "Forget Network".to_string(),
         };
 
-        input.push_str(&format!("{}\n{}\n", toggle_autoconnect_icon, forget_icon));
+        input.push_str(&format!(
+            "{}\n{}\n",
+            toggle_autoconnect_option, forget_option
+        ));
 
         let menu_output = self.run_dmenu_backend(&input);
 
