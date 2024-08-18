@@ -213,10 +213,10 @@ impl Menu {
         let known_networks_icon = match icon_type {
             "font" => format!(
                 "{}{}",
-                Self::add_spacing('\u{f05e1}', 10, false),
+                Self::add_spacing('\u{f0134}', 10, false),
                 "Known Networks"
             ),
-            "xdg" => "Known Networks\0icon\x1femblem-default-symbolic".to_string(),
+            "xdg" => "Known Networks\0icon\x1fapp-installed-symbolic".to_string(),
             _ => "Known Networks".to_string(),
         };
 
