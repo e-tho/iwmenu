@@ -1,34 +1,25 @@
 use anyhow::Result;
-use notify_rust::Timeout;
+use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     iw::{agent::AgentManager, known_network::KnownNetwork, station::Station},
     menu::Menu,
+    notification::NotificationManager,
 };
 
 pub struct App {
     station: Station,
     agent_manager: AgentManager,
     log_sender: UnboundedSender<String>,
-    notification_sender: UnboundedSender<(
-        Option<String>,
-        Option<String>,
-        Option<String>,
-        Option<Timeout>,
-    )>,
+    notification_manager: Arc<NotificationManager>,
 }
 
 impl App {
     pub async fn new(
         _menu: Menu,
         log_sender: UnboundedSender<String>,
-        notification_sender: UnboundedSender<(
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<Timeout>,
-        )>,
+        notification_manager: Arc<NotificationManager>,
     ) -> Result<Self> {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
@@ -39,7 +30,7 @@ impl App {
             station,
             agent_manager,
             log_sender,
-            notification_sender,
+            notification_manager,
         })
     }
 
@@ -73,7 +64,10 @@ impl App {
 
     async fn handle_scan(&mut self) -> Result<()> {
         self.station
-            .scan(self.log_sender.clone(), self.notification_sender.clone())
+            .scan(
+                self.log_sender.clone(),
+                Arc::clone(&self.notification_manager),
+            )
             .await?;
         self.station.refresh().await?;
         Ok(())
@@ -97,14 +91,14 @@ impl App {
                     known_network
                         .toggle_autoconnect(
                             self.log_sender.clone(),
-                            self.notification_sender.clone(),
+                            self.notification_manager.clone(),
                         )
                         .await?;
                     self.station.refresh().await?;
                 }
                 option if option.contains("Forget Network") => {
                     known_network
-                        .forget(self.log_sender.clone(), self.notification_sender.clone())
+                        .forget(self.log_sender.clone(), self.notification_manager.clone())
                         .await?;
                     self.station.refresh().await?;
                 }
@@ -134,7 +128,7 @@ impl App {
                 .map_or(false, |cn| cn.name == network.name)
             {
                 self.station
-                    .disconnect(self.log_sender.clone(), self.notification_sender.clone())
+                    .disconnect(self.log_sender.clone(), self.notification_manager.clone())
                     .await?;
                 self.station.refresh().await?;
                 return Ok(None);
@@ -160,7 +154,7 @@ impl App {
                         ))
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     network
-                        .connect(self.log_sender.clone(), self.notification_sender.clone())
+                        .connect(self.log_sender.clone(), self.notification_manager.clone())
                         .await?;
                     return Ok(Some(network.name.clone()));
                 }
@@ -173,7 +167,7 @@ impl App {
             }
 
             network
-                .connect(self.log_sender.clone(), self.notification_sender.clone())
+                .connect(self.log_sender.clone(), self.notification_manager.clone())
                 .await?;
             self.station.refresh().await?;
             Ok(Some(network.name.clone()))

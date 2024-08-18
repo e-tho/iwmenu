@@ -8,7 +8,7 @@ use tokio::{
     time::{sleep, Duration},
 };
 
-use crate::iw::network::Network;
+use crate::{iw::network::Network, notification::NotificationManager};
 
 #[derive(Debug, Clone)]
 pub struct Station {
@@ -128,12 +128,7 @@ impl Station {
     pub async fn scan(
         &self,
         sender: UnboundedSender<String>,
-        notification_sender: UnboundedSender<(
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<Timeout>,
-        )>,
+        notification_manager: Arc<NotificationManager>,
     ) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
 
@@ -142,14 +137,12 @@ impl Station {
                 .send("Scan already in progress, waiting...".to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-            notification_sender
-                .send((
-                    None,
-                    Some("Scan already in progress, waiting...".to_string()),
-                    None,
-                    None,
-                ))
-                .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+            notification_manager.send_notification(
+                None,
+                Some("Scan already in progress, waiting...".to_string()),
+                None,
+                None,
+            );
 
             return Ok(());
         }
@@ -160,18 +153,19 @@ impl Station {
                     .send("Start Scanning".to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-                notification_sender
-                    .send((None, Some("Starting Wi-Fi scan...".to_string()), None, None))
-                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+                notification_manager.send_notification(
+                    None,
+                    Some("Wi-Fi scan in progress".to_string()),
+                    None,
+                    None,
+                );
             }
             Err(e) => {
                 sender
                     .send(e.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-                notification_sender
-                    .send((None, Some(e.to_string()), None, None))
-                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+                notification_manager.send_notification(None, Some(e.to_string()), None, None);
 
                 return Err(e.into());
             }
@@ -194,12 +188,7 @@ impl Station {
     pub async fn disconnect(
         &mut self,
         sender: UnboundedSender<String>,
-        notification_sender: UnboundedSender<(
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<Timeout>,
-        )>,
+        notification_manager: Arc<NotificationManager>,
     ) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
         match iwd_station.disconnect().await {
@@ -211,15 +200,24 @@ impl Station {
                 sender
                     .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                notification_sender
-                    .send((None, Some(msg.clone()), None, None))
-                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+                notification_manager.send_notification(
+                    None,
+                    Some(msg.clone()),
+                    None,
+                    Some(Timeout::Milliseconds(3000)),
+                );
             }
             Err(e) => {
                 let msg = e.to_string();
                 sender
-                    .send(msg)
+                    .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                notification_manager.send_notification(
+                    None,
+                    Some(msg.clone()),
+                    None,
+                    Some(Timeout::Milliseconds(3000)),
+                );
             }
         }
         Ok(())
