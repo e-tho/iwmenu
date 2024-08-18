@@ -2,7 +2,10 @@ use anyhow::Result;
 use chrono::{DateTime, FixedOffset};
 use iwdrs::known_netowk::KnownNetwork as IwdKnownNetwork;
 use notify_rust::Timeout;
+use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
+
+use crate::notification::NotificationManager;
 
 #[derive(Debug, Clone)]
 pub struct KnownNetwork {
@@ -38,12 +41,7 @@ impl KnownNetwork {
     pub async fn forget(
         &self,
         sender: UnboundedSender<String>,
-        notification_sender: UnboundedSender<(
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<Timeout>,
-        )>,
+        notification_manager: Arc<NotificationManager>,
     ) -> Result<()> {
         match self.n.forget().await {
             Ok(_) => {
@@ -51,18 +49,26 @@ impl KnownNetwork {
                 sender
                     .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                notification_sender
-                    .send((None, Some(msg.clone()), None, None))
-                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+
+                notification_manager.send_notification(
+                    None,
+                    Some(msg.clone()),
+                    None,
+                    Some(Timeout::Milliseconds(3000)),
+                );
             }
             Err(e) => {
                 let msg = e.to_string();
                 sender
                     .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                notification_sender
-                    .send((None, Some(msg.clone()), None, None))
-                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+
+                notification_manager.send_notification(
+                    None,
+                    Some(msg.clone()),
+                    None,
+                    Some(Timeout::Milliseconds(3000)),
+                );
             }
         }
         Ok(())
@@ -71,12 +77,7 @@ impl KnownNetwork {
     pub async fn toggle_autoconnect(
         &self,
         sender: UnboundedSender<String>,
-        notification_sender: UnboundedSender<(
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<Timeout>,
-        )>,
+        notification_manager: Arc<NotificationManager>,
     ) -> Result<()> {
         if self.is_autoconnect {
             match self.n.set_autoconnect(false).await {
@@ -85,18 +86,26 @@ impl KnownNetwork {
                     sender
                         .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    notification_sender
-                        .send((None, Some(msg.clone()), None, None))
-                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+
+                    notification_manager.send_notification(
+                        None,
+                        Some(msg.clone()),
+                        None,
+                        Some(Timeout::Milliseconds(3000)),
+                    );
                 }
                 Err(e) => {
                     let msg = e.to_string();
                     sender
                         .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    notification_sender
-                        .send((None, Some(msg.clone()), None, None))
-                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+
+                    notification_manager.send_notification(
+                        None,
+                        Some(msg.clone()),
+                        None,
+                        Some(Timeout::Milliseconds(3000)),
+                    );
                 }
             }
         } else {
@@ -106,18 +115,26 @@ impl KnownNetwork {
                     sender
                         .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    notification_sender
-                        .send((None, Some(msg.clone()), None, None))
-                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+
+                    notification_manager.send_notification(
+                        None,
+                        Some(msg.clone()),
+                        None,
+                        Some(Timeout::Milliseconds(3000)),
+                    );
                 }
                 Err(e) => {
                     let msg = e.to_string();
                     sender
                         .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    notification_sender
-                        .send((None, Some(msg.clone()), None, None))
-                        .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+
+                    notification_manager.send_notification(
+                        None,
+                        Some(msg.clone()),
+                        None,
+                        Some(Timeout::Milliseconds(3000)),
+                    );
                 }
             }
         }

@@ -1,9 +1,10 @@
 use anyhow::Result;
 use iwdrs::netowrk::Network as IwdNetwork;
 use notify_rust::Timeout;
+use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::iw::known_network::KnownNetwork;
+use crate::{iw::known_network::KnownNetwork, notification::NotificationManager};
 
 #[derive(Debug, Clone)]
 pub struct Network {
@@ -41,12 +42,7 @@ impl Network {
     pub async fn connect(
         &self,
         sender: UnboundedSender<String>,
-        notification_sender: UnboundedSender<(
-            Option<String>,
-            Option<String>,
-            Option<String>,
-            Option<Timeout>,
-        )>,
+        notification_manager: Arc<NotificationManager>,
     ) -> Result<()> {
         match self.n.connect().await {
             Ok(_) => {
@@ -54,9 +50,12 @@ impl Network {
                 sender.send(msg.clone()).unwrap_or_else(|err| {
                     println!("Failed to send log message: {}", err);
                 });
-                notification_sender
-                    .send((None, Some(msg.clone()), None, None))
-                    .unwrap_or_else(|err| println!("Failed to send notification: {}", err));
+                notification_manager.send_notification(
+                    None,
+                    Some(msg.clone()),
+                    None,
+                    Some(Timeout::Milliseconds(3000)),
+                );
             }
             Err(e) => {
                 let msg = if e.to_string().contains("net.connman.iwd.Aborted") {
@@ -64,9 +63,15 @@ impl Network {
                 } else {
                     e.to_string()
                 };
-                sender.send(msg).unwrap_or_else(|err| {
+                sender.send(msg.clone()).unwrap_or_else(|err| {
                     println!("Failed to send log message: {}", err);
                 });
+                notification_manager.send_notification(
+                    None,
+                    Some(msg.clone()),
+                    None,
+                    Some(Timeout::Milliseconds(3000)),
+                );
             }
         }
         Ok(())
