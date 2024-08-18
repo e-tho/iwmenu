@@ -147,18 +147,18 @@ impl Station {
             return Ok(());
         }
 
-        match iwd_station.scan().await {
+        let handle = match iwd_station.scan().await {
             Ok(_) => {
                 sender
                     .send("Start Scanning".to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-                notification_manager.send_notification(
+                Some(notification_manager.send_notification(
                     None,
                     Some("Wi-Fi scan in progress".to_string()),
                     None,
-                    None,
-                );
+                    Some(Timeout::Never),
+                ))
             }
             Err(e) => {
                 sender
@@ -169,13 +169,17 @@ impl Station {
 
                 return Err(e.into());
             }
-        }
+        };
 
         loop {
             sleep(Duration::from_millis(500)).await;
             if !iwd_station.is_scanning().await? {
                 break;
             }
+        }
+
+        if let Some(handle) = handle {
+            handle.close();
         }
 
         sender
