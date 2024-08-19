@@ -57,11 +57,11 @@ iwmenu -d fuzzel
 
 ### Available Options
 
-| Flag             | Description                                                                     | Supported Values                  | Default Value |
-| ---------------- | ------------------------------------------------------------------------------- | --------------------------------- | ------------- |
-| `-d`, `--dmenu`  | Specify the dmenu backend to use.                                               | `dmenu`, `rofi`, `wofi`, `fuzzel` | `dmenu`       |
-| `-i`, `--icon`   | Specify the icon type to use.                                                   | `font`, `xdg`                     | `font`        |
-| `-s`, `--spaces` | Specify the number of space characters between icon and text (font icons only). | Any positive integer              | `1`           |
+| Flag             | Description                                         | Supported Values                  | Default Value |
+| ---------------- | --------------------------------------------------- | --------------------------------- | ------------- |
+| `-d`, `--dmenu`  | Specify the dmenu backend to use.                   | `dmenu`, `rofi`, `wofi`, `fuzzel` | `dmenu`       |
+| `-i`, `--icon`   | Specify the icon type to use.                       | `font`, `xdg`                     | `font`        |
+| `-s`, `--spaces` | Specify icon to text space count (font icons only). | Any positive integer              | `1`           |
 
 ## License
 
