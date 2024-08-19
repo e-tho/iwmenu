@@ -14,7 +14,6 @@ pub enum Menu {
     Rofi,
     Dmenu,
 }
-
 impl Menu {
     fn add_spacing(icon: char, spaces: usize, before: bool) -> String {
         if before {
@@ -24,7 +23,12 @@ impl Menu {
         }
     }
 
-    fn get_signal_icon(signal_strength: i16, network: &Network, icon_type: &str) -> String {
+    fn get_signal_icon(
+        signal_strength: i16,
+        network: &Network,
+        icon_type: &str,
+        spaces: usize,
+    ) -> String {
         if icon_type == "font" {
             let icon_name = match signal_strength {
                 -10000..=-7500 => match network.network_type.as_str() {
@@ -45,7 +49,7 @@ impl Menu {
                 },
             };
 
-            return Self::add_spacing(icon_name, 10, false);
+            return Self::add_spacing(icon_name, spaces, false);
         }
 
         let icon_name = match signal_strength {
@@ -64,11 +68,16 @@ impl Menu {
         format!("{}{}", icon_name, suffix)
     }
 
-    fn format_network_display(network: &Network, signal_strength: i16, icon_type: &str) -> String {
-        let signal_icon = Self::get_signal_icon(signal_strength, network, icon_type);
+    fn format_network_display(
+        network: &Network,
+        signal_strength: i16,
+        icon_type: &str,
+        spaces: usize,
+    ) -> String {
+        let signal_icon = Self::get_signal_icon(signal_strength, network, icon_type, spaces);
 
         let connected_icon = if network.is_connected && icon_type == "font" {
-            Self::add_spacing('\u{f0133}', 10, true)
+            Self::add_spacing('\u{f0133}', spaces, true)
         } else {
             String::new()
         };
@@ -80,9 +89,13 @@ impl Menu {
         }
     }
 
-    fn format_known_network_display(known_network: &KnownNetwork, icon_type: &str) -> String {
+    fn format_known_network_display(
+        known_network: &KnownNetwork,
+        icon_type: &str,
+        spaces: usize,
+    ) -> String {
         if icon_type == "font" {
-            Self::add_spacing('\u{f16bd}', 10, false) + &known_network.name
+            Self::add_spacing('\u{f16bd}', spaces, false) + &known_network.name
         } else {
             format!(
                 "{}\0icon\x1fnetwork-wireless-connected-symbolic",
@@ -90,6 +103,7 @@ impl Menu {
             )
         }
     }
+
     pub fn run_dmenu_backend(&self, input: &str, icon_type: &str) -> Option<String> {
         let output = match self {
             Menu::Fuzzel => {
@@ -194,6 +208,7 @@ impl Menu {
         mut networks: I,
         output: String,
         icon_type: &str,
+        spaces: usize,
     ) -> Option<(Network, i16)>
     where
         I: Iterator<Item = &'a (Network, i16)>,
@@ -201,7 +216,7 @@ impl Menu {
         networks
             .find(|(network, signal_strength)| {
                 let formatted_network =
-                    Self::format_network_display(network, *signal_strength, icon_type);
+                    Self::format_network_display(network, *signal_strength, icon_type, spaces);
 
                 if icon_type == "xdg" {
                     let output_without_icon = output.split('\0').next().unwrap_or("");
@@ -222,9 +237,10 @@ impl Menu {
         &self,
         station: &mut Station,
         icon_type: &str,
+        spaces: usize,
     ) -> Result<Option<String>> {
         let scan_icon = match icon_type {
-            "font" => format!("{}{}", Self::add_spacing('\u{f46a}', 10, false), "Scan"),
+            "font" => format!("{}{}", Self::add_spacing('\u{f46a}', spaces, false), "Scan"),
             "xdg" => "Scan\0icon\x1fview-refresh-symbolic".to_string(),
             _ => "Scan".to_string(),
         };
@@ -232,7 +248,7 @@ impl Menu {
         let known_networks_icon = match icon_type {
             "font" => format!(
                 "{}{}",
-                Self::add_spacing('\u{f0134}', 10, false),
+                Self::add_spacing('\u{f0134}', spaces, false),
                 "Known Networks"
             ),
             "xdg" => "Known Networks\0icon\x1fapp-installed-symbolic".to_string(),
@@ -242,12 +258,14 @@ impl Menu {
         let mut input = format!("{}\n{}\n", scan_icon, known_networks_icon);
 
         for (network, signal_strength) in &station.known_networks {
-            let network_info = Self::format_network_display(network, *signal_strength, icon_type);
+            let network_info =
+                Self::format_network_display(network, *signal_strength, icon_type, spaces);
             input.push_str(&format!("{}\n", network_info));
         }
 
         for (network, signal_strength) in &station.new_networks {
-            let network_info = Self::format_network_display(network, *signal_strength, icon_type);
+            let network_info =
+                Self::format_network_display(network, *signal_strength, icon_type, spaces);
             input.push_str(&format!("{}\n", network_info));
         }
 
@@ -260,12 +278,14 @@ impl Menu {
         &self,
         station: &mut Station,
         icon_type: &str,
+        spaces: usize,
     ) -> Result<Option<KnownNetwork>> {
         let mut input = String::new();
 
         for (network, _signal_strength) in &station.known_networks {
             if let Some(ref known_network) = network.known_network {
-                let network_info = Self::format_known_network_display(known_network, icon_type);
+                let network_info =
+                    Self::format_known_network_display(known_network, icon_type, spaces);
                 input.push_str(&format!("{}\n", network_info));
             }
         }
@@ -284,7 +304,7 @@ impl Menu {
                 .iter()
                 .find(|(network, _)| {
                     if let Some(ref known_network) = network.known_network {
-                        Self::format_known_network_display(known_network, icon_type)
+                        Self::format_known_network_display(known_network, icon_type, spaces)
                             .starts_with(output_without_icon)
                     } else {
                         false
@@ -302,13 +322,14 @@ impl Menu {
         &self,
         known_network: &KnownNetwork,
         icon_type: &str,
+        spaces: usize,
     ) -> Result<Option<String>> {
         let mut input = String::new();
         let toggle_autoconnect_option = if known_network.is_autoconnect {
             match icon_type {
                 "font" => format!(
                     "{}{}",
-                    Self::add_spacing('\u{f0547}', 10, false),
+                    Self::add_spacing('\u{f0547}', spaces, false),
                     "Disable Autoconnect"
                 ),
                 "xdg" => "Disable Autoconnect\0icon\x1fmedia-playlist-repeat-symbolic".to_string(),
@@ -318,7 +339,7 @@ impl Menu {
             match icon_type {
                 "font" => format!(
                     "{}{}",
-                    Self::add_spacing('\u{f0547}', 10, false),
+                    Self::add_spacing('\u{f0547}', spaces, false),
                     "Enable Autoconnect"
                 ),
                 "xdg" => "Enable Autoconnect\0icon\x1fmedia-playlist-repeat-symbolic".to_string(),
@@ -329,7 +350,7 @@ impl Menu {
         let forget_option = match icon_type {
             "font" => format!(
                 "{}{}",
-                Self::add_spacing('\u{f01b4}', 10, false),
+                Self::add_spacing('\u{f01b4}', spaces, false),
                 "Forget Network"
             ),
             "xdg" => "Forget Network\0icon\x1fclose-symbolic".to_string(),

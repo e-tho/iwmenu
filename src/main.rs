@@ -31,10 +31,22 @@ async fn main() -> Result<()> {
                 .default_value("font")
                 .help("Choose the type of icons to use (font or xdg)"),
         )
+        .arg(
+            Arg::new("spaces")
+                .short('s')
+                .long("spaces")
+                .takes_value(true)
+                .default_value("1")
+                .help("Number of spaces between icon and text when using font icons"),
+        )
         .get_matches();
 
     let menu: Menu = matches.get_one::<Menu>("dmenu").cloned().unwrap();
     let icon_type = matches.get_one::<String>("icon").cloned().unwrap();
+    let spaces = matches
+        .get_one::<String>("spaces")
+        .and_then(|s| s.parse::<usize>().ok())
+        .unwrap_or(1);
 
     let (log_sender, mut log_receiver) = unbounded_channel::<String>();
     tokio::spawn(async move {
@@ -58,7 +70,7 @@ async fn main() -> Result<()> {
     )
     .await?;
 
-    app.run(&menu, &icon_type).await?;
+    app.run(&menu, &icon_type, spaces).await?;
 
     Ok(())
 }
