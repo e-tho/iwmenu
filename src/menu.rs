@@ -90,61 +90,80 @@ impl Menu {
             )
         }
     }
-
-    pub fn run_dmenu_backend(&self, input: &str) -> Option<String> {
+    pub fn run_dmenu_backend(&self, input: &str, icon_type: &str) -> Option<String> {
         let output = match self {
-            Menu::Fuzzel => Command::new("fuzzel")
-                .arg("-d")
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn()
-                .and_then(|mut child| {
-                    child
-                        .stdin
-                        .as_mut()
-                        .unwrap()
-                        .write_all(input.as_bytes())
-                        .unwrap();
-                    let output = child.wait_with_output()?;
-                    Ok(String::from_utf8_lossy(&output.stdout).to_string())
-                })
-                .ok()?,
-            Menu::Wofi => Command::new("wofi")
-                .arg("-d")
-                .arg("-I")
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn()
-                .and_then(|mut child| {
-                    child
-                        .stdin
-                        .as_mut()
-                        .unwrap()
-                        .write_all(input.as_bytes())
-                        .unwrap();
-                    let output = child.wait_with_output()?;
-                    Ok(String::from_utf8_lossy(&output.stdout).to_string())
-                })
-                .ok()?,
-            Menu::Rofi => Command::new("rofi")
-                .arg("-m")
-                .arg("-1")
-                .arg("-dmenu")
-                .arg("-i")
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn()
-                .and_then(|mut child| {
-                    child
-                        .stdin
-                        .as_mut()
-                        .unwrap()
-                        .write_all(input.as_bytes())
-                        .unwrap();
-                    let output = child.wait_with_output()?;
-                    Ok(String::from_utf8_lossy(&output.stdout).to_string())
-                })
-                .ok()?,
+            Menu::Fuzzel => {
+                let mut command = Command::new("fuzzel");
+                command.arg("-d");
+
+                if icon_type == "font" {
+                    command.arg("-I");
+                }
+
+                command
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .and_then(|mut child| {
+                        child
+                            .stdin
+                            .as_mut()
+                            .unwrap()
+                            .write_all(input.as_bytes())
+                            .unwrap();
+                        let output = child.wait_with_output()?;
+                        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+                    })
+                    .ok()?
+            }
+            Menu::Wofi => {
+                let mut command = Command::new("wofi");
+                command.arg("-d").arg("-i");
+
+                if icon_type == "xdg" {
+                    command.arg("-I").arg("-m").arg("-q");
+                }
+
+                command
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .and_then(|mut child| {
+                        child
+                            .stdin
+                            .as_mut()
+                            .unwrap()
+                            .write_all(input.as_bytes())
+                            .unwrap();
+                        let output = child.wait_with_output()?;
+                        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+                    })
+                    .ok()?
+            }
+            Menu::Rofi => {
+                let mut command = Command::new("rofi");
+                command.arg("-m").arg("-1").arg("-dmenu");
+
+                if icon_type == "xdg" {
+                    command.arg("-show-icons");
+                }
+
+                command
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .spawn()
+                    .and_then(|mut child| {
+                        child
+                            .stdin
+                            .as_mut()
+                            .unwrap()
+                            .write_all(input.as_bytes())
+                            .unwrap();
+                        let output = child.wait_with_output()?;
+                        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+                    })
+                    .ok()?
+            }
             Menu::Dmenu => Command::new("dmenu")
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
@@ -194,9 +213,9 @@ impl Menu {
             .cloned()
     }
 
-    pub fn prompt_passphrase(&self, ssid: &str) -> Option<String> {
+    pub fn prompt_passphrase(&self, ssid: &str, icon_type: &str) -> Option<String> {
         let prompt = format!("Enter passphrase for {}: ", ssid);
-        self.run_dmenu_backend(&prompt)
+        self.run_dmenu_backend(&prompt, icon_type)
     }
 
     pub async fn show_menu(
@@ -232,7 +251,7 @@ impl Menu {
             input.push_str(&format!("{}\n", network_info));
         }
 
-        let menu_output = self.run_dmenu_backend(&input);
+        let menu_output = self.run_dmenu_backend(&input, icon_type);
 
         Ok(menu_output)
     }
@@ -251,7 +270,7 @@ impl Menu {
             }
         }
 
-        let menu_output = self.run_dmenu_backend(&input);
+        let menu_output = self.run_dmenu_backend(&input, icon_type);
 
         if let Some(output) = menu_output {
             let output_without_icon = if icon_type == "xdg" {
@@ -322,7 +341,7 @@ impl Menu {
             toggle_autoconnect_option, forget_option
         ));
 
-        let menu_output = self.run_dmenu_backend(&input);
+        let menu_output = self.run_dmenu_backend(&input, icon_type);
 
         Ok(menu_output)
     }

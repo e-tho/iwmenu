@@ -160,7 +160,7 @@ impl App {
                 }
             }
 
-            if let Some(passphrase) = menu.prompt_passphrase(&network.name) {
+            if let Some(passphrase) = menu.prompt_passphrase(&network.name, icon_type) {
                 self.agent_manager.send_passkey(passphrase)?;
             } else {
                 self.agent_manager.cancel_auth()?;
