@@ -13,21 +13,21 @@ async fn main() -> Result<()> {
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .arg(
-            Arg::new("dmenu")
-                .short('d')
-                .long("dmenu")
+            Arg::new("menu")
+                .short('m')
+                .long("menu")
                 .takes_value(true)
                 .required(true)
                 .value_parser(EnumValueParser::<Menu>::new())
                 .default_value("dmenu")
-                .help("Dmenu backend to use (dmenu, rofi, wofi, fuzzel)"),
+                .help("Menu application to use (dmenu, rofi, wofi, fuzzel)"),
         )
         .arg(
             Arg::new("menu_command")
                 .long("menu-command")
                 .takes_value(true)
-                .required_if_eq("dmenu", "custom")
-                .help("Menu command to use when --dmenu is set to custom"),
+                .required_if_eq("menu", "custom")
+                .help("Menu command to use when --menu is set to custom"),
         )
         .arg(
             Arg::new("icon")
@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
         )
         .get_matches();
 
-    let menu: Menu = matches.get_one::<Menu>("dmenu").cloned().unwrap();
+    let menu: Menu = matches.get_one::<Menu>("menu").cloned().unwrap();
     let icon_type = matches.get_one::<String>("icon").cloned().unwrap();
     let spaces = matches
         .get_one::<String>("spaces")

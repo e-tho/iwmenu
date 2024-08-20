@@ -8,7 +8,7 @@
 
 ## Prerequisites
 
-[iwd](https://iwd.wiki.kernel.org/) must be installed, along with one of the supported dmenu backends.
+[iwd](https://iwd.wiki.kernel.org/) must be installed, along with one of the supported launchers.
 
 > To ensure proper icon display, you can either install [nerdfonts](https://www.nerdfonts.com/) for font-based icons (usage is optional) or use the `--icon xdg` flag for image-based icons from your XDG theme.
 
@@ -49,23 +49,23 @@ environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
 
 ## Usage
 
-Specify a dmenu backend using `-d` or `--dmenu` flag.
+Specify an application using `-m` or `--menu` flag.
 
 ```
-iwmenu -d fuzzel
+iwmenu -m fuzzel
 ```
 
 If your launcher is not supported, or you need to add additional flags, you can specify `custom` as the menu and provide your command using the `--menu-command` flag.
 
 ```
-iwmenu -d custom --menu-command "my_custom_launcher --flag"
+iwmenu -m custom --menu-command "my_custom_launcher --flag"
 ```
 
 ### Available Options
 
 | Flag             | Description                                           | Supported Values                            | Default Value |
 | ---------------- | ----------------------------------------------------- | ------------------------------------------- | ------------- |
-| `-d`, `--dmenu`  | Specify the menu backend to use.                      | `dmenu`, `rofi`, `wofi`, `fuzzel`, `custom` | `dmenu`       |
+| `-m`, `--menu`   | Specify the menu application to use.                  | `dmenu`, `rofi`, `wofi`, `fuzzel`, `custom` | `dmenu`       |
 | `--menu-command` | Specify the command to use when `custom` menu is set. | Any valid shell command                     | `None`        |
 | `-i`, `--icon`   | Specify the icon type to use.                         | `font`, `xdg`                               | `font`        |
 | `-s`, `--spaces` | Specify icon to text space count (font icons only).   | Any positive integer                        | `1`           |
