@@ -55,13 +55,20 @@ Specify a dmenu backend using `-d` or `--dmenu` flag.
 iwmenu -d fuzzel
 ```
 
+If your launcher is not supported, or you need to add additional flags, you can specify `custom` as the menu and provide your command using the `--menu-command` flag.
+
+```
+iwmenu -d custom --menu-command "my_custom_launcher --flag"
+```
+
 ### Available Options
 
-| Flag             | Description                                         | Supported Values                  | Default Value |
-| ---------------- | --------------------------------------------------- | --------------------------------- | ------------- |
-| `-d`, `--dmenu`  | Specify the dmenu backend to use.                   | `dmenu`, `rofi`, `wofi`, `fuzzel` | `dmenu`       |
-| `-i`, `--icon`   | Specify the icon type to use.                       | `font`, `xdg`                     | `font`        |
-| `-s`, `--spaces` | Specify icon to text space count (font icons only). | Any positive integer              | `1`           |
+| Flag             | Description                                           | Supported Values                            | Default Value |
+| ---------------- | ----------------------------------------------------- | ------------------------------------------- | ------------- |
+| `-d`, `--dmenu`  | Specify the menu backend to use.                      | `dmenu`, `rofi`, `wofi`, `fuzzel`, `custom` | `dmenu`       |
+| `--menu-command` | Specify the command to use when `custom` menu is set. | Any valid shell command                     | `None`        |
+| `-i`, `--icon`   | Specify the icon type to use.                         | `font`, `xdg`                               | `font`        |
+| `-s`, `--spaces` | Specify icon to text space count (font icons only).   | Any positive integer                        | `1`           |
 
 ## License
 
