@@ -108,9 +108,9 @@ impl Menu {
 
     pub fn run_menu_app(
         &self,
+        menu_command: &Option<String>,
         input: &str,
         icon_type: &str,
-        menu_command: &Option<String>,
     ) -> Option<String> {
         let output = match self {
             Menu::Fuzzel => {
@@ -263,20 +263,20 @@ impl Menu {
 
     pub fn prompt_passphrase(
         &self,
+        menu_command: &Option<String>,
         ssid: &str,
         icon_type: &str,
-        menu_command: &Option<String>,
     ) -> Option<String> {
         let prompt = format!("Enter passphrase for {}: ", ssid);
-        self.run_menu_app(&prompt, icon_type, menu_command)
+        self.run_menu_app(menu_command, &prompt, icon_type)
     }
 
     pub async fn show_menu(
         &self,
+        menu_command: &Option<String>,
         station: &mut Station,
         icon_type: &str,
         spaces: usize,
-        menu_command: &Option<String>,
     ) -> Result<Option<String>> {
         let scan_icon = match icon_type {
             "font" => format!("{}{}", Self::add_spacing('\u{f46a}', spaces, false), "Scan"),
@@ -308,17 +308,17 @@ impl Menu {
             input.push_str(&format!("{}\n", network_info));
         }
 
-        let menu_output = self.run_menu_app(&input, icon_type, menu_command);
+        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
 
         Ok(menu_output)
     }
 
     pub async fn show_known_networks_menu(
         &self,
+        menu_command: &Option<String>,
         station: &mut Station,
         icon_type: &str,
         spaces: usize,
-        menu_command: &Option<String>,
     ) -> Result<Option<KnownNetwork>> {
         let mut input = String::new();
 
@@ -330,7 +330,7 @@ impl Menu {
             }
         }
 
-        let menu_output = self.run_menu_app(&input, icon_type, menu_command);
+        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
 
         if let Some(output) = menu_output {
             let output_without_icon = if icon_type == "xdg" {
@@ -360,10 +360,10 @@ impl Menu {
 
     pub async fn show_known_network_options(
         &self,
+        menu_command: &Option<String>,
         known_network: &KnownNetwork,
         icon_type: &str,
         spaces: usize,
-        menu_command: &Option<String>,
     ) -> Result<Option<String>> {
         let mut input = String::new();
         let toggle_autoconnect_option = if known_network.is_autoconnect {
@@ -403,7 +403,7 @@ impl Menu {
             toggle_autoconnect_option, forget_option
         ));
 
-        let menu_output = self.run_menu_app(&input, icon_type, menu_command);
+        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
 
         Ok(menu_output)
     }
