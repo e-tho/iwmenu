@@ -106,7 +106,7 @@ impl Menu {
         }
     }
 
-    pub fn run_dmenu_backend(
+    pub fn run_menu_app(
         &self,
         input: &str,
         icon_type: &str,
@@ -268,7 +268,7 @@ impl Menu {
         menu_command: &Option<String>,
     ) -> Option<String> {
         let prompt = format!("Enter passphrase for {}: ", ssid);
-        self.run_dmenu_backend(&prompt, icon_type, menu_command)
+        self.run_menu_app(&prompt, icon_type, menu_command)
     }
 
     pub async fn show_menu(
@@ -308,7 +308,7 @@ impl Menu {
             input.push_str(&format!("{}\n", network_info));
         }
 
-        let menu_output = self.run_dmenu_backend(&input, icon_type, menu_command);
+        let menu_output = self.run_menu_app(&input, icon_type, menu_command);
 
         Ok(menu_output)
     }
@@ -330,7 +330,7 @@ impl Menu {
             }
         }
 
-        let menu_output = self.run_dmenu_backend(&input, icon_type, menu_command);
+        let menu_output = self.run_menu_app(&input, icon_type, menu_command);
 
         if let Some(output) = menu_output {
             let output_without_icon = if icon_type == "xdg" {
@@ -403,7 +403,7 @@ impl Menu {
             toggle_autoconnect_option, forget_option
         ));
 
-        let menu_output = self.run_dmenu_backend(&input, icon_type, menu_command);
+        let menu_output = self.run_menu_app(&input, icon_type, menu_command);
 
         Ok(menu_output)
     }
