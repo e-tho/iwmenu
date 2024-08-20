@@ -53,13 +53,13 @@ environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
 
 Specify an application using `-m` or `--menu` flag.
 
-```
+```shell
 iwmenu -m fuzzel
 ```
 
 If your launcher is not supported, or you need to add additional flags, you can specify `custom` as the menu and provide your command using the `--menu-command` flag.
 
-```
+```shell
 iwmenu -m custom --menu-command "my_custom_launcher --flag"
 ```
 
