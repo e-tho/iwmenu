@@ -39,21 +39,36 @@ impl App {
         menu: &Menu,
         icon_type: &str,
         spaces: usize,
+        menu_command: &Option<String>,
     ) -> Result<Option<String>> {
         loop {
-            if let Some(output) = menu.show_menu(&mut self.station, icon_type, spaces).await? {
+            if let Some(output) = menu
+                .show_menu(&mut self.station, icon_type, spaces, menu_command)
+                .await?
+            {
                 if output.contains("Scan") {
                     self.handle_scan().await?;
                 } else if output.contains("Known Networks") {
                     if let Some(known_network) = menu
-                        .show_known_networks_menu(&mut self.station, icon_type, spaces)
+                        .show_known_networks_menu(
+                            &mut self.station,
+                            icon_type,
+                            spaces,
+                            menu_command,
+                        )
                         .await?
                     {
-                        self.handle_known_network_options(menu, &known_network, icon_type, spaces)
-                            .await?;
+                        self.handle_known_network_options(
+                            menu,
+                            &known_network,
+                            icon_type,
+                            spaces,
+                            menu_command,
+                        )
+                        .await?;
                     }
                 } else if let Some(ssid) = self
-                    .handle_network_selection(menu, &output, icon_type, spaces)
+                    .handle_network_selection(menu, &output, icon_type, spaces, menu_command)
                     .await?
                 {
                     return Ok(Some(ssid));
@@ -84,9 +99,10 @@ impl App {
         known_network: &KnownNetwork,
         icon_type: &str,
         spaces: usize,
+        menu_command: &Option<String>,
     ) -> Result<()> {
         if let Some(option) = menu
-            .show_known_network_options(known_network, icon_type, spaces)
+            .show_known_network_options(known_network, icon_type, spaces, menu_command)
             .await?
         {
             match option.as_str() {
@@ -120,6 +136,7 @@ impl App {
         output: &str,
         icon_type: &str,
         spaces: usize,
+        menu_command: &Option<String>,
     ) -> Result<Option<String>> {
         let networks = self
             .station
@@ -169,7 +186,9 @@ impl App {
                 }
             }
 
-            if let Some(passphrase) = menu.prompt_passphrase(&network.name, icon_type) {
+            if let Some(passphrase) =
+                menu.prompt_passphrase(&network.name, icon_type, menu_command)
+            {
                 self.agent_manager.send_passkey(passphrase)?;
             } else {
                 self.agent_manager.cancel_auth()?;

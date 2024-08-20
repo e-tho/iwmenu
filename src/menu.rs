@@ -13,7 +13,9 @@ pub enum Menu {
     Wofi,
     Rofi,
     Dmenu,
+    Custom,
 }
+
 impl Menu {
     fn add_spacing(icon: char, spaces: usize, before: bool) -> String {
         if before {
@@ -104,7 +106,12 @@ impl Menu {
         }
     }
 
-    pub fn run_dmenu_backend(&self, input: &str, icon_type: &str) -> Option<String> {
+    pub fn run_dmenu_backend(
+        &self,
+        input: &str,
+        icon_type: &str,
+        menu_command: &Option<String>,
+    ) -> Option<String> {
         let output = match self {
             Menu::Fuzzel => {
                 let mut command = Command::new("fuzzel");
@@ -193,6 +200,32 @@ impl Menu {
                     Ok(String::from_utf8_lossy(&output.stdout).to_string())
                 })
                 .ok()?,
+            Menu::Custom => {
+                if let Some(cmd) = menu_command {
+                    let parts: Vec<&str> = cmd.split_whitespace().collect();
+                    let (cmd, args) = parts.split_first().unwrap();
+                    let mut command = Command::new(cmd);
+                    command.args(args);
+
+                    command
+                        .stdin(Stdio::piped())
+                        .stdout(Stdio::piped())
+                        .spawn()
+                        .and_then(|mut child| {
+                            child
+                                .stdin
+                                .as_mut()
+                                .unwrap()
+                                .write_all(input.as_bytes())
+                                .unwrap();
+                            let output = child.wait_with_output()?;
+                            Ok(String::from_utf8_lossy(&output.stdout).to_string())
+                        })
+                        .ok()?
+                } else {
+                    return None;
+                }
+            }
         };
 
         let trimmed_output = output.trim().to_string();
@@ -228,9 +261,14 @@ impl Menu {
             .cloned()
     }
 
-    pub fn prompt_passphrase(&self, ssid: &str, icon_type: &str) -> Option<String> {
+    pub fn prompt_passphrase(
+        &self,
+        ssid: &str,
+        icon_type: &str,
+        menu_command: &Option<String>,
+    ) -> Option<String> {
         let prompt = format!("Enter passphrase for {}: ", ssid);
-        self.run_dmenu_backend(&prompt, icon_type)
+        self.run_dmenu_backend(&prompt, icon_type, menu_command)
     }
 
     pub async fn show_menu(
@@ -238,6 +276,7 @@ impl Menu {
         station: &mut Station,
         icon_type: &str,
         spaces: usize,
+        menu_command: &Option<String>,
     ) -> Result<Option<String>> {
         let scan_icon = match icon_type {
             "font" => format!("{}{}", Self::add_spacing('\u{f46a}', spaces, false), "Scan"),
@@ -269,7 +308,7 @@ impl Menu {
             input.push_str(&format!("{}\n", network_info));
         }
 
-        let menu_output = self.run_dmenu_backend(&input, icon_type);
+        let menu_output = self.run_dmenu_backend(&input, icon_type, menu_command);
 
         Ok(menu_output)
     }
@@ -279,6 +318,7 @@ impl Menu {
         station: &mut Station,
         icon_type: &str,
         spaces: usize,
+        menu_command: &Option<String>,
     ) -> Result<Option<KnownNetwork>> {
         let mut input = String::new();
 
@@ -290,7 +330,7 @@ impl Menu {
             }
         }
 
-        let menu_output = self.run_dmenu_backend(&input, icon_type);
+        let menu_output = self.run_dmenu_backend(&input, icon_type, menu_command);
 
         if let Some(output) = menu_output {
             let output_without_icon = if icon_type == "xdg" {
@@ -323,6 +363,7 @@ impl Menu {
         known_network: &KnownNetwork,
         icon_type: &str,
         spaces: usize,
+        menu_command: &Option<String>,
     ) -> Result<Option<String>> {
         let mut input = String::new();
         let toggle_autoconnect_option = if known_network.is_autoconnect {
@@ -362,7 +403,7 @@ impl Menu {
             toggle_autoconnect_option, forget_option
         ));
 
-        let menu_output = self.run_dmenu_backend(&input, icon_type);
+        let menu_output = self.run_dmenu_backend(&input, icon_type, menu_command);
 
         Ok(menu_output)
     }
