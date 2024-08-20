@@ -19,6 +19,8 @@
 - [Wofi](https://hg.sr.ht/~scoopta/wofi/)
 - [dmenu](https://tools.suckless.org/dmenu/)
 
+Use `custom` mode if your launcher is not supported.
+
 ## Installation
 
 ### Build from source
