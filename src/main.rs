@@ -23,6 +23,13 @@ async fn main() -> Result<()> {
                 .help("Dmenu backend to use (dmenu, rofi, wofi, fuzzel)"),
         )
         .arg(
+            Arg::new("menu_command")
+                .long("menu-command")
+                .takes_value(true)
+                .required_if_eq("dmenu", "custom")
+                .help("Menu command to use when --dmenu is set to custom"),
+        )
+        .arg(
             Arg::new("icon")
                 .short('i')
                 .long("icon")
@@ -47,6 +54,7 @@ async fn main() -> Result<()> {
         .get_one::<String>("spaces")
         .and_then(|s| s.parse::<usize>().ok())
         .unwrap_or(1);
+    let menu_command = matches.get_one::<String>("menu_command").cloned();
 
     let (log_sender, mut log_receiver) = unbounded_channel::<String>();
     tokio::spawn(async move {
@@ -70,7 +78,7 @@ async fn main() -> Result<()> {
     )
     .await?;
 
-    app.run(&menu, &icon_type, spaces).await?;
+    app.run(&menu, &icon_type, spaces, &menu_command).await?;
 
     Ok(())
 }
