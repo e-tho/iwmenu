@@ -67,6 +67,9 @@ impl App {
                         )
                         .await?;
                     }
+                } else if output.contains("Settings") {
+                    self.handle_settings(menu, menu_command, icon_type, spaces)
+                        .await?;
                 } else if let Some(ssid) = self
                     .handle_network_selection(menu, menu_command, &output, icon_type, spaces)
                     .await?
@@ -201,5 +204,49 @@ impl App {
         } else {
             Ok(None)
         }
+    }
+
+    async fn handle_settings(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
+        let input = menu.get_settings_icons(icon_type, spaces);
+
+        if let Some(output) = menu.run_menu_app(menu_command, &input, icon_type) {
+            if output.contains("Disable Adapter") {
+                self.disable_adapter().await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn disable_adapter(&self) -> Result<()> {
+        if let Some(adapter) = self.station.session.adapter() {
+            adapter.set_power(false).await?;
+            self.log_sender
+                .send("Adapter disabled".to_string())
+                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            self.notification_manager.send_notification(
+                None,
+                Some("Adapter disabled".to_string()),
+                None,
+                Some(notify_rust::Timeout::Milliseconds(3000)),
+            );
+        } else {
+            self.log_sender
+                .send("No adapter found to disable".to_string())
+                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            self.notification_manager.send_notification(
+                None,
+                Some("No adapter found to disable".to_string()),
+                None,
+                Some(notify_rust::Timeout::Milliseconds(3000)),
+            );
+        }
+        Ok(())
     }
 }
