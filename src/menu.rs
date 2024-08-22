@@ -439,4 +439,28 @@ impl Menu {
 
         format!("{}", disable_adapter_icon)
     }
+
+    fn get_power_on_device_icon(icon_type: &str, spaces: usize) -> String {
+        match icon_type {
+            "font" => format!(
+                "{}{}",
+                Menu::add_spacing('\u{f0425}', spaces, false),
+                "Power On Device"
+            ),
+            "xdg" => "Power On Device\0icon\x1fsystem-shutdown-symbolic".to_string(),
+            _ => "Power On Device".to_string(),
+        }
+    }
+
+    pub fn prompt_enable_adapter(
+        &self,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Option<String> {
+        let power_on_icon = Self::get_power_on_device_icon(icon_type, spaces);
+        let input = format!("{}\n", power_on_icon);
+
+        self.run_menu_app(menu_command, &input, icon_type)
+    }
 }
