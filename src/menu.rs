@@ -294,6 +294,16 @@ impl Menu {
             _ => "Known Networks".to_string(),
         };
 
+        let settings_icon = match icon_type {
+            "font" => format!(
+                "{}{}",
+                Self::add_spacing('\u{f0493}', spaces, false),
+                "Settings"
+            ),
+            "xdg" => "Settings\0icon\x1fpreferences-system-symbolic".to_string(),
+            _ => "Settings".to_string(),
+        };
+
         let mut input = format!("{}\n{}\n", scan_icon, known_networks_icon);
 
         for (network, signal_strength) in &station.known_networks {
@@ -308,7 +318,9 @@ impl Menu {
             input.push_str(&format!("{}\n", network_info));
         }
 
-        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
+        input.push_str(&format!("{}\n", settings_icon));
+
+        let menu_output = self.run_menu_app(&menu_command, &input, icon_type);
 
         Ok(menu_output)
     }
@@ -406,5 +418,25 @@ impl Menu {
         let menu_output = self.run_menu_app(menu_command, &input, icon_type);
 
         Ok(menu_output)
+    }
+
+    fn get_disable_adapter_icon(icon_type: &str, spaces: usize) -> String {
+        match icon_type {
+            "font" => format!(
+                "{}{}",
+                Menu::add_spacing('\u{f092d}', spaces, false),
+                "Disable Adapter"
+            ),
+            "xdg" => {
+                "Disable Adapter\0icon\x1fnetwork-wireless-hardware-disabled-symbolic".to_string()
+            }
+            _ => "Disable Adapter".to_string(),
+        }
+    }
+
+    pub fn get_settings_icons(&self, icon_type: &str, spaces: usize) -> String {
+        let disable_adapter_icon = Self::get_disable_adapter_icon(icon_type, spaces);
+
+        format!("{}", disable_adapter_icon)
     }
 }
