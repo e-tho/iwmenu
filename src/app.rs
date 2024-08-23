@@ -1,9 +1,9 @@
 use anyhow::Result;
-use std::sync::Arc;
-use tokio::sync::mpsc::UnboundedSender;
+use std::{sync::Arc, time::Duration};
+use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 
 use crate::{
-    iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork, station::Station},
+    iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork},
     menu::Menu,
     notification::NotificationManager,
 };
@@ -24,7 +24,7 @@ impl App {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
 
-        let mut adapter = Adapter::new(session.clone(), log_sender.clone()).await?;
+        let adapter = Adapter::new(session.clone(), log_sender.clone()).await?;
 
         if !adapter.device.is_powered {
             adapter.device.power_on().await?;
@@ -46,7 +46,7 @@ impl App {
         spaces: usize,
     ) -> Result<Option<String>> {
         if !self.adapter.device.is_powered {
-            self.offer_to_enable_adapter(menu, menu_command, icon_type, spaces)
+            self.handle_device_off(menu, menu_command, icon_type, spaces)
                 .await?;
             self.adapter.refresh(self.log_sender.clone()).await?;
         }
@@ -98,8 +98,8 @@ impl App {
         }
     }
 
-    async fn offer_to_enable_adapter(
-        &self,
+    async fn handle_device_off(
+        &mut self,
         menu: &Menu,
         menu_command: &Option<String>,
         icon_type: &str,
@@ -115,8 +115,31 @@ impl App {
                     None,
                     Some("Adapter enabled".to_string()),
                     None,
-                    Some(notify_rust::Timeout::Milliseconds(3000)),
+                    None,
                 );
+
+                self.adapter.refresh(self.log_sender.clone()).await?;
+
+                if let Some(station) = self.adapter.device.station.as_mut() {
+                    if station.is_scanning {
+                        self.log_sender
+                            .send("Waiting for ongoing scan to complete...".to_string())
+                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+                        while station.is_scanning {
+                            station.refresh().await?;
+                            sleep(Duration::from_millis(500)).await;
+                        }
+                    }
+
+                    station
+                        .scan(
+                            self.log_sender.clone(),
+                            Arc::clone(&self.notification_manager),
+                        )
+                        .await?;
+                    station.refresh().await?;
+                }
             } else {
                 self.log_sender
                     .send("Adapter remains disabled".to_string())
@@ -125,7 +148,7 @@ impl App {
                     None,
                     Some("Adapter remains disabled".to_string()),
                     None,
-                    Some(notify_rust::Timeout::Milliseconds(3000)),
+                    None,
                 );
             }
         }
@@ -270,14 +293,21 @@ impl App {
 
         if let Some(output) = menu.run_menu_app(menu_command, &input, icon_type) {
             if output.contains("Disable Adapter") {
-                self.disable_adapter().await?;
+                self.disable_adapter(menu, menu_command, icon_type, spaces)
+                    .await?;
             }
         }
 
         Ok(())
     }
 
-    async fn disable_adapter(&self) -> Result<()> {
+    async fn disable_adapter(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
         self.adapter.device.power_off().await?;
         self.log_sender
             .send("Adapter disabled".to_string())
@@ -286,8 +316,12 @@ impl App {
             None,
             Some("Adapter disabled".to_string()),
             None,
-            Some(notify_rust::Timeout::Milliseconds(3000)),
+            None,
         );
+
+        self.handle_device_off(menu, menu_command, icon_type, spaces)
+            .await?;
+
         Ok(())
     }
 }
