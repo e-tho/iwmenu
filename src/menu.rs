@@ -5,7 +5,10 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::iw::{known_network::KnownNetwork, network::Network, station::Station};
+use crate::iw::{
+    access_point::AccessPoint, adapter::Adapter, known_network::KnownNetwork, network::Network,
+    station::Station,
+};
 
 #[derive(Debug, Clone, ArgEnum)]
 pub enum Menu {
@@ -77,7 +80,6 @@ impl Menu {
         spaces: usize,
     ) -> String {
         let signal_icon = Self::get_signal_icon(signal_strength, network, icon_type, spaces);
-
         let connected_icon = if network.is_connected && icon_type == "font" {
             Self::add_spacing('\u{f0133}', spaces, true)
         } else {
@@ -377,7 +379,6 @@ impl Menu {
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<String>> {
-        let mut input = String::new();
         let toggle_autoconnect_option = if known_network.is_autoconnect {
             match icon_type {
                 "font" => format!(
@@ -410,10 +411,7 @@ impl Menu {
             _ => "Forget Network".to_string(),
         };
 
-        input.push_str(&format!(
-            "{}\n{}\n",
-            toggle_autoconnect_option, forget_option
-        ));
+        let input = format!("{}\n{}", toggle_autoconnect_option, forget_option);
 
         let menu_output = self.run_menu_app(menu_command, &input, icon_type);
 
@@ -436,8 +434,9 @@ impl Menu {
 
     pub fn get_settings_icons(&self, icon_type: &str, spaces: usize) -> String {
         let disable_adapter_icon = Self::get_disable_adapter_icon(icon_type, spaces);
+        let change_mode_icon = Self::get_change_mode_icon(icon_type, spaces);
 
-        format!("{}", disable_adapter_icon)
+        format!("{}\n{}", disable_adapter_icon, change_mode_icon)
     }
 
     fn get_power_on_device_icon(icon_type: &str, spaces: usize) -> String {
@@ -462,5 +461,125 @@ impl Menu {
         let input = format!("{}\n", power_on_icon);
 
         self.run_menu_app(menu_command, &input, icon_type)
+    }
+
+    pub fn get_change_mode_icon(icon_type: &str, spaces: usize) -> String {
+        match icon_type {
+            "font" => format!(
+                "{}{}",
+                Menu::add_spacing('\u{f0fe2}', spaces, false),
+                "Change Mode"
+            ),
+            "xdg" => "Change Mode\0icon\x1fsystem-switch-user-symbolic".to_string(),
+            _ => "Change Mode".to_string(),
+        }
+    }
+
+    pub fn show_change_mode_menu(
+        &self,
+        menu_command: &Option<String>,
+        adapter: &Adapter,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<Option<String>> {
+        let mut input = String::new();
+        for mode in &adapter.supported_modes {
+            input.push_str(&format!("{}\n", mode));
+        }
+
+        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
+        Ok(menu_output)
+    }
+
+    pub fn get_start_stop_ap_icon(icon_type: &str, spaces: usize, ap_started: bool) -> String {
+        match icon_type {
+            "font" => {
+                let icon = if ap_started { '\u{f0667}' } else { '\u{f040d}' };
+                format!(
+                    "{}{}",
+                    Menu::add_spacing(icon, spaces, false),
+                    if ap_started { "Stop AP" } else { "Start AP" }
+                )
+            }
+            "xdg" => {
+                if ap_started {
+                    "Stop AP\0icon\x1fmedia-playback-stop-symbolic".to_string()
+                } else {
+                    "Start AP\0icon\x1fmedia-playback-start-symbolic".to_string()
+                }
+            }
+            _ => {
+                if ap_started {
+                    "Stop AP".to_string()
+                } else {
+                    "Start AP".to_string()
+                }
+            }
+        }
+    }
+
+    pub fn get_set_ssid_icon(icon_type: &str, spaces: usize) -> String {
+        match icon_type {
+            "font" => format!(
+                "{}{}",
+                Menu::add_spacing('\u{f08d5}', spaces, false),
+                "Set SSID"
+            ),
+            "xdg" => "Set SSID\0icon\x1fedit-paste-symbolic".to_string(),
+            _ => "Set SSID".to_string(),
+        }
+    }
+
+    pub fn get_set_password_icon(icon_type: &str, spaces: usize) -> String {
+        match icon_type {
+            "font" => format!(
+                "{}{}",
+                Menu::add_spacing('\u{f0bc5}', spaces, false),
+                "Set Password"
+            ),
+            "xdg" => "Set Password\0icon\x1fsafety-symbolic".to_string(),
+            _ => "Set Password".to_string(),
+        }
+    }
+
+    pub fn get_ap_menu_icons(&self, icon_type: &str, spaces: usize, ap_started: bool) -> String {
+        let start_stop_ap_icon = Self::get_start_stop_ap_icon(icon_type, spaces, ap_started);
+        let set_ssid_icon = Self::get_set_ssid_icon(icon_type, spaces);
+        let set_password_icon = Self::get_set_password_icon(icon_type, spaces);
+
+        format!(
+            "{}\n{}\n{}",
+            start_stop_ap_icon, set_ssid_icon, set_password_icon
+        )
+    }
+
+    pub fn show_ap_menu(
+        &self,
+        menu_command: &Option<String>,
+        access_point: &AccessPoint,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<Option<String>> {
+        let mut input = self.get_ap_menu_icons(icon_type, spaces, access_point.has_started);
+        let change_mode_icon = Self::get_change_mode_icon(icon_type, spaces);
+        input.push_str(&format!("\n{}", change_mode_icon));
+
+        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
+
+        Ok(menu_output)
+    }
+
+    pub fn prompt_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
+        let prompt = "Enter SSID for AP: ";
+        self.run_menu_app(menu_command, prompt, icon_type)
+    }
+
+    pub fn prompt_password(
+        &self,
+        menu_command: &Option<String>,
+        icon_type: &str,
+    ) -> Option<String> {
+        let prompt = "Enter password for AP: ";
+        self.run_menu_app(menu_command, prompt, icon_type)
     }
 }

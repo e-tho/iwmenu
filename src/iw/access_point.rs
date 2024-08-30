@@ -12,6 +12,8 @@ pub struct AccessPoint {
     pub supported_ciphers: Option<Vec<String>>,
     pub used_cipher: Option<String>,
     pub connected_devices: Vec<String>,
+    pub ssid: String,
+    pub psk: String,
 }
 
 impl AccessPoint {
@@ -49,6 +51,8 @@ impl AccessPoint {
             supported_ciphers,
             used_cipher,
             connected_devices,
+            ssid: String::new(),
+            psk: String::new(),
         })
     }
 
@@ -81,9 +85,9 @@ impl AccessPoint {
         Ok(())
     }
 
-    pub async fn start(&self, ssid: &str, psk: &str) -> Result<()> {
+    pub async fn start(&self) -> Result<()> {
         let iwd_access_point = self.session.access_point().unwrap();
-        iwd_access_point.start(ssid, psk).await?;
+        iwd_access_point.start(&self.ssid, &self.psk).await?;
         Ok(())
     }
 
@@ -91,5 +95,13 @@ impl AccessPoint {
         let iwd_access_point = self.session.access_point().unwrap();
         iwd_access_point.stop().await?;
         Ok(())
+    }
+
+    pub fn set_ssid(&mut self, ssid: String) {
+        self.ssid = ssid;
+    }
+
+    pub fn set_psk(&mut self, psk: String) {
+        self.psk = psk;
     }
 }

@@ -71,14 +71,28 @@ async fn main() -> Result<()> {
         Arc::clone(&notification_handle),
     ));
 
-    let mut app: App = App::new(
+    let mut app = App::new(
         menu.clone(),
         log_sender.clone(),
         Arc::clone(&notification_manager),
     )
     .await?;
 
-    app.run(&menu, &menu_command, &icon_type, spaces).await?;
+    loop {
+        app.run(&menu, &menu_command, &icon_type, spaces).await?;
+
+        if app.reset_mode {
+            app = App::new(
+                menu.clone(),
+                log_sender.clone(),
+                Arc::clone(&notification_manager),
+            )
+            .await?;
+            app.reset_mode = false;
+        } else {
+            break;
+        }
+    }
 
     Ok(())
 }
