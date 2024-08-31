@@ -92,7 +92,7 @@ impl App {
                 "station" => {
                     if let Some(station) = self.adapter.device.station.as_mut() {
                         let output = menu
-                            .show_menu(menu_command, station, icon_type, spaces)
+                            .show_main_menu(menu_command, station, icon_type, spaces)
                             .await?;
 
                         if let Some(output) = output {
@@ -365,7 +365,7 @@ impl App {
     ) -> Result<()> {
         let input = menu.get_settings_icons(icon_type, spaces);
 
-        if let Some(output) = menu.run_menu_app(menu_command, &input, icon_type) {
+        if let Some(output) = menu.run_menu_command(menu_command, &input, icon_type) {
             match output.as_str() {
                 o if o.contains("Disable Adapter") => {
                     self.disable_adapter(menu, menu_command, icon_type, spaces)

@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::ArgEnum;
 use std::{
+    collections::HashMap,
     io::Write,
     process::{Command, Stdio},
 };
@@ -19,6 +20,89 @@ pub enum Menu {
     Custom,
 }
 
+pub struct Icons {
+    font_icons: HashMap<&'static str, char>,
+    xdg_icons: HashMap<&'static str, &'static str>,
+}
+
+impl Icons {
+    pub fn new() -> Self {
+        let mut font_icons = HashMap::new();
+        let mut xdg_icons = HashMap::new();
+
+        font_icons.insert("signal_weak_open", '\u{f16cb}');
+        font_icons.insert("signal_weak_secure", '\u{f0921}');
+        font_icons.insert("signal_ok_open", '\u{f16cc}');
+        font_icons.insert("signal_ok_secure", '\u{f0924}');
+        font_icons.insert("signal_good_open", '\u{f16cd}');
+        font_icons.insert("signal_good_secure", '\u{f0927}');
+        font_icons.insert("signal_excellent_open", '\u{f16ce}');
+        font_icons.insert("signal_excellent_secure", '\u{f092a}');
+        font_icons.insert("scan", '\u{f46a}');
+        font_icons.insert("known_networks", '\u{f0134}');
+        font_icons.insert("settings", '\u{f0493}');
+        font_icons.insert("disable_adapter", '\u{f092d}');
+        font_icons.insert("power_on_device", '\u{f0425}');
+        font_icons.insert("change_mode", '\u{f0fe2}');
+        font_icons.insert("start_ap", '\u{f04b8}');
+        font_icons.insert("stop_ap", '\u{f028a}');
+        font_icons.insert("set_ssid", '\u{f07f8}');
+        font_icons.insert("set_password", '\u{f0841}');
+        font_icons.insert("enable_autoconnect", '\u{f0547}');
+        font_icons.insert("disable_autoconnect", '\u{f0547}');
+        font_icons.insert("forget_network", '\u{f01b4}');
+        font_icons.insert("connected", '\u{f16bd}');
+
+        xdg_icons.insert("signal_weak", "network-wireless-signal-weak-symbolic");
+        xdg_icons.insert("signal_ok", "network-wireless-signal-ok-symbolic");
+        xdg_icons.insert("signal_good", "network-wireless-signal-good-symbolic");
+        xdg_icons.insert(
+            "signal_excellent",
+            "network-wireless-signal-excellent-symbolic",
+        );
+        xdg_icons.insert("scan", "view-refresh-symbolic");
+        xdg_icons.insert("known_networks", "app-installed-symbolic");
+        xdg_icons.insert("settings", "preferences-system-symbolic");
+        xdg_icons.insert(
+            "disable_adapter",
+            "network-wireless-hardware-disabled-symbolic",
+        );
+        xdg_icons.insert("power_on_device", "system-shutdown-symbolic");
+        xdg_icons.insert("change_mode", "system-switch-user-symbolic");
+        xdg_icons.insert("start_ap", "network-wireless-symbolic");
+        xdg_icons.insert("stop_ap", "network-wireless-hardware-disabled-symbolic");
+        xdg_icons.insert("set_ssid", "network-wireless-symbolic");
+        xdg_icons.insert("set_password", "network-wireless-secure-symbolic");
+        xdg_icons.insert("enable_autoconnect", "media-playlist-repeat-symbolic");
+        xdg_icons.insert("disable_autoconnect", "media-playlist-repeat-symbolic");
+        xdg_icons.insert("forget_network", "close-symbolic");
+        xdg_icons.insert("connected", "network-wireless-connected-symbolic");
+
+        Icons {
+            font_icons,
+            xdg_icons,
+        }
+    }
+
+    pub fn get_icon(&self, key: &str, icon_type: &str) -> String {
+        match icon_type {
+            "font" => self
+                .font_icons
+                .get(key)
+                .map_or(String::new(), |&icon| icon.to_string()),
+            "xdg" => self
+                .xdg_icons
+                .get(key)
+                .map_or(String::new(), |&icon| icon.to_string()),
+            _ => String::new(),
+        }
+    }
+
+    pub fn get_icon_char(&self, key: &str) -> Option<char> {
+        self.font_icons.get(key).copied()
+    }
+}
+
 impl Menu {
     fn add_spacing(icon: char, spaces: usize, before: bool) -> String {
         if before {
@@ -28,49 +112,65 @@ impl Menu {
         }
     }
 
+    fn format_icon_text(
+        &self,
+        icon_key: &str,
+        text: &str,
+        icon_type: &str,
+        spaces: usize,
+    ) -> String {
+        let icons = Icons::new();
+        let icon = icons.get_icon(icon_key, icon_type);
+
+        match icon_type {
+            "font" => format!("{}{}{}", icon, " ".repeat(spaces), text),
+            "xdg" => format!("{}\0icon\x1f{}", text, icon),
+            _ => text.to_string(),
+        }
+    }
+
     fn get_signal_icon(
         signal_strength: i16,
         network: &Network,
         icon_type: &str,
         spaces: usize,
     ) -> String {
+        let icons = Icons::new();
         if icon_type == "font" {
-            let icon_name = match signal_strength {
+            let icon_key = match signal_strength {
                 -10000..=-7500 => match network.network_type.as_str() {
-                    "open" => '\u{f16cb}',
-                    _ => '\u{f0921}',
+                    "open" => "signal_weak_open",
+                    _ => "signal_weak_secure",
                 },
                 -7499..=-5000 => match network.network_type.as_str() {
-                    "open" => '\u{f16cc}',
-                    _ => '\u{f0924}',
+                    "open" => "signal_ok_open",
+                    _ => "signal_ok_secure",
                 },
                 -4999..=-2500 => match network.network_type.as_str() {
-                    "open" => '\u{f16cd}',
-                    _ => '\u{f0927}',
+                    "open" => "signal_good_open",
+                    _ => "signal_good_secure",
                 },
                 _ => match network.network_type.as_str() {
-                    "open" => '\u{f16ce}',
-                    _ => '\u{f092a}',
+                    "open" => "signal_excellent_open",
+                    _ => "signal_excellent_secure",
                 },
             };
 
-            return Self::add_spacing(icon_name, spaces, false);
+            if let Some(icon) = icons.get_icon_char(icon_key) {
+                return Self::add_spacing(icon, spaces, false);
+            } else {
+                return String::new();
+            }
         }
 
-        let icon_name = match signal_strength {
-            -10000..=-7500 => "network-wireless-signal-weak",
-            -7499..=-5000 => "network-wireless-signal-ok",
-            -4999..=-2500 => "network-wireless-signal-good",
-            _ => "network-wireless-signal-excellent",
+        let icon_key = match signal_strength {
+            -10000..=-7500 => "signal_weak",
+            -7499..=-5000 => "signal_ok",
+            -4999..=-2500 => "signal_good",
+            _ => "signal_excellent",
         };
 
-        let suffix = if network.network_type == "open" {
-            "-symbolic"
-        } else {
-            "-secure-symbolic"
-        };
-
-        format!("{}{}", icon_name, suffix)
+        icons.get_icon(icon_key, icon_type)
     }
 
     fn format_network_display(
@@ -98,17 +198,25 @@ impl Menu {
         icon_type: &str,
         spaces: usize,
     ) -> String {
+        let icons = Icons::new();
+        let connected_icon = icons.get_icon("connected", icon_type);
+
         if icon_type == "font" {
-            Self::add_spacing('\u{f16bd}', spaces, false) + &known_network.name
+            if let Some(icon) = icons.get_icon_char("connected") {
+                format!(
+                    "{}{}",
+                    Self::add_spacing(icon, spaces, false),
+                    known_network.name
+                )
+            } else {
+                known_network.name.clone()
+            }
         } else {
-            format!(
-                "{}\0icon\x1fnetwork-wireless-connected-symbolic",
-                known_network.name
-            )
+            format!("{}\0icon\x1f{}", known_network.name, connected_icon)
         }
     }
 
-    pub fn run_menu_app(
+    pub fn run_menu_command(
         &self,
         menu_command: &Option<String>,
         input: &str,
@@ -270,43 +378,21 @@ impl Menu {
         icon_type: &str,
     ) -> Option<String> {
         let prompt = format!("Enter passphrase for {}: ", ssid);
-        self.run_menu_app(menu_command, &prompt, icon_type)
+        self.run_menu_command(menu_command, &prompt, icon_type)
     }
 
-    pub async fn show_menu(
+    pub async fn show_main_menu(
         &self,
         menu_command: &Option<String>,
         station: &mut Station,
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<String>> {
-        let scan_icon = match icon_type {
-            "font" => format!("{}{}", Self::add_spacing('\u{f46a}', spaces, false), "Scan"),
-            "xdg" => "Scan\0icon\x1fview-refresh-symbolic".to_string(),
-            _ => "Scan".to_string(),
-        };
-
-        let known_networks_icon = match icon_type {
-            "font" => format!(
-                "{}{}",
-                Self::add_spacing('\u{f0134}', spaces, false),
-                "Known Networks"
-            ),
-            "xdg" => "Known Networks\0icon\x1fapp-installed-symbolic".to_string(),
-            _ => "Known Networks".to_string(),
-        };
-
-        let settings_icon = match icon_type {
-            "font" => format!(
-                "{}{}",
-                Self::add_spacing('\u{f0493}', spaces, false),
-                "Settings"
-            ),
-            "xdg" => "Settings\0icon\x1fpreferences-system-symbolic".to_string(),
-            _ => "Settings".to_string(),
-        };
-
-        let mut input = format!("{}\n{}\n", scan_icon, known_networks_icon);
+        let mut input = format!(
+            "{}\n{}\n",
+            self.format_icon_text("scan", "Scan", icon_type, spaces),
+            self.format_icon_text("known_networks", "Known Networks", icon_type, spaces)
+        );
 
         for (network, signal_strength) in &station.known_networks {
             let network_info =
@@ -320,10 +406,10 @@ impl Menu {
             input.push_str(&format!("{}\n", network_info));
         }
 
-        input.push_str(&format!("{}\n", settings_icon));
+        input.push_str(&self.format_icon_text("settings", "Settings", icon_type, spaces));
+        input.push('\n');
 
-        let menu_output = self.run_menu_app(&menu_command, &input, icon_type);
-
+        let menu_output = self.run_menu_command(&menu_command, &input, icon_type);
         Ok(menu_output)
     }
 
@@ -344,7 +430,7 @@ impl Menu {
             }
         }
 
-        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
 
         if let Some(output) = menu_output {
             let output_without_icon = if icon_type == "xdg" {
@@ -380,75 +466,47 @@ impl Menu {
         spaces: usize,
     ) -> Result<Option<String>> {
         let toggle_autoconnect_option = if known_network.is_autoconnect {
-            match icon_type {
-                "font" => format!(
-                    "{}{}",
-                    Self::add_spacing('\u{f0547}', spaces, false),
-                    "Disable Autoconnect"
-                ),
-                "xdg" => "Disable Autoconnect\0icon\x1fmedia-playlist-repeat-symbolic".to_string(),
-                _ => "Disable Autoconnect".to_string(),
-            }
+            self.format_icon_text(
+                "disable_autoconnect",
+                "Disable Autoconnect",
+                icon_type,
+                spaces,
+            )
         } else {
-            match icon_type {
-                "font" => format!(
-                    "{}{}",
-                    Self::add_spacing('\u{f0547}', spaces, false),
-                    "Enable Autoconnect"
-                ),
-                "xdg" => "Enable Autoconnect\0icon\x1fmedia-playlist-repeat-symbolic".to_string(),
-                _ => "Enable Autoconnect".to_string(),
-            }
+            self.format_icon_text(
+                "enable_autoconnect",
+                "Enable Autoconnect",
+                icon_type,
+                spaces,
+            )
         };
 
-        let forget_option = match icon_type {
-            "font" => format!(
-                "{}{}",
-                Self::add_spacing('\u{f01b4}', spaces, false),
-                "Forget Network"
-            ),
-            "xdg" => "Forget Network\0icon\x1fclose-symbolic".to_string(),
-            _ => "Forget Network".to_string(),
-        };
+        let forget_option =
+            self.format_icon_text("forget_network", "Forget Network", icon_type, spaces);
 
         let input = format!("{}\n{}", toggle_autoconnect_option, forget_option);
 
-        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
 
         Ok(menu_output)
     }
 
-    fn get_disable_adapter_icon(icon_type: &str, spaces: usize) -> String {
-        match icon_type {
-            "font" => format!(
-                "{}{}",
-                Menu::add_spacing('\u{f092d}', spaces, false),
-                "Disable Adapter"
-            ),
-            "xdg" => {
-                "Disable Adapter\0icon\x1fnetwork-wireless-hardware-disabled-symbolic".to_string()
-            }
-            _ => "Disable Adapter".to_string(),
-        }
-    }
-
     pub fn get_settings_icons(&self, icon_type: &str, spaces: usize) -> String {
-        let disable_adapter_icon = Self::get_disable_adapter_icon(icon_type, spaces);
-        let change_mode_icon = Self::get_change_mode_icon(icon_type, spaces);
+        let disable_adapter_icon =
+            self.format_icon_text("disable_adapter", "Disable Adapter", icon_type, spaces);
+        let change_mode_icon =
+            self.format_icon_text("change_mode", "Change Mode", icon_type, spaces);
 
         format!("{}\n{}", disable_adapter_icon, change_mode_icon)
     }
 
-    fn get_power_on_device_icon(icon_type: &str, spaces: usize) -> String {
-        match icon_type {
-            "font" => format!(
-                "{}{}",
-                Menu::add_spacing('\u{f0425}', spaces, false),
-                "Power On Device"
-            ),
-            "xdg" => "Power On Device\0icon\x1fsystem-shutdown-symbolic".to_string(),
-            _ => "Power On Device".to_string(),
-        }
+    pub fn get_adapter_icons(&self, icon_type: &str, spaces: usize) -> String {
+        let disable_adapter_icon =
+            self.format_icon_text("disable_adapter", "Disable Adapter", icon_type, spaces);
+        let change_mode_icon =
+            self.format_icon_text("change_mode", "Change Mode", icon_type, spaces);
+
+        format!("{}\n{}", disable_adapter_icon, change_mode_icon)
     }
 
     pub fn prompt_enable_adapter(
@@ -457,22 +515,11 @@ impl Menu {
         icon_type: &str,
         spaces: usize,
     ) -> Option<String> {
-        let power_on_icon = Self::get_power_on_device_icon(icon_type, spaces);
+        let power_on_icon =
+            self.format_icon_text("power_on_device", "Power On Device", icon_type, spaces);
         let input = format!("{}\n", power_on_icon);
 
-        self.run_menu_app(menu_command, &input, icon_type)
-    }
-
-    pub fn get_change_mode_icon(icon_type: &str, spaces: usize) -> String {
-        match icon_type {
-            "font" => format!(
-                "{}{}",
-                Menu::add_spacing('\u{f0fe2}', spaces, false),
-                "Change Mode"
-            ),
-            "xdg" => "Change Mode\0icon\x1fsystem-switch-user-symbolic".to_string(),
-            _ => "Change Mode".to_string(),
-        }
+        self.run_menu_command(menu_command, &input, icon_type)
     }
 
     pub fn show_change_mode_menu(
@@ -487,65 +534,19 @@ impl Menu {
             input.push_str(&format!("{}\n", mode));
         }
 
-        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
         Ok(menu_output)
     }
 
-    pub fn get_start_stop_ap_icon(icon_type: &str, spaces: usize, ap_started: bool) -> String {
-        match icon_type {
-            "font" => {
-                let icon = if ap_started { '\u{f0667}' } else { '\u{f040d}' };
-                format!(
-                    "{}{}",
-                    Menu::add_spacing(icon, spaces, false),
-                    if ap_started { "Stop AP" } else { "Start AP" }
-                )
-            }
-            "xdg" => {
-                if ap_started {
-                    "Stop AP\0icon\x1fmedia-playback-stop-symbolic".to_string()
-                } else {
-                    "Start AP\0icon\x1fmedia-playback-start-symbolic".to_string()
-                }
-            }
-            _ => {
-                if ap_started {
-                    "Stop AP".to_string()
-                } else {
-                    "Start AP".to_string()
-                }
-            }
-        }
-    }
-
-    pub fn get_set_ssid_icon(icon_type: &str, spaces: usize) -> String {
-        match icon_type {
-            "font" => format!(
-                "{}{}",
-                Menu::add_spacing('\u{f08d5}', spaces, false),
-                "Set SSID"
-            ),
-            "xdg" => "Set SSID\0icon\x1fedit-paste-symbolic".to_string(),
-            _ => "Set SSID".to_string(),
-        }
-    }
-
-    pub fn get_set_password_icon(icon_type: &str, spaces: usize) -> String {
-        match icon_type {
-            "font" => format!(
-                "{}{}",
-                Menu::add_spacing('\u{f0bc5}', spaces, false),
-                "Set Password"
-            ),
-            "xdg" => "Set Password\0icon\x1fsafety-symbolic".to_string(),
-            _ => "Set Password".to_string(),
-        }
-    }
-
     pub fn get_ap_menu_icons(&self, icon_type: &str, spaces: usize, ap_started: bool) -> String {
-        let start_stop_ap_icon = Self::get_start_stop_ap_icon(icon_type, spaces, ap_started);
-        let set_ssid_icon = Self::get_set_ssid_icon(icon_type, spaces);
-        let set_password_icon = Self::get_set_password_icon(icon_type, spaces);
+        let start_stop_ap_icon = if ap_started {
+            self.format_icon_text("stop_ap", "Stop AP", icon_type, spaces)
+        } else {
+            self.format_icon_text("start_ap", "Start AP", icon_type, spaces)
+        };
+        let set_ssid_icon = self.format_icon_text("set_ssid", "Set SSID", icon_type, spaces);
+        let set_password_icon =
+            self.format_icon_text("set_password", "Set Password", icon_type, spaces);
 
         format!(
             "{}\n{}\n{}",
@@ -561,17 +562,18 @@ impl Menu {
         spaces: usize,
     ) -> Result<Option<String>> {
         let mut input = self.get_ap_menu_icons(icon_type, spaces, access_point.has_started);
-        let change_mode_icon = Self::get_change_mode_icon(icon_type, spaces);
+        let change_mode_icon =
+            self.format_icon_text("change_mode", "Change Mode", icon_type, spaces);
         input.push_str(&format!("\n{}", change_mode_icon));
 
-        let menu_output = self.run_menu_app(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
 
         Ok(menu_output)
     }
 
     pub fn prompt_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
         let prompt = "Enter SSID for AP: ";
-        self.run_menu_app(menu_command, prompt, icon_type)
+        self.run_menu_command(menu_command, prompt, icon_type)
     }
 
     pub fn prompt_password(
@@ -580,6 +582,6 @@ impl Menu {
         icon_type: &str,
     ) -> Option<String> {
         let prompt = "Enter password for AP: ";
-        self.run_menu_app(menu_command, prompt, icon_type)
+        self.run_menu_command(menu_command, prompt, icon_type)
     }
 }
