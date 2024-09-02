@@ -363,7 +363,14 @@ impl App {
         icon_type: &str,
         spaces: usize,
     ) -> Result<()> {
-        let input = menu.get_settings_icons(icon_type, spaces);
+        let input = menu.icons.get_icon_text(
+            vec![
+                ("disable_adapter", "Disable Adapter"),
+                ("change_mode", "Change Mode"),
+            ],
+            icon_type,
+            spaces,
+        );
 
         if let Some(output) = menu.run_menu_command(menu_command, &input, icon_type) {
             match output.as_str() {
@@ -372,7 +379,7 @@ impl App {
                         .await?
                 }
                 o if o.contains("Change Mode") => {
-                    self.handle_change_mode(menu, menu_command, icon_type, spaces)
+                    self.handle_change_mode(menu, menu_command, icon_type)
                         .await?
                 }
                 _ if self.adapter.device.mode == "ap" => {
@@ -415,10 +422,8 @@ impl App {
         menu: &Menu,
         menu_command: &Option<String>,
         icon_type: &str,
-        spaces: usize,
     ) -> Result<()> {
-        if let Ok(Some(output)) =
-            menu.show_change_mode_menu(menu_command, &self.adapter, icon_type, spaces)
+        if let Ok(Some(output)) = menu.show_change_mode_menu(menu_command, &self.adapter, icon_type)
         {
             if self.adapter.supported_modes.contains(&output) {
                 self.reset(output, self.log_sender.clone()).await?;
@@ -469,7 +474,7 @@ impl App {
                             }
                         }
                         o if o.contains("Change Mode") => {
-                            self.handle_change_mode(menu, menu_command, icon_type, spaces)
+                            self.handle_change_mode(menu, menu_command, icon_type)
                                 .await?;
                             if self.reset_mode {
                                 break;
