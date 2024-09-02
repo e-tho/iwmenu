@@ -2,7 +2,11 @@ use std::sync::{Arc, Mutex};
 
 use anyhow::Result;
 use clap::{builder::EnumValueParser, Arg, Command};
-use iwmenu::{app::App, menu::Menu, notification::NotificationManager};
+use iwmenu::{
+    app::App,
+    menu::{Menu, MenuType},
+    notification::NotificationManager,
+};
 use notify_rust::NotificationHandle;
 use tokio::sync::mpsc::unbounded_channel;
 
@@ -18,7 +22,7 @@ async fn main() -> Result<()> {
                 .long("menu")
                 .takes_value(true)
                 .required(true)
-                .value_parser(EnumValueParser::<Menu>::new())
+                .value_parser(EnumValueParser::<MenuType>::new())
                 .default_value("dmenu")
                 .help("Menu application to use (dmenu, rofi, wofi, fuzzel)"),
         )
@@ -48,7 +52,8 @@ async fn main() -> Result<()> {
         )
         .get_matches();
 
-    let menu: Menu = matches.get_one::<Menu>("menu").cloned().unwrap();
+    let menu_type: MenuType = matches.get_one::<MenuType>("menu").cloned().unwrap();
+    let menu = Menu::new(menu_type);
     let icon_type = matches.get_one::<String>("icon").cloned().unwrap();
     let spaces = matches
         .get_one::<String>("spaces")
