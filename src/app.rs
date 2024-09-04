@@ -5,7 +5,10 @@ use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 
 use crate::{
     iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork},
-    menu::Menu,
+    menu::{
+        ApMenuOptions, ChangeModeMenuOptions, KnownNetworkOptions, MainMenuOptions, Menu,
+        SettingsMenuOptions,
+    },
     notification::NotificationManager,
 };
 
@@ -54,7 +57,7 @@ impl App {
                 self.log_sender
                     .send(format!("Failed to create a new session: {}", e))
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                return Err(e.into());
+                return Err(anyhow::Error::from(e));
             }
         };
 
@@ -91,14 +94,15 @@ impl App {
             match self.adapter.device.mode.as_str() {
                 "station" => {
                     if let Some(station) = self.adapter.device.station.as_mut() {
-                        let output = menu
+                        if let Some(main_menu_option) = menu
                             .show_main_menu(menu_command, station, icon_type, spaces)
-                            .await?;
-
-                        if let Some(output) = output {
-                            match output.as_str() {
-                                o if o.contains("Scan") => self.handle_scan().await?,
-                                o if o.contains("Known Networks") => {
+                            .await?
+                        {
+                            match main_menu_option {
+                                MainMenuOptions::Scan => {
+                                    self.handle_scan().await?;
+                                }
+                                MainMenuOptions::KnownNetworks => {
                                     if let Some(known_network) = menu
                                         .show_known_networks_menu(
                                             menu_command,
@@ -118,11 +122,11 @@ impl App {
                                         .await?;
                                     }
                                 }
-                                o if o.contains("Settings") => {
+                                MainMenuOptions::Settings => {
                                     self.handle_settings(menu, menu_command, icon_type, spaces)
                                         .await?;
                                 }
-                                _ => {
+                                MainMenuOptions::Network(output) => {
                                     if let Some(ssid) = self
                                         .handle_network_selection(
                                             menu,
@@ -256,10 +260,9 @@ impl App {
             .show_known_network_options(menu_command, known_network, icon_type, spaces)
             .await?
         {
-            match option.as_str() {
-                opt if opt.contains("Disable Autoconnect")
-                    || opt.contains("Enable Autoconnect") =>
-                {
+            match option {
+                KnownNetworkOptions::DisableAutoconnect
+                | KnownNetworkOptions::EnableAutoconnect => {
                     known_network
                         .toggle_autoconnect(
                             self.log_sender.clone(),
@@ -270,7 +273,7 @@ impl App {
                         station.refresh().await?;
                     }
                 }
-                opt if opt.contains("Forget Network") => {
+                KnownNetworkOptions::ForgetNetwork => {
                     known_network
                         .forget(self.log_sender.clone(), self.notification_manager.clone())
                         .await?;
@@ -278,7 +281,6 @@ impl App {
                         station.refresh().await?;
                     }
                 }
-                _ => {}
             }
         }
         Ok(())
@@ -363,30 +365,19 @@ impl App {
         icon_type: &str,
         spaces: usize,
     ) -> Result<()> {
-        let input = menu.icons.get_icon_text(
-            vec![
-                ("disable_adapter", "Disable Adapter"),
-                ("change_mode", "Change Mode"),
-            ],
-            icon_type,
-            spaces,
-        );
-
-        if let Some(output) = menu.run_menu_command(menu_command, &input, icon_type) {
-            match output.as_str() {
-                o if o.contains("Disable Adapter") => {
+        if let Some(option) = menu
+            .show_settings_menu(menu_command, icon_type, spaces)
+            .await?
+        {
+            match option {
+                SettingsMenuOptions::DisableAdapter => {
                     self.disable_adapter(menu, menu_command, icon_type, spaces)
-                        .await?
+                        .await?;
                 }
-                o if o.contains("Change Mode") => {
+                SettingsMenuOptions::ChangeMode => {
                     self.handle_change_mode(menu, menu_command, icon_type)
-                        .await?
+                        .await?;
                 }
-                _ if self.adapter.device.mode == "ap" => {
-                    self.handle_ap_menu(menu, menu_command, icon_type, spaces)
-                        .await?
-                }
-                _ => {}
             }
         }
 
@@ -423,10 +414,17 @@ impl App {
         menu_command: &Option<String>,
         icon_type: &str,
     ) -> Result<()> {
-        if let Ok(Some(output)) = menu.show_change_mode_menu(menu_command, &self.adapter, icon_type)
+        if let Ok(Some(change_mode_option)) =
+            menu.show_change_mode_menu(menu_command, &self.adapter, icon_type)
         {
-            if self.adapter.supported_modes.contains(&output) {
-                self.reset(output, self.log_sender.clone()).await?;
+            let mode_str = match change_mode_option {
+                ChangeModeMenuOptions::Station => "station",
+                ChangeModeMenuOptions::Ap => "ap",
+            };
+
+            if self.adapter.supported_modes.contains(&mode_str.to_string()) {
+                self.reset(mode_str.to_string(), self.log_sender.clone())
+                    .await?;
                 self.reset_mode = true;
                 self.running = false;
             }
@@ -443,13 +441,15 @@ impl App {
     ) -> Result<()> {
         loop {
             if let Some(ap) = self.adapter.device.access_point.as_ref() {
-                if let Ok(Some(output)) = menu.show_ap_menu(menu_command, ap, icon_type, spaces) {
-                    match output.trim() {
-                        o if o.contains("Start AP") => {
+                if let Ok(Some(ap_menu_option)) =
+                    menu.show_ap_menu(menu_command, ap, icon_type, spaces).await
+                {
+                    match ap_menu_option {
+                        ApMenuOptions::StartAp => {
                             self.start_ap(menu, menu_command, icon_type).await?
                         }
-                        o if o.contains("Stop AP") => self.stop_ap().await?,
-                        o if o.contains("Set SSID") => {
+                        ApMenuOptions::StopAp => self.stop_ap().await?,
+                        ApMenuOptions::SetSsid => {
                             if let Some(ssid) = menu.prompt_ssid(menu_command, icon_type) {
                                 if let Some(ap) = self.adapter.device.access_point.as_mut() {
                                     ap.ssid = ssid.clone();
@@ -461,7 +461,7 @@ impl App {
                                 }
                             }
                         }
-                        o if o.contains("Set Password") => {
+                        ApMenuOptions::SetPassword => {
                             if let Some(password) = menu.prompt_password(menu_command, icon_type) {
                                 if let Some(ap) = self.adapter.device.access_point.as_mut() {
                                     ap.psk = password;
@@ -473,17 +473,12 @@ impl App {
                                 }
                             }
                         }
-                        o if o.contains("Change Mode") => {
+                        ApMenuOptions::ChangeMode => {
                             self.handle_change_mode(menu, menu_command, icon_type)
                                 .await?;
                             if self.reset_mode {
                                 break;
                             }
-                        }
-                        _ => {
-                            self.running = false;
-                            self.reset_mode = false;
-                            break;
                         }
                     }
                 } else {
@@ -494,7 +489,6 @@ impl App {
                 self.log_sender
                     .send("No access point available".to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
                 self.reset("station".to_string(), self.log_sender.clone())
                     .await?;
                 self.reset_mode = true;
