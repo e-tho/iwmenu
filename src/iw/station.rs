@@ -2,7 +2,7 @@ use anyhow::Result;
 use futures::future::join_all;
 use iwdrs::session::Session;
 use notify_rust::Timeout;
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 use tokio::{
     sync::mpsc::UnboundedSender,
     time::{sleep, Duration},
@@ -18,11 +18,13 @@ pub struct Station {
     pub connected_network: Option<Network>,
     pub new_networks: Vec<(Network, i16)>,
     pub known_networks: Vec<(Network, i16)>,
+    pub diagnostic: HashMap<String, String>,
 }
 
 impl Station {
     pub async fn new(session: Arc<Session>) -> Result<Self> {
         let iwd_station = session.station().unwrap();
+        let iwd_station_diagnostic = session.station_diagnostic();
 
         let state = iwd_station.state().await?;
         let connected_network = {
@@ -64,6 +66,13 @@ impl Station {
             .filter(|(net, _signal)| net.known_network.is_some())
             .collect();
 
+        let mut diagnostic: HashMap<String, String> = HashMap::new();
+        if let Some(station_diagnostic) = iwd_station_diagnostic {
+            if let Ok(d) = station_diagnostic.get().await {
+                diagnostic = d;
+            }
+        }
+
         Ok(Self {
             session,
             state,
@@ -71,11 +80,13 @@ impl Station {
             connected_network,
             new_networks,
             known_networks,
+            diagnostic,
         })
     }
 
     pub async fn refresh(&mut self) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
+        let iwd_station_diagnostic = self.session.station_diagnostic();
 
         let state = iwd_station.state().await?;
         let is_scanning = iwd_station.is_scanning().await?;
@@ -121,6 +132,12 @@ impl Station {
         self.connected_network = connected_network;
         self.new_networks = new_networks;
         self.known_networks = known_networks;
+
+        if let Some(station_diagnostic) = iwd_station_diagnostic {
+            if let Ok(d) = station_diagnostic.get().await {
+                self.diagnostic = d;
+            }
+        }
 
         Ok(())
     }
