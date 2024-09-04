@@ -442,37 +442,54 @@ impl App {
         spaces: usize,
     ) -> Result<()> {
         loop {
-            if let Some(ap) = self.adapter.device.access_point.as_ref() {
+            if let Some(ap) = self.adapter.device.access_point.as_mut() {
                 if let Ok(Some(ap_menu_option)) =
                     menu.show_ap_menu(menu_command, ap, icon_type, spaces).await
                 {
                     match ap_menu_option {
                         ApMenuOptions::StartAp => {
-                            self.start_ap(menu, menu_command, icon_type).await?
+                            if ap.ssid.is_empty() || ap.psk.is_empty() {
+                                self.log_sender
+                                    .send("SSID or Password not set".to_string())
+                                    .unwrap_or_else(|err| {
+                                        println!("Failed to send message: {}", err)
+                                    });
+                                if ap.ssid.is_empty() {
+                                    if let Some(ssid) = menu.prompt_ssid(menu_command, icon_type) {
+                                        ap.set_ssid(ssid);
+                                    }
+                                }
+                                if ap.psk.is_empty() {
+                                    if let Some(password) =
+                                        menu.prompt_password(menu_command, icon_type)
+                                    {
+                                        ap.set_psk(password);
+                                    }
+                                }
+                            }
+                            if !ap.ssid.is_empty() && !ap.psk.is_empty() {
+                                self.start_ap(menu, menu_command, icon_type).await?;
+                            }
                         }
                         ApMenuOptions::StopAp => self.stop_ap().await?,
                         ApMenuOptions::SetSsid => {
                             if let Some(ssid) = menu.prompt_ssid(menu_command, icon_type) {
-                                if let Some(ap) = self.adapter.device.access_point.as_mut() {
-                                    ap.ssid = ssid.clone();
-                                    self.log_sender
-                                        .send(format!("SSID set to {}", ssid))
-                                        .unwrap_or_else(|err| {
-                                            println!("Failed to send message: {}", err)
-                                        });
-                                }
+                                ap.set_ssid(ssid.clone());
+                                self.log_sender
+                                    .send(format!("SSID set to {}", ssid))
+                                    .unwrap_or_else(|err| {
+                                        println!("Failed to send message: {}", err)
+                                    });
                             }
                         }
                         ApMenuOptions::SetPassword => {
                             if let Some(password) = menu.prompt_password(menu_command, icon_type) {
-                                if let Some(ap) = self.adapter.device.access_point.as_mut() {
-                                    ap.psk = password;
-                                    self.log_sender
-                                        .send("Password set".to_string())
-                                        .unwrap_or_else(|err| {
-                                            println!("Failed to send message: {}", err)
-                                        });
-                                }
+                                ap.set_psk(password.clone());
+                                self.log_sender
+                                    .send("Password set".to_string())
+                                    .unwrap_or_else(|err| {
+                                        println!("Failed to send message: {}", err)
+                                    });
                             }
                         }
                         ApMenuOptions::ChangeMode => {
@@ -519,12 +536,19 @@ impl App {
                 return Ok(());
             }
 
-            let ssid = menu
-                .prompt_ssid(menu_command, icon_type)
-                .unwrap_or_else(|| "MySSID".to_string());
-            let psk = menu
-                .prompt_password(menu_command, icon_type)
-                .unwrap_or_else(|| "MyPassword".to_string());
+            let ssid = if ap.ssid.is_empty() {
+                menu.prompt_ssid(menu_command, icon_type)
+                    .unwrap_or_else(|| "MySSID".to_string())
+            } else {
+                ap.ssid.clone()
+            };
+
+            let psk = if ap.psk.is_empty() {
+                menu.prompt_password(menu_command, icon_type)
+                    .unwrap_or_else(|| "MyPassword".to_string())
+            } else {
+                ap.psk.clone()
+            };
 
             ap.set_ssid(ssid);
             ap.set_psk(psk);
