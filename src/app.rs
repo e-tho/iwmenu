@@ -1,5 +1,5 @@
 use anyhow::Result;
-use iwdrs::session::Session;
+use iwdrs::{modes::Mode, session::Session};
 use std::{sync::Arc, time::Duration};
 use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 
@@ -16,7 +16,7 @@ pub struct App {
     pub running: bool,
     pub reset_mode: bool,
     pub session: Arc<Session>,
-    pub current_mode: String,
+    pub current_mode: Mode,
     adapter: Adapter,
     agent_manager: AgentManager,
     log_sender: UnboundedSender<String>,
@@ -50,7 +50,7 @@ impl App {
         })
     }
 
-    pub async fn reset(&mut self, mode: String, log_sender: UnboundedSender<String>) -> Result<()> {
+    pub async fn reset(&mut self, mode: Mode, log_sender: UnboundedSender<String>) -> Result<()> {
         let session = match Session::new().await {
             Ok(session) => Arc::new(session),
             Err(e) => {
@@ -69,7 +69,10 @@ impl App {
         self.current_mode = mode;
 
         self.log_sender
-            .send(format!("App state reset with mode: {}", self.current_mode))
+            .send(format!(
+                "App state reset with mode: {:?}",
+                self.current_mode
+            ))
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
         Ok(())
@@ -91,8 +94,8 @@ impl App {
         while self.running {
             self.adapter.refresh(self.log_sender.clone()).await?;
 
-            match self.adapter.device.mode.as_str() {
-                "station" => {
+            match self.adapter.device.mode {
+                Mode::Station => {
                     if let Some(station) = self.adapter.device.station.as_mut() {
                         if let Some(main_menu_option) = menu
                             .show_main_menu(menu_command, station, icon_type, spaces)
@@ -156,7 +159,7 @@ impl App {
                         return Ok(None);
                     }
                 }
-                "ap" => {
+                Mode::Ap => {
                     self.handle_ap_menu(menu, menu_command, icon_type, spaces)
                         .await?;
                 }
@@ -417,14 +420,13 @@ impl App {
         if let Ok(Some(change_mode_option)) =
             menu.show_change_mode_menu(menu_command, &self.adapter, icon_type)
         {
-            let mode_str = match change_mode_option {
-                ChangeModeMenuOptions::Station => "station",
-                ChangeModeMenuOptions::Ap => "ap",
+            let mode = match change_mode_option {
+                ChangeModeMenuOptions::Station => Mode::Station,
+                ChangeModeMenuOptions::Ap => Mode::Ap,
             };
 
-            if self.adapter.supported_modes.contains(&mode_str.to_string()) {
-                self.reset(mode_str.to_string(), self.log_sender.clone())
-                    .await?;
+            if self.adapter.supported_modes.contains(&mode.to_string()) {
+                self.reset(mode, self.log_sender.clone()).await?;
                 self.reset_mode = true;
                 self.running = false;
             }
@@ -489,8 +491,7 @@ impl App {
                 self.log_sender
                     .send("No access point available".to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                self.reset("station".to_string(), self.log_sender.clone())
-                    .await?;
+                self.reset(Mode::Station, self.log_sender.clone()).await?;
                 self.reset_mode = true;
                 self.running = false;
                 break;
