@@ -56,6 +56,7 @@
                 github = "e-tho";
               }
             ];
+            mainProgram = "iwmenu";
           };
         };
 
