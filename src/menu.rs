@@ -218,12 +218,19 @@ impl Icons {
         font_icons.insert("disable_autoconnect", '\u{f0547}');
         font_icons.insert("forget_network", '\u{f01b4}');
 
-        xdg_icons.insert("signal_weak", "network-wireless-signal-weak-symbolic");
-        xdg_icons.insert("signal_ok", "network-wireless-signal-ok-symbolic");
-        xdg_icons.insert("signal_good", "network-wireless-signal-good-symbolic");
+        xdg_icons.insert("signal_weak_open", "network-wireless-signal-weak-symbolic");
+        xdg_icons.insert("signal_ok_open", "network-wireless-signal-ok-symbolic");
+        xdg_icons.insert("signal_good_open", "network-wireless-signal-good-symbolic");
         xdg_icons.insert(
-            "signal_excellent",
+            "signal_excellent_open",
             "network-wireless-signal-excellent-symbolic",
+        );
+        xdg_icons.insert("signal_weak_secure", "network-wireless-signal-weak-secure-symbolic");
+        xdg_icons.insert("signal_ok_secure", "network-wireless-signal-ok-secure-symbolic");
+        xdg_icons.insert("signal_good_secure", "network-wireless-signal-good--securesymbolic");
+        xdg_icons.insert(
+            "signal_excellent_secure",
+            "network-wireless-signal-excellent-secure-symbolic",
         );
         xdg_icons.insert("scan", "view-refresh-symbolic");
         xdg_icons.insert("known_networks", "app-installed-symbolic");
