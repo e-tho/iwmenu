@@ -27,7 +27,7 @@ Use `custom` mode if your launcher is not supported.
 
 Run the following commands:
 
-```shell
+```console
 git clone https://github.com/e-tho/iwmenu
 cd iwmenu
 cargo build --release
@@ -53,13 +53,13 @@ environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
 
 Specify an application using `-m` or `--menu` flag.
 
-```shell
+```console
 iwmenu -m fuzzel
 ```
 
 If your launcher is not supported, or you need to add additional flags, you can specify `custom` as the menu and provide your command using the `--menu-command` flag.
 
-```shell
+```console
 iwmenu -m custom --menu-command "my_custom_launcher --flag"
 ```
 
