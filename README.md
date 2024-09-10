@@ -49,6 +49,14 @@ Install the package:
 environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
 ```
 
+### Arch Linux
+
+Install the package with your favorite AUR helper:
+
+```console
+paru -S iwmenu-git
+```
+
 ## Usage
 
 Specify an application using `-m` or `--menu` flag.
