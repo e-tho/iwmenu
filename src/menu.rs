@@ -357,14 +357,19 @@ impl Icons {
         spaces: usize,
     ) -> String {
         let signal_icon = self.get_signal_icon(signal_strength, &network.network_type, icon_type);
-        let connected_icon = if network.is_connected && icon_type == "font" {
-            Self::format_with_spacing(self.get_connected_icon().unwrap_or_default(), spaces, true)
-        } else {
-            String::new()
-        };
+        let mut display = network.name.clone();
 
-        self.format_display_with_icon(&network.name, &signal_icon, icon_type, spaces)
-            + &connected_icon
+        if network.is_connected {
+            if icon_type == "xdg" {
+                display = format!("{} \u{2705}", display);
+            } else if icon_type == "font" {
+                if let Some(connected_icon) = self.get_connected_icon() {
+                    display.push_str(&Icons::format_with_spacing(connected_icon, spaces, true));
+                }
+            }
+        }
+
+        self.format_display_with_icon(&display, &signal_icon, icon_type, spaces)
     }
 
     pub fn format_known_network_display(
