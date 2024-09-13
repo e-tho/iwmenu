@@ -259,7 +259,7 @@ impl App {
             }
         }
         if let Some(station) = self.adapter.device.station.as_mut() {
-            station.refresh(self.log_sender.clone()).await?;
+            station.refresh().await?;
         }
         Ok(())
     }
