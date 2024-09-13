@@ -157,17 +157,11 @@ impl Station {
         let iwd_station = self.session.station().unwrap();
 
         if iwd_station.is_scanning().await? {
+            let msg = "Scan already in progress".to_string();
             sender
-                .send("Scan already in progress, waiting...".to_string())
+                .send(msg.clone())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-            notification_manager.send_notification(
-                None,
-                Some("Scan already in progress, waiting...".to_string()),
-                None,
-                None,
-            );
-
+            notification_manager.send_notification(None, Some(msg), None, None);
             return Ok(());
         }
 
@@ -176,7 +170,6 @@ impl Station {
                 sender
                     .send("Start Scanning".to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
                 Some(notification_manager.send_notification(
                     None,
                     Some("Wi-Fi scan in progress".to_string()),
@@ -185,21 +178,17 @@ impl Station {
                 ))
             }
             Err(e) => {
+                let msg = format!("Error initiating scan: {}", e);
                 sender
-                    .send(e.to_string())
+                    .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                notification_manager.send_notification(None, Some(e.to_string()), None, None);
-
+                notification_manager.send_notification(None, Some(msg), None, None);
                 return Err(e.into());
             }
         };
 
-        loop {
+        while iwd_station.is_scanning().await? {
             sleep(Duration::from_millis(500)).await;
-            if !iwd_station.is_scanning().await? {
-                break;
-            }
         }
 
         if let Some(handle) = handle {
