@@ -1,7 +1,7 @@
 use anyhow::Result;
 use iwdrs::{modes::Mode, session::Session};
-use std::{sync::Arc, time::Duration};
-use tokio::{sync::mpsc::UnboundedSender, time::sleep};
+use std::sync::Arc;
+use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
     iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork},
@@ -51,16 +51,7 @@ impl App {
     }
 
     pub async fn reset(&mut self, mode: Mode, log_sender: UnboundedSender<String>) -> Result<()> {
-        let session = match Session::new().await {
-            Ok(session) => Arc::new(session),
-            Err(e) => {
-                self.log_sender
-                    .send(format!("Failed to create a new session: {}", e))
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                return Err(anyhow::Error::from(e));
-            }
-        };
-
+        let session = Arc::new(Session::new().await?);
         let adapter = Adapter::new(session.clone(), log_sender.clone()).await?;
         adapter.device.set_mode(mode.clone()).await?;
 
@@ -88,7 +79,6 @@ impl App {
         if !self.adapter.device.is_powered {
             self.handle_device_off(menu, menu_command, icon_type, spaces)
                 .await?;
-            self.adapter.refresh(self.log_sender.clone()).await?;
         }
 
         while self.running {
@@ -203,17 +193,6 @@ impl App {
                 self.adapter.refresh(self.log_sender.clone()).await?;
 
                 if let Some(station) = self.adapter.device.station.as_mut() {
-                    if station.is_scanning {
-                        self.log_sender
-                            .send("Waiting for ongoing scan to complete...".to_string())
-                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                        while station.is_scanning {
-                            station.refresh().await?;
-                            sleep(Duration::from_millis(500)).await;
-                        }
-                    }
-
                     station
                         .scan(
                             self.log_sender.clone(),
@@ -246,7 +225,6 @@ impl App {
                     Arc::clone(&self.notification_manager),
                 )
                 .await?;
-            station.refresh().await?;
         }
         Ok(())
     }
@@ -272,19 +250,16 @@ impl App {
                             self.notification_manager.clone(),
                         )
                         .await?;
-                    if let Some(station) = self.adapter.device.station.as_mut() {
-                        station.refresh().await?;
-                    }
                 }
                 KnownNetworkOptions::ForgetNetwork => {
                     known_network
                         .forget(self.log_sender.clone(), self.notification_manager.clone())
                         .await?;
-                    if let Some(station) = self.adapter.device.station.as_mut() {
-                        station.refresh().await?;
-                    }
                 }
             }
+        }
+        if let Some(station) = self.adapter.device.station.as_mut() {
+            station.refresh(self.log_sender.clone()).await?;
         }
         Ok(())
     }
