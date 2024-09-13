@@ -90,6 +90,13 @@ impl Station {
 
         let state = iwd_station.state().await?;
         let is_scanning = iwd_station.is_scanning().await?;
+
+        if is_scanning {
+            while iwd_station.is_scanning().await? {
+                tokio::time::sleep(Duration::from_millis(500)).await;
+            }
+        }
+
         let connected_network = {
             if let Some(n) = iwd_station.connected_network().await? {
                 let network = Network::new(n.clone()).await?;
