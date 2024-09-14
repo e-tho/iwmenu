@@ -89,7 +89,7 @@ impl Device {
             Mode::Station => match self.mode {
                 Mode::Station => {
                     if let Some(station) = &mut self.station {
-                        station.refresh().await?;
+                        station.refresh(sender).await?;
                     }
                 }
                 Mode::Ap => {
