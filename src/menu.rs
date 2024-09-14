@@ -798,6 +798,7 @@ impl Menu {
         let options = adapter
             .supported_modes
             .iter()
+            .filter(|mode| mode == &"station" || mode == &"ap") // Filtrer uniquement les modes supportés
             .map(|mode| (mode.as_str(), mode.as_str()))
             .collect::<Vec<(&str, &str)>>();
 
