@@ -353,7 +353,7 @@ impl App {
                         .await?;
                 }
                 SettingsMenuOptions::ChangeMode => {
-                    self.handle_change_mode(menu, menu_command, icon_type)
+                    self.handle_change_mode(menu, menu_command, icon_type, spaces)
                         .await?;
                 }
             }
@@ -391,9 +391,10 @@ impl App {
         menu: &Menu,
         menu_command: &Option<String>,
         icon_type: &str,
+        spaces: usize,
     ) -> Result<()> {
         if let Ok(Some(change_mode_option)) =
-            menu.show_change_mode_menu(menu_command, &self.adapter, icon_type)
+            menu.show_change_mode_menu(menu_command, &self.adapter, icon_type, spaces)
         {
             let mode = match change_mode_option {
                 ChangeModeMenuOptions::Station => Mode::Station,
@@ -468,7 +469,7 @@ impl App {
                             }
                         }
                         ApMenuOptions::ChangeMode => {
-                            self.handle_change_mode(menu, menu_command, icon_type)
+                            self.handle_change_mode(menu, menu_command, icon_type, spaces)
                                 .await?;
                             if self.reset_mode {
                                 break;

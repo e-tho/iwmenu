@@ -798,6 +798,7 @@ impl Menu {
         menu_command: &Option<String>,
         adapter: &Adapter,
         icon_type: &str,
+        spaces: usize,
     ) -> Result<Option<ChangeModeMenuOptions>> {
         let options = adapter
             .supported_modes
@@ -813,7 +814,7 @@ impl Menu {
             })
             .collect::<Vec<(&str, &str)>>();
 
-        let input = self.icons.get_icon_text(options, icon_type, 0);
+            let input = self.icons.get_icon_text(options, icon_type, spaces);
         let menu_output = self.run_menu_command(menu_command, &input, icon_type);
 
         if let Some(output) = menu_output {
