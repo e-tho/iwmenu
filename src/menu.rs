@@ -217,6 +217,8 @@ impl Icons {
         font_icons.insert("enable_autoconnect", '\u{f0547}');
         font_icons.insert("disable_autoconnect", '\u{f0547}');
         font_icons.insert("forget_network", '\u{f01b4}');
+        font_icons.insert("station", '\u{f05a9}');
+        font_icons.insert("access_point", '\u{f0003}');
 
         xdg_icons.insert("signal_weak_open", "network-wireless-signal-weak-symbolic");
         xdg_icons.insert("signal_ok_open", "network-wireless-signal-ok-symbolic");
@@ -250,6 +252,8 @@ impl Icons {
         xdg_icons.insert("forget_network", "close-symbolic");
         xdg_icons.insert("connected", "network-wireless-connected-symbolic");
         xdg_icons.insert("known_network", "network-wireless-connected-symbolic");
+        xdg_icons.insert("station", "network-wireless-symbolic");
+        xdg_icons.insert("access_point", "network-cellular-symbolic");
 
         Icons {
             font_icons,
@@ -798,18 +802,29 @@ impl Menu {
         let options = adapter
             .supported_modes
             .iter()
-            .filter(|mode| mode == &"station" || mode == &"ap") // Filtrer uniquement les modes supportés
-            .map(|mode| (mode.as_str(), mode.as_str()))
+            .filter(|mode| mode == &"station" || mode == &"ap")
+            .map(|mode| {
+                let (formatted_mode, icon_key) = match mode.as_str() {
+                    "station" => ("Station", "station"),
+                    "ap" => ("Access Point", "access_point"),
+                    _ => (mode.as_str(), ""),
+                };
+                (icon_key, formatted_mode)
+            })
             .collect::<Vec<(&str, &str)>>();
 
         let input = self.icons.get_icon_text(options, icon_type, 0);
-
         let menu_output = self.run_menu_command(menu_command, &input, icon_type);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
+            let mode_id = match cleaned_output.as_str() {
+                "Station" => "station",
+                "Access Point" => "ap",
+                _ => cleaned_output.as_str(),
+            };
 
-            if let Some(option) = ChangeModeMenuOptions::from_id(&cleaned_output) {
+            if let Some(option) = ChangeModeMenuOptions::from_id(mode_id) {
                 return Ok(Some(option));
             }
         }
