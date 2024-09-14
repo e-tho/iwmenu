@@ -199,7 +199,7 @@ impl App {
                             Arc::clone(&self.notification_manager),
                         )
                         .await?;
-                    station.refresh().await?;
+                    station.refresh(self.log_sender.clone()).await?;
                 }
             } else {
                 self.log_sender
@@ -259,7 +259,7 @@ impl App {
             }
         }
         if let Some(station) = self.adapter.device.station.as_mut() {
-            station.refresh().await?;
+            station.refresh(self.log_sender.clone()).await?;
         }
         Ok(())
     }
@@ -289,7 +289,7 @@ impl App {
                     station
                         .disconnect(self.log_sender.clone(), self.notification_manager.clone())
                         .await?;
-                    station.refresh().await?;
+                    station.refresh(self.log_sender.clone()).await?;
                     return Ok(None);
                 }
 
@@ -329,7 +329,7 @@ impl App {
                 network
                     .connect(self.log_sender.clone(), self.notification_manager.clone())
                     .await?;
-                station.refresh().await?;
+                station.refresh(self.log_sender.clone()).await?;
                 return Ok(Some(network.name.clone()));
             }
         }
