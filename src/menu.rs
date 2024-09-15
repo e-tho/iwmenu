@@ -411,7 +411,7 @@ impl Menu {
     pub fn run_menu_command(
         &self,
         menu_command: &Option<String>,
-        input: &str,
+        input: Option<&str>,
         icon_type: &str,
     ) -> Option<String> {
         let output = match self.menu_type {
@@ -423,21 +423,24 @@ impl Menu {
                     command.arg("-I");
                 }
 
-                command
+
+                let mut child = command
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
                     .spawn()
-                    .and_then(|mut child| {
+                    .ok()?;
+
+                if let Some(input_data) = input {
                         child
                             .stdin
                             .as_mut()
                             .unwrap()
-                            .write_all(input.as_bytes())
+                        .write_all(input_data.as_bytes())
                             .unwrap();
-                        let output = child.wait_with_output()?;
-                        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-                    })
-                    .ok()?
+                }
+
+                let output = child.wait_with_output().ok()?;
+                String::from_utf8_lossy(&output.stdout).to_string()
             }
             MenuType::Wofi => {
                 let mut command = Command::new("wofi");
@@ -447,21 +450,23 @@ impl Menu {
                     command.arg("-I").arg("-m").arg("-q");
                 }
 
-                command
+                let mut child = command
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
                     .spawn()
-                    .and_then(|mut child| {
+                    .ok()?;
+
+                if let Some(input_data) = input {
                         child
                             .stdin
                             .as_mut()
                             .unwrap()
-                            .write_all(input.as_bytes())
+                        .write_all(input_data.as_bytes())
                             .unwrap();
-                        let output = child.wait_with_output()?;
-                        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-                    })
-                    .ok()?
+                }
+
+                let output = child.wait_with_output().ok()?;
+                String::from_utf8_lossy(&output.stdout).to_string()
             }
             MenuType::Rofi => {
                 let mut command = Command::new("rofi");
@@ -471,37 +476,46 @@ impl Menu {
                     command.arg("-show-icons");
                 }
 
-                command
+
+                let mut child = command
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
                     .spawn()
-                    .and_then(|mut child| {
+                    .ok()?;
+
+                if let Some(input_data) = input {
                         child
                             .stdin
                             .as_mut()
                             .unwrap()
-                            .write_all(input.as_bytes())
+                        .write_all(input_data.as_bytes())
                             .unwrap();
-                        let output = child.wait_with_output()?;
-                        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-                    })
-                    .ok()?
+                }
+
+                let output = child.wait_with_output().ok()?;
+                String::from_utf8_lossy(&output.stdout).to_string()
             }
-            MenuType::Dmenu => Command::new("dmenu")
+            MenuType::Dmenu => {
+                let mut command = Command::new("dmenu");
+
+                let mut child = command
                 .stdin(Stdio::piped())
                 .stdout(Stdio::piped())
                 .spawn()
-                .and_then(|mut child| {
+                    .ok()?;
+
+                if let Some(input_data) = input {
                     child
                         .stdin
                         .as_mut()
                         .unwrap()
-                        .write_all(input.as_bytes())
+                        .write_all(input_data.as_bytes())
                         .unwrap();
-                    let output = child.wait_with_output()?;
-                    Ok(String::from_utf8_lossy(&output.stdout).to_string())
-                })
-                .ok()?,
+                }
+
+                let output = child.wait_with_output().ok()?;
+                String::from_utf8_lossy(&output.stdout).to_string()
+            }
             MenuType::Custom => {
                 if let Some(cmd) = menu_command {
                     let parts: Vec<&str> = cmd.split_whitespace().collect();
@@ -509,21 +523,23 @@ impl Menu {
                     let mut command = Command::new(cmd);
                     command.args(args);
 
-                    command
+                    let mut child = command
                         .stdin(Stdio::piped())
                         .stdout(Stdio::piped())
                         .spawn()
-                        .and_then(|mut child| {
+                        .ok()?;
+
+                    if let Some(input_data) = input {
                             child
                                 .stdin
                                 .as_mut()
                                 .unwrap()
-                                .write_all(input.as_bytes())
+                            .write_all(input_data.as_bytes())
                                 .unwrap();
-                            let output = child.wait_with_output()?;
-                            Ok(String::from_utf8_lossy(&output.stdout).to_string())
-                        })
-                        .ok()?
+                    }
+
+                    let output = child.wait_with_output().ok()?;
+                    String::from_utf8_lossy(&output.stdout).to_string()
                 } else {
                     return None;
                 }
@@ -602,7 +618,7 @@ impl Menu {
         icon_type: &str,
     ) -> Option<String> {
         let prompt = format!("Enter passphrase for {}: ", ssid);
-        self.run_menu_command(menu_command, &prompt, icon_type)
+        self.run_menu_command(menu_command, None, icon_type)
     }
 
     pub async fn show_main_menu(
@@ -640,7 +656,7 @@ impl Menu {
             .get_icon_text(options_after_networks, icon_type, spaces);
         input.push_str(&format!("\n{}", settings_input));
 
-        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -670,7 +686,7 @@ impl Menu {
             }
         }
 
-        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -730,7 +746,7 @@ impl Menu {
         );
 
         let input = format!("{}\n{}", toggle_autoconnect_option, forget_option);
-        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -764,7 +780,7 @@ impl Menu {
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
 
-        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -790,7 +806,7 @@ impl Menu {
         );
         let input = format!("{}\n", power_on_icon);
 
-        self.run_menu_command(menu_command, &input, icon_type)
+        self.run_menu_command(menu_command, Some(&input), icon_type)
     }
 
     pub fn show_change_mode_menu(
@@ -815,7 +831,7 @@ impl Menu {
             .collect::<Vec<(&str, &str)>>();
 
             let input = self.icons.get_icon_text(options, icon_type, spaces);
-        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -852,7 +868,7 @@ impl Menu {
         ];
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
-        let menu_output = self.run_menu_command(menu_command, &input, icon_type);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -868,8 +884,8 @@ impl Menu {
     }
 
     pub fn prompt_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
-        let prompt = "Enter SSID for AP: ";
-        self.run_menu_command(menu_command, prompt, icon_type)
+        let prompt_text = "Enter SSID for AP: ";
+        self.run_menu_command(menu_command, None, icon_type)
     }
 
     pub fn prompt_password(
@@ -877,7 +893,7 @@ impl Menu {
         menu_command: &Option<String>,
         icon_type: &str,
     ) -> Option<String> {
-        let prompt = "Enter password for AP: ";
-        self.run_menu_command(menu_command, prompt, icon_type)
+        let prompt_text = "Enter password for AP: ";
+        self.run_menu_command(menu_command, None, icon_type)
     }
 }
