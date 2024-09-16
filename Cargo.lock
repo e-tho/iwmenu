@@ -741,6 +741,7 @@ dependencies = [
  "futures",
  "iwdrs",
  "notify-rust",
+ "shlex",
  "tokio",
 ]
 
