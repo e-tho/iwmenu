@@ -71,6 +71,12 @@ If your launcher is not supported, or you need to add additional flags, you can 
 iwmenu -m custom --menu-command "my_custom_launcher --flag"
 ```
 
+To enable prompt support in custom menus, use `{prompt}` as the value for the relevant flag in your command. This way, when a prompt is required, it will be replaced with the appropriate text.
+
+```console
+iwmenu -m custom --menu-command "my_custom_launcher --prompt-flag '{prompt}'"
+```
+
 ### Available Options
 
 | Flag             | Description                                           | Supported Values                            | Default Value |
