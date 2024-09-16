@@ -65,7 +65,7 @@ Specify an application using `-m` or `--menu` flag.
 iwmenu -m fuzzel
 ```
 
-If your launcher is not supported, or you need to add additional flags, you can specify `custom` as the menu and provide your command using the `--menu-command` flag.
+If your launcher is not supported, or you need to add additional flags, you can specify `custom` as the menu and provide your command using the `--menu-command` flag. Ensure your launcher supports an input/script mode, and that it is properly configured in the command.
 
 ```console
 iwmenu -m custom --menu-command "my_custom_launcher --flag"
