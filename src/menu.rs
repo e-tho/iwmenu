@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::ArgEnum;
+use shlex::Shlex;
 use std::{
     collections::HashMap,
     io::Write,
@@ -533,9 +534,13 @@ impl Menu {
             }
             MenuType::Custom => {
                 if let Some(cmd) = menu_command {
-                    let parts: Vec<&str> = cmd.split_whitespace().collect();
-                    let (cmd, args) = parts.split_first().unwrap();
-                    let mut command = Command::new(cmd);
+                    let prompt_text = prompt.unwrap_or("");
+                    let cmd_with_prompt = cmd.replace("{prompt}", prompt_text);
+
+                    let parts: Vec<String> = Shlex::new(&cmd_with_prompt).collect();
+
+                    let (cmd_program, args) = parts.split_first().unwrap();
+                    let mut command = Command::new(cmd_program);
                     command.args(args);
 
                     let mut child = command
