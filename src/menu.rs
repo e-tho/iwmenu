@@ -415,6 +415,7 @@ impl Menu {
         input: Option<&str>,
         icon_type: &str,
         prompt: Option<&str>,
+        obfuscate: bool,
     ) -> Option<String> {
         let output = match self.menu_type {
             MenuType::Fuzzel => {
@@ -427,6 +428,10 @@ impl Menu {
 
                 if let Some(prompt_text) = prompt {
                     command.arg("-p").arg(prompt_text);
+                }
+
+                if obfuscate {
+                    command.arg("--password");
                 }
 
                 let mut child = command
@@ -459,6 +464,10 @@ impl Menu {
                     command.arg("--prompt").arg(prompt_text);
                 }
 
+                if obfuscate {
+                    command.arg("--password");
+                }
+
                 let mut child = command
                     .stdin(Stdio::piped())
                     .stdout(Stdio::piped())
@@ -487,6 +496,10 @@ impl Menu {
 
                 if let Some(prompt_text) = prompt {
                     command.arg("-p").arg(prompt_text);
+                }
+
+                if obfuscate {
+                    command.arg("-password");
                 }
 
                 let mut child = command
@@ -638,7 +651,7 @@ impl Menu {
         icon_type: &str,
     ) -> Option<String> {
         let prompt_text = format!("Enter passphrase for {}: ", ssid);
-        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text))
+        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
     }
 
     pub async fn show_main_menu(
@@ -676,7 +689,7 @@ impl Menu {
             .get_icon_text(options_after_networks, icon_type, spaces);
         input.push_str(&format!("\n{}", settings_input));
 
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -706,7 +719,7 @@ impl Menu {
             }
         }
 
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -766,7 +779,7 @@ impl Menu {
         );
 
         let input = format!("{}\n{}", toggle_autoconnect_option, forget_option);
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -800,7 +813,7 @@ impl Menu {
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
 
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -826,7 +839,7 @@ impl Menu {
         );
         let input = format!("{}\n", power_on_icon);
 
-        self.run_menu_command(menu_command, Some(&input), icon_type, None)
+        self.run_menu_command(menu_command, Some(&input), icon_type, None, false)
     }
 
     pub fn show_change_mode_menu(
@@ -851,7 +864,7 @@ impl Menu {
             .collect::<Vec<(&str, &str)>>();
 
             let input = self.icons.get_icon_text(options, icon_type, spaces);
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -888,7 +901,7 @@ impl Menu {
         ];
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None);
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -905,7 +918,7 @@ impl Menu {
 
     pub fn prompt_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
         let prompt_text = "Enter SSID for AP: ";
-        self.run_menu_command(menu_command, None, icon_type, Some(prompt_text))
+        self.run_menu_command(menu_command, None, icon_type, Some(prompt_text), false)
     }
 
     pub fn prompt_password(
@@ -914,6 +927,6 @@ impl Menu {
         icon_type: &str,
     ) -> Option<String> {
         let prompt_text = "Enter password for AP: ";
-        self.run_menu_command(menu_command, None, icon_type, Some(prompt_text))
+        self.run_menu_command(menu_command, None, icon_type, Some(prompt_text), true)
     }
 }
