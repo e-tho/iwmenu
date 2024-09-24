@@ -59,23 +59,31 @@ paru -S iwmenu-git
 
 ## Usage
 
+### Supported menus
+
 Specify an application using `-m` or `--menu` flag.
 
 ```console
 iwmenu -m fuzzel
 ```
 
-If your launcher is not supported, or you need to add additional flags, you can specify `custom` as the menu and provide your command using the `--menu-command` flag. Ensure your launcher supports an input/script mode, and that it is properly configured in the command.
+### Custom menus
+
+Specify `custom` as the menu and set your command using the `--menu-command` flag. Ensure your launcher supports an input/script mode, and that it is properly configured in the command.
 
 ```console
 iwmenu -m custom --menu-command "my_custom_launcher --flag"
 ```
 
-To enable prompt support in custom menus, use `{prompt}` as the value for the relevant flag in your command. This way, when a prompt is required, it will be replaced with the appropriate text.
+#### Prompt support
+
+To enable prompt support, use `{prompt}` as the value for the relevant flag in your command. This way, when a prompt is required, it will be replaced with the appropriate text.
 
 ```console
 iwmenu -m custom --menu-command "my_custom_launcher --prompt-flag '{prompt}'"
 ```
+
+#### Password obfuscation support
 
 To enable support for password obfuscation, set the appropriate flag via `{password_flag:--my-password-flag}`.
 
