@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::ArgEnum;
+use regex::Regex;
 use shlex::Shlex;
 use std::{
     collections::HashMap,
@@ -547,10 +548,32 @@ impl Menu {
             }
             MenuType::Custom => {
                 if let Some(cmd) = menu_command {
-                    let prompt_text = prompt.unwrap_or("");
-                    let cmd_with_prompt = cmd.replace("{prompt}", prompt_text);
+                    let mut cmd_processed = cmd.clone();
 
-                    let parts: Vec<String> = Shlex::new(&cmd_with_prompt).collect();
+                    let prompt_text = prompt.unwrap_or("");
+                    cmd_processed = cmd_processed.replace("{prompt}", prompt_text);
+
+                    let re = Regex::new(r"\{(\w+):([^\}]+)\}").unwrap();
+
+                    cmd_processed = re
+                        .replace_all(&cmd_processed, |caps: &regex::Captures| {
+                            let placeholder_name = &caps[1];
+                            let default_value = &caps[2];
+
+                            match placeholder_name {
+                                "password_flag" => {
+                                    if obfuscate {
+                                        default_value.to_string()
+                                    } else {
+                                        "".to_string()
+                                    }
+                                }
+                                _ => caps[0].to_string(),
+                            }
+                        })
+                        .to_string();
+
+                    let parts: Vec<String> = Shlex::new(&cmd_processed).collect();
 
                     let (cmd_program, args) = parts.split_first().unwrap();
                     let mut command = Command::new(cmd_program);
