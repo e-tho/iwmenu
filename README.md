@@ -77,6 +77,12 @@ To enable prompt support in custom menus, use `{prompt}` as the value for the re
 iwmenu -m custom --menu-command "my_custom_launcher --prompt-flag '{prompt}'"
 ```
 
+To enable support for password obfuscation, set the appropriate flag via `{password_flag:--my-password-flag}`.
+
+```console
+iwmenu -m custom --menu-command "my_custom_launcher {password_flag:--my-password-flag}"
+```
+
 ### Available Options
 
 | Flag             | Description                                           | Supported Values                            | Default Value |
