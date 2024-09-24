@@ -91,6 +91,14 @@ To enable support for password obfuscation, set the appropriate flag via `{passw
 iwmenu -m custom --menu-command "my_custom_launcher {password_flag:--my-password-flag}"
 ```
 
+---
+
+> Example to enable all features using Fuzzel
+>
+> ```
+> iwmenu -m custom --menu-command "fuzzel -d -p '{prompt}' {password_flag:--password}"
+> ```
+
 ### Available Options
 
 | Flag             | Description                                           | Supported Values                            | Default Value |
