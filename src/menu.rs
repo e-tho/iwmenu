@@ -229,9 +229,18 @@ impl Icons {
             "signal_excellent_open",
             "network-wireless-signal-excellent-symbolic",
         );
-        xdg_icons.insert("signal_weak_secure", "network-wireless-signal-weak-secure-symbolic");
-        xdg_icons.insert("signal_ok_secure", "network-wireless-signal-ok-secure-symbolic");
-        xdg_icons.insert("signal_good_secure", "network-wireless-signal-good--securesymbolic");
+        xdg_icons.insert(
+            "signal_weak_secure",
+            "network-wireless-signal-weak-secure-symbolic",
+        );
+        xdg_icons.insert(
+            "signal_ok_secure",
+            "network-wireless-signal-ok-secure-symbolic",
+        );
+        xdg_icons.insert(
+            "signal_good_secure",
+            "network-wireless-signal-good-secure-symbolic",
+        );
         xdg_icons.insert(
             "signal_excellent_secure",
             "network-wireless-signal-excellent-secure-symbolic",
