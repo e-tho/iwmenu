@@ -319,19 +319,23 @@ impl Icons {
         let icon_key = match signal_strength {
             -10000..=-7500 => match network_type {
                 "open" => "signal_weak_open",
-                _ => "signal_weak_secure",
+                "wep" | "psk" | "8021x" => "signal_weak_secure",
+                _ => "signal_weak_open",
             },
             -7499..=-5000 => match network_type {
                 "open" => "signal_ok_open",
-                _ => "signal_ok_secure",
+                "wep" | "psk" | "8021x" => "signal_ok_secure",
+                _ => "signal_ok_open",
             },
             -4999..=-2500 => match network_type {
                 "open" => "signal_good_open",
-                _ => "signal_good_secure",
+                "wep" | "psk" | "8021x" => "signal_good_secure",
+                _ => "signal_good_open",
             },
             _ => match network_type {
                 "open" => "signal_excellent_open",
-                _ => "signal_excellent_secure",
+                "wep" | "psk" | "8021x" => "signal_excellent_secure",
+                _ => "signal_excellent_open",
             },
         };
 
