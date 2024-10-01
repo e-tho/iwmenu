@@ -1,8 +1,10 @@
 use anyhow::Result;
 use clap::ArgEnum;
 use regex::Regex;
+use rust_i18n::t;
 use shlex::Shlex;
 use std::{
+    borrow::Cow,
     collections::HashMap,
     io::Write,
     process::{Command, Stdio},
@@ -33,19 +35,21 @@ pub enum MainMenuOptions {
 impl MainMenuOptions {
     pub fn from_str(option: &str) -> Option<Self> {
         match option {
-            "Scan" => Some(MainMenuOptions::Scan),
-            "Known Networks" => Some(MainMenuOptions::KnownNetworks),
-            "Settings" => Some(MainMenuOptions::Settings),
+            s if s == t!("menus.main.options.scan.name") => Some(MainMenuOptions::Scan),
+            s if s == t!("menus.main.options.known_networks.name") => {
+                Some(MainMenuOptions::KnownNetworks)
+            }
+            s if s == t!("menus.main.options.settings.name") => Some(MainMenuOptions::Settings),
             other => Some(MainMenuOptions::Network(other.to_string())),
         }
     }
 
-    pub fn to_str(&self) -> &'static str {
+    pub fn to_str(&self) -> Cow<'static, str> {
         match self {
-            MainMenuOptions::Scan => "Scan",
-            MainMenuOptions::KnownNetworks => "Known Networks",
-            MainMenuOptions::Settings => "Settings",
-            MainMenuOptions::Network(_) => "Network",
+            MainMenuOptions::Scan => t!("menus.main.options.scan.name"),
+            MainMenuOptions::KnownNetworks => t!("menus.main.options.known_networks.name"),
+            MainMenuOptions::Settings => t!("menus.main.options.settings.name"),
+            MainMenuOptions::Network(_) => t!("menus.main.options.network.name"),
         }
     }
 }
@@ -60,18 +64,30 @@ pub enum KnownNetworkOptions {
 impl KnownNetworkOptions {
     pub fn from_str(option: &str) -> Option<Self> {
         match option {
-            "Disable Autoconnect" => Some(KnownNetworkOptions::DisableAutoconnect),
-            "Enable Autoconnect" => Some(KnownNetworkOptions::EnableAutoconnect),
-            "Forget Network" => Some(KnownNetworkOptions::ForgetNetwork),
+            s if s == t!("menus.known_network.options.disable_autoconnect.name") => {
+                Some(KnownNetworkOptions::DisableAutoconnect)
+            }
+            s if s == t!("menus.known_network.options.enable_autoconnect.name") => {
+                Some(KnownNetworkOptions::EnableAutoconnect)
+            }
+            s if s == t!("menus.known_network.options.forget_network.name") => {
+                Some(KnownNetworkOptions::ForgetNetwork)
+            }
             _ => None,
         }
     }
 
-    pub fn to_str(&self) -> &'static str {
+    pub fn to_str(&self) -> Cow<'static, str> {
         match self {
-            KnownNetworkOptions::DisableAutoconnect => "Disable Autoconnect",
-            KnownNetworkOptions::EnableAutoconnect => "Enable Autoconnect",
-            KnownNetworkOptions::ForgetNetwork => "Forget Network",
+            KnownNetworkOptions::DisableAutoconnect => {
+                t!("menus.known_network.options.disable_autoconnect.name")
+            }
+            KnownNetworkOptions::EnableAutoconnect => {
+                t!("menus.known_network.options.enable_autoconnect.name")
+            }
+            KnownNetworkOptions::ForgetNetwork => {
+                t!("menus.known_network.options.forget_network.name")
+            }
         }
     }
 }
@@ -85,16 +101,22 @@ pub enum SettingsMenuOptions {
 impl SettingsMenuOptions {
     pub fn from_str(option: &str) -> Option<Self> {
         match option {
-            "Disable Adapter" => Some(SettingsMenuOptions::DisableAdapter),
-            "Change Mode" => Some(SettingsMenuOptions::ChangeMode),
+            s if s == t!("menus.settings.options.disable_adapter.name") => {
+                Some(SettingsMenuOptions::DisableAdapter)
+            }
+            s if s == t!("menus.settings.options.change_mode.name") => {
+                Some(SettingsMenuOptions::ChangeMode)
+            }
             _ => None,
         }
     }
 
-    pub fn to_str(&self) -> &'static str {
+    pub fn to_str(&self) -> Cow<'static, str> {
         match self {
-            SettingsMenuOptions::DisableAdapter => "Disable Adapter",
-            SettingsMenuOptions::ChangeMode => "Change Mode",
+            SettingsMenuOptions::DisableAdapter => {
+                t!("menus.settings.options.disable_adapter.name")
+            }
+            SettingsMenuOptions::ChangeMode => t!("menus.settings.options.change_mode.name"),
         }
     }
 
@@ -158,6 +180,22 @@ impl ApMenuOptions {
         }
     }
 
+    pub fn from_str(s: &str) -> Option<Self> {
+        if s == t!("menus.ap.options.start_ap.name") {
+            Some(ApMenuOptions::StartAp)
+        } else if s == t!("menus.ap.options.stop_ap.name") {
+            Some(ApMenuOptions::StopAp)
+        } else if s == t!("menus.ap.options.set_ssid.name") {
+            Some(ApMenuOptions::SetSsid)
+        } else if s == t!("menus.ap.options.set_password.name") {
+            Some(ApMenuOptions::SetPassword)
+        } else if s == t!("menus.ap.options.change_mode.name") {
+            Some(ApMenuOptions::ChangeMode)
+        } else {
+            None
+        }
+    }
+
     pub fn to_id(&self) -> &'static str {
         match self {
             ApMenuOptions::StartAp => "start_ap",
@@ -168,13 +206,13 @@ impl ApMenuOptions {
         }
     }
 
-    pub fn to_str(&self) -> &'static str {
+    pub fn to_str(&self) -> Cow<'static, str> {
         match self {
-            ApMenuOptions::StartAp => "Start AP",
-            ApMenuOptions::StopAp => "Stop AP",
-            ApMenuOptions::SetSsid => "Set SSID",
-            ApMenuOptions::SetPassword => "Set Password",
-            ApMenuOptions::ChangeMode => "Change Mode",
+            ApMenuOptions::StartAp => t!("menus.ap.options.start_ap.name"),
+            ApMenuOptions::StopAp => t!("menus.ap.options.stop_ap.name"),
+            ApMenuOptions::SetSsid => t!("menus.ap.options.set_ssid.name"),
+            ApMenuOptions::SetPassword => t!("menus.ap.options.set_password.name"),
+            ApMenuOptions::ChangeMode => t!("menus.ap.options.change_mode.name"),
         }
     }
 }
@@ -290,16 +328,15 @@ impl Icons {
         self.font_icons.get(key).copied()
     }
 
-    pub fn get_icon_text(
-        &self,
-        items: Vec<(&str, &str)>,
-        icon_type: &str,
-        spaces: usize,
-    ) -> String {
+    pub fn get_icon_text<T>(&self, items: Vec<(&str, T)>, icon_type: &str, spaces: usize) -> String
+    where
+        T: AsRef<str>,
+    {
         items
             .into_iter()
             .map(|(icon_key, text)| {
                 let icon = self.get_icon(icon_key, icon_type);
+                let text = text.as_ref();
                 match icon_type {
                     "font" => format!("{}{}{}", icon, " ".repeat(spaces), text),
                     "xdg" => format!("{}\0icon\x1f{}", text, icon),
@@ -455,12 +492,12 @@ impl Menu {
                     .ok()?;
 
                 if let Some(input_data) = input {
-                        child
-                            .stdin
-                            .as_mut()
-                            .unwrap()
+                    child
+                        .stdin
+                        .as_mut()
+                        .unwrap()
                         .write_all(input_data.as_bytes())
-                            .unwrap();
+                        .unwrap();
                 }
 
                 let output = child.wait_with_output().ok()?;
@@ -489,12 +526,12 @@ impl Menu {
                     .ok()?;
 
                 if let Some(input_data) = input {
-                        child
-                            .stdin
-                            .as_mut()
-                            .unwrap()
+                    child
+                        .stdin
+                        .as_mut()
+                        .unwrap()
                         .write_all(input_data.as_bytes())
-                            .unwrap();
+                        .unwrap();
                 }
 
                 let output = child.wait_with_output().ok()?;
@@ -523,12 +560,12 @@ impl Menu {
                     .ok()?;
 
                 if let Some(input_data) = input {
-                        child
-                            .stdin
-                            .as_mut()
-                            .unwrap()
+                    child
+                        .stdin
+                        .as_mut()
+                        .unwrap()
                         .write_all(input_data.as_bytes())
-                            .unwrap();
+                        .unwrap();
                 }
 
                 let output = child.wait_with_output().ok()?;
@@ -542,9 +579,9 @@ impl Menu {
                 }
 
                 let mut child = command
-                .stdin(Stdio::piped())
-                .stdout(Stdio::piped())
-                .spawn()
+                    .stdin(Stdio::piped())
+                    .stdout(Stdio::piped())
+                    .spawn()
                     .ok()?;
 
                 if let Some(input_data) = input {
@@ -599,12 +636,12 @@ impl Menu {
                         .ok()?;
 
                     if let Some(input_data) = input {
-                            child
-                                .stdin
-                                .as_mut()
-                                .unwrap()
+                        child
+                            .stdin
+                            .as_mut()
+                            .unwrap()
                             .write_all(input_data.as_bytes())
-                                .unwrap();
+                            .unwrap();
                     }
 
                     let output = child.wait_with_output().ok()?;
@@ -686,7 +723,7 @@ impl Menu {
         ssid: &str,
         icon_type: &str,
     ) -> Option<String> {
-        let prompt_text = format!("Enter passphrase for {}: ", ssid);
+        let prompt_text = t!("menus.main.options.network.prompt", ssid = ssid);
         self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
     }
 
@@ -697,10 +734,14 @@ impl Menu {
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<MainMenuOptions>> {
+        let scan_text = MainMenuOptions::Scan.to_str();
+        let known_networks_text = MainMenuOptions::KnownNetworks.to_str();
+
         let options_before_networks = vec![
-            ("scan", MainMenuOptions::Scan.to_str()),
-            ("known_networks", MainMenuOptions::KnownNetworks.to_str()),
+            ("scan", scan_text.as_ref()),
+            ("known_networks", known_networks_text.as_ref()),
         ];
+
         let mut input = self
             .icons
             .get_icon_text(options_before_networks, icon_type, spaces);
@@ -719,7 +760,9 @@ impl Menu {
             input.push_str(&format!("\n{}", network_info));
         }
 
-        let options_after_networks = vec![("settings", MainMenuOptions::Settings.to_str())];
+        let settings_text = MainMenuOptions::Settings.to_str();
+        let options_after_networks = vec![("settings", settings_text.as_ref())];
+
         let settings_input = self
             .icons
             .get_icon_text(options_after_networks, icon_type, spaces);
@@ -796,20 +839,29 @@ impl Menu {
     ) -> Result<Option<KnownNetworkOptions>> {
         let toggle_autoconnect_option = if known_network.is_autoconnect {
             self.icons.get_icon_text(
-                vec![("disable_autoconnect", "Disable Autoconnect")],
+                vec![(
+                    "disable_autoconnect",
+                    t!("menus.known_network.options.disable_autoconnect.name"),
+                )],
                 icon_type,
                 spaces,
             )
         } else {
             self.icons.get_icon_text(
-                vec![("enable_autoconnect", "Enable Autoconnect")],
+                vec![(
+                    "enable_autoconnect",
+                    t!("menus.known_network.options.enable_autoconnect.name"),
+                )],
                 icon_type,
                 spaces,
             )
         };
 
         let forget_option = self.icons.get_icon_text(
-            vec![("forget_network", "Forget Network")],
+            vec![(
+                "forget_network",
+                t!("menus.known_network.options.forget_network.name"),
+            )],
             icon_type,
             spaces,
         );
@@ -878,10 +930,10 @@ impl Menu {
         self.run_menu_command(menu_command, Some(&input), icon_type, None, false)
     }
 
-    pub fn show_change_mode_menu(
+    pub fn show_change_mode_menu<'a>(
         &self,
         menu_command: &Option<String>,
-        adapter: &Adapter,
+        adapter: &'a Adapter,
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<ChangeModeMenuOptions>> {
@@ -890,24 +942,33 @@ impl Menu {
             .iter()
             .filter(|mode| mode == &"station" || mode == &"ap")
             .map(|mode| {
-                let (formatted_mode, icon_key) = match mode.as_str() {
-                    "station" => ("Station", "station"),
-                    "ap" => ("Access Point", "access_point"),
-                    _ => (mode.as_str(), ""),
+                let formatted_mode: Cow<'a, str> = match mode.as_str() {
+                    "station" => t!("menus.change_mode.options.station.name"),
+                    "ap" => t!("menus.change_mode.options.access_point.name"),
+                    _ => Cow::Borrowed(mode.as_str()),
+                };
+                let icon_key = match mode.as_str() {
+                    "station" => "station",
+                    "ap" => "access_point",
+                    _ => "",
                 };
                 (icon_key, formatted_mode)
             })
-            .collect::<Vec<(&str, &str)>>();
+            .collect::<Vec<(&str, Cow<'a, str>)>>();
 
-            let input = self.icons.get_icon_text(options, icon_type, spaces);
+        let input = self.icons.get_icon_text(options, icon_type, spaces);
+
         let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
-            let mode_id = match cleaned_output.as_str() {
-                "Station" => "station",
-                "Access Point" => "ap",
-                _ => cleaned_output.as_str(),
+
+            let mode_id = if cleaned_output == t!("menus.change_mode.options.station.name") {
+                "station"
+            } else if cleaned_output == t!("menus.change_mode.options.access_point.name") {
+                "ap"
+            } else {
+                cleaned_output.as_str()
             };
 
             if let Some(option) = ChangeModeMenuOptions::from_id(mode_id) {
@@ -927,24 +988,23 @@ impl Menu {
     ) -> Result<Option<ApMenuOptions>> {
         let options = vec![
             if access_point.has_started {
-                ("stop_ap", ApMenuOptions::StopAp.to_str())
+                ("stop_ap", t!("menus.ap.options.stop_ap.name"))
             } else {
-                ("start_ap", ApMenuOptions::StartAp.to_str())
+                ("start_ap", t!("menus.ap.options.start_ap.name"))
             },
-            ("set_ssid", ApMenuOptions::SetSsid.to_str()),
-            ("set_password", ApMenuOptions::SetPassword.to_str()),
-            ("change_mode", ApMenuOptions::ChangeMode.to_str()),
+            ("set_ssid", t!("menus.ap.options.set_ssid.name")),
+            ("set_password", t!("menus.ap.options.set_password.name")),
+            ("change_mode", t!("menus.ap.options.change_mode.name")),
         ];
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
+
         let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
-            if let Some(option) =
-                ApMenuOptions::from_id(&cleaned_output.to_lowercase().replace(" ", "_"))
-            {
+            if let Some(option) = ApMenuOptions::from_str(&cleaned_output) {
                 return Ok(Some(option));
             }
         }
@@ -953,8 +1013,8 @@ impl Menu {
     }
 
     pub fn prompt_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
-        let prompt_text = "Enter SSID for AP: ";
-        self.run_menu_command(menu_command, None, icon_type, Some(prompt_text), false)
+        let prompt_text = t!("menus.ap.options.set_ssid.prompt");
+        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), false)
     }
 
     pub fn prompt_password(
@@ -962,7 +1022,7 @@ impl Menu {
         menu_command: &Option<String>,
         icon_type: &str,
     ) -> Option<String> {
-        let prompt_text = "Enter password for AP: ";
-        self.run_menu_command(menu_command, None, icon_type, Some(prompt_text), true)
+        let prompt_text = t!("menus.ap.options.set_password.prompt");
+        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
     }
 }
