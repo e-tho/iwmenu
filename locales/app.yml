@@ -1,0 +1,86 @@
+_version: 2
+
+menus:
+  main:
+    options:
+      scan:
+        name:
+          en: "Scan"
+          fr: "Scanner"
+      known_networks:
+        name:
+          en: "Known Networks"
+          fr: "Réseaux Connus"
+      settings:
+        name:
+          en: "Settings"
+          fr: "Paramètres"
+      network:
+        name:
+          en: "Network"
+          fr: "Réseau"
+        prompt:
+          en: "Enter passphrase for %{ssid}:"
+          fr: "Entrez la passphrase pour %{ssid} :"
+  known_network:
+    options:
+      disable_autoconnect:
+        name:
+          en: "Disable Autoconnect"
+          fr: "Désactiver la connexion automatique"
+      enable_autoconnect:
+        name:
+          en: "Enable Autoconnect"
+          fr: "Activer la connexion automatique"
+      forget_network:
+        name:
+          en: "Forget Network"
+          fr: "Oublier le réseau"
+  settings:
+    options:
+      disable_adapter:
+        name:
+          en: "Disable Adapter"
+          fr: "Désactiver l'adaptateur"
+      change_mode:
+        name:
+          en: "Change Mode"
+          fr: "Changer de mode"
+  ap:
+    options:
+      start_ap:
+        name:
+          en: "Start AP"
+          fr: "Démarrer le point d'accès"
+      stop_ap:
+        name:
+          en: "Stop AP"
+          fr: "Arrêter le point d'accès"
+      set_ssid:
+        name:
+          en: "Set SSID"
+          fr: "Définir le SSID"
+        prompt:
+          en: "Enter SSID for AP:"
+          fr: "Entrez le SSID pour le point d'accès:"
+      set_password:
+        name:
+          en: "Set Password"
+          fr: "Définir le mot de passe"
+        prompt:
+          en: "Entrez la passphrase pour %{ssid}:"
+          fr: "Entrez le mot de passe pour le point d'accès:"
+      change_mode:
+        name:
+          en: "Change Mode"
+          fr: "Changer de mode"
+  change_mode:
+    options:
+      station:
+        name:
+          en: "Station"
+          fr: "Station"
+      access_point:
+        name:
+          en: "Access Point"
+          fr: "Point d'accès"

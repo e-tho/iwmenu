@@ -1,5 +1,3 @@
-use std::sync::{Arc, Mutex};
-
 use anyhow::Result;
 use clap::{builder::EnumValueParser, Arg, Command};
 use iwmenu::{
@@ -8,10 +6,21 @@ use iwmenu::{
     notification::NotificationManager,
 };
 use notify_rust::NotificationHandle;
+use std::{
+    env,
+    sync::{Arc, Mutex},
+};
+use sys_locale::get_locale;
 use tokio::sync::mpsc::unbounded_channel;
+
+rust_i18n::i18n!("locales");
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let locale = get_locale().unwrap_or_else(|| String::from("en-US"));
+
+    rust_i18n::set_locale(&locale);
+
     let matches = Command::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))

@@ -1,3 +1,8 @@
+#[macro_use]
+extern crate rust_i18n;
+
+i18n!("locales");
+
 pub mod app;
 pub mod menu;
 pub mod notification;
