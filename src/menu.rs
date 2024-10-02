@@ -64,13 +64,13 @@ pub enum KnownNetworkOptions {
 impl KnownNetworkOptions {
     pub fn from_str(option: &str) -> Option<Self> {
         match option {
-            s if s == t!("menus.known_network.options.disable_autoconnect.name") => {
+            s if s == t!("menus.known_networks.options.disable_autoconnect.name") => {
                 Some(KnownNetworkOptions::DisableAutoconnect)
             }
-            s if s == t!("menus.known_network.options.enable_autoconnect.name") => {
+            s if s == t!("menus.known_networks.options.enable_autoconnect.name") => {
                 Some(KnownNetworkOptions::EnableAutoconnect)
             }
-            s if s == t!("menus.known_network.options.forget_network.name") => {
+            s if s == t!("menus.known_networks.options.forget_network.name") => {
                 Some(KnownNetworkOptions::ForgetNetwork)
             }
             _ => None,
@@ -80,13 +80,13 @@ impl KnownNetworkOptions {
     pub fn to_str(&self) -> Cow<'static, str> {
         match self {
             KnownNetworkOptions::DisableAutoconnect => {
-                t!("menus.known_network.options.disable_autoconnect.name")
+                t!("menus.known_networks.options.disable_autoconnect.name")
             }
             KnownNetworkOptions::EnableAutoconnect => {
-                t!("menus.known_network.options.enable_autoconnect.name")
+                t!("menus.known_networks.options.enable_autoconnect.name")
             }
             KnownNetworkOptions::ForgetNetwork => {
-                t!("menus.known_network.options.forget_network.name")
+                t!("menus.known_networks.options.forget_network.name")
             }
         }
     }
@@ -875,7 +875,7 @@ impl Menu {
             self.icons.get_icon_text(
                 vec![(
                     "disable_autoconnect",
-                    t!("menus.known_network.options.disable_autoconnect.name"),
+                    t!("menus.known_networks.options.disable_autoconnect.name"),
                 )],
                 icon_type,
                 spaces,
@@ -884,7 +884,7 @@ impl Menu {
             self.icons.get_icon_text(
                 vec![(
                     "enable_autoconnect",
-                    t!("menus.known_network.options.enable_autoconnect.name"),
+                    t!("menus.known_networks.options.enable_autoconnect.name"),
                 )],
                 icon_type,
                 spaces,
@@ -894,7 +894,7 @@ impl Menu {
         let forget_option = self.icons.get_icon_text(
             vec![(
                 "forget_network",
-                t!("menus.known_network.options.forget_network.name"),
+                t!("menus.known_networks.options.forget_network.name"),
             )],
             icon_type,
             spaces,

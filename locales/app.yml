@@ -22,7 +22,7 @@ menus:
         prompt:
           en: "Enter passphrase for %{ssid}:"
           fr: "Entrez la passphrase pour %{ssid} :"
-  known_network:
+  known_networks:
     options:
       disable_autoconnect:
         name:
