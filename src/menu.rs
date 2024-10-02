@@ -1,5 +1,6 @@
 use anyhow::Result;
 use clap::ArgEnum;
+use iwdrs::modes::Mode;
 use regex::Regex;
 use rust_i18n::t;
 use shlex::Shlex;
@@ -11,7 +12,7 @@ use std::{
 };
 
 use crate::iw::{
-    access_point::AccessPoint, adapter::Adapter, known_network::KnownNetwork, network::Network,
+    access_point::AccessPoint, known_network::KnownNetwork, network::Network,
     station::Station,
 };
 
@@ -95,19 +96,22 @@ impl KnownNetworkOptions {
 #[derive(Debug, Clone, Copy)]
 pub enum SettingsMenuOptions {
     DisableAdapter,
-    ChangeMode,
+    SwitchMode,
 }
 
 impl SettingsMenuOptions {
-    pub fn from_str(option: &str) -> Option<Self> {
-        match option {
-            s if s == t!("menus.settings.options.disable_adapter.name") => {
-                Some(SettingsMenuOptions::DisableAdapter)
-            }
-            s if s == t!("menus.settings.options.change_mode.name") => {
-                Some(SettingsMenuOptions::ChangeMode)
-            }
+    pub fn from_id(id: &str) -> Option<Self> {
+        match id {
+            "disable_adapter" => Some(SettingsMenuOptions::DisableAdapter),
+            "switch_mode" => Some(SettingsMenuOptions::SwitchMode),
             _ => None,
+        }
+    }
+
+    pub fn to_id(&self) -> &'static str {
+        match self {
+            SettingsMenuOptions::DisableAdapter => "disable_adapter",
+            SettingsMenuOptions::SwitchMode => "switch_mode",
         }
     }
 
@@ -116,22 +120,7 @@ impl SettingsMenuOptions {
             SettingsMenuOptions::DisableAdapter => {
                 t!("menus.settings.options.disable_adapter.name")
             }
-            SettingsMenuOptions::ChangeMode => t!("menus.settings.options.change_mode.name"),
-        }
-    }
-
-    pub fn from_id(id: &str) -> Option<Self> {
-        match id {
-            "disable_adapter" => Some(SettingsMenuOptions::DisableAdapter),
-            "change_mode" => Some(SettingsMenuOptions::ChangeMode),
-            _ => None,
-        }
-    }
-
-    pub fn to_id(&self) -> &'static str {
-        match self {
-            SettingsMenuOptions::DisableAdapter => "disable_adapter",
-            SettingsMenuOptions::ChangeMode => "change_mode",
+            SettingsMenuOptions::SwitchMode => t!("menus.settings.options.switch_mode.name"),
         }
     }
 }
@@ -165,7 +154,7 @@ pub enum ApMenuOptions {
     StopAp,
     SetSsid,
     SetPassword,
-    ChangeMode,
+    Settings,
 }
 
 impl ApMenuOptions {
@@ -175,7 +164,7 @@ impl ApMenuOptions {
             "stop_ap" => Some(ApMenuOptions::StopAp),
             "set_ssid" => Some(ApMenuOptions::SetSsid),
             "set_password" => Some(ApMenuOptions::SetPassword),
-            "change_mode" => Some(ApMenuOptions::ChangeMode),
+            "settings" => Some(ApMenuOptions::Settings),
             _ => None,
         }
     }
@@ -189,8 +178,8 @@ impl ApMenuOptions {
             Some(ApMenuOptions::SetSsid)
         } else if s == t!("menus.ap.options.set_password.name") {
             Some(ApMenuOptions::SetPassword)
-        } else if s == t!("menus.ap.options.change_mode.name") {
-            Some(ApMenuOptions::ChangeMode)
+        } else if s == t!("menus.ap.options.settings.name") {
+            Some(ApMenuOptions::Settings)
         } else {
             None
         }
@@ -202,7 +191,7 @@ impl ApMenuOptions {
             ApMenuOptions::StopAp => "stop_ap",
             ApMenuOptions::SetSsid => "set_ssid",
             ApMenuOptions::SetPassword => "set_password",
-            ApMenuOptions::ChangeMode => "change_mode",
+            ApMenuOptions::Settings => "settings",
         }
     }
 
@@ -212,7 +201,7 @@ impl ApMenuOptions {
             ApMenuOptions::StopAp => t!("menus.ap.options.stop_ap.name"),
             ApMenuOptions::SetSsid => t!("menus.ap.options.set_ssid.name"),
             ApMenuOptions::SetPassword => t!("menus.ap.options.set_password.name"),
-            ApMenuOptions::ChangeMode => t!("menus.ap.options.change_mode.name"),
+            ApMenuOptions::Settings => t!("menus.ap.options.settings.name"),
         }
     }
 }
@@ -283,7 +272,7 @@ impl Icons {
         font_icons.insert("settings", '\u{f0493}');
         font_icons.insert("disable_adapter", '\u{f092d}');
         font_icons.insert("power_on_device", '\u{f0425}');
-        font_icons.insert("change_mode", '\u{f0fe2}');
+        font_icons.insert("switch_mode", '\u{f0fe2}');
         font_icons.insert("start_ap", '\u{f040d}');
         font_icons.insert("stop_ap", '\u{f0667}');
         font_icons.insert("set_ssid", '\u{f08d5}');
@@ -325,7 +314,7 @@ impl Icons {
             "network-wireless-hardware-disabled-symbolic",
         );
         xdg_icons.insert("power_on_device", "system-shutdown-symbolic");
-        xdg_icons.insert("change_mode", "system-switch-user-symbolic");
+        xdg_icons.insert("switch_mode", "system-switch-user-symbolic");
         xdg_icons.insert("start_ap", "media-playback-start-symbolic");
         xdg_icons.insert("stop_ap", "media-playback-stop-symbolic");
         xdg_icons.insert("set_ssid", "edit-paste-symbolic");
@@ -919,17 +908,24 @@ impl Menu {
     pub async fn show_settings_menu(
         &self,
         menu_command: &Option<String>,
+        current_mode: &Mode,
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<SettingsMenuOptions>> {
+        let switch_mode_text = match current_mode {
+            Mode::Station => t!("menus.settings.options.switch_mode_to_ap.name"),
+            Mode::Ap => t!("menus.settings.options.switch_mode_to_station.name"),
+            _ => t!("menus.settings.options.switch_mode.name"),
+        };
+
         let options = vec![
             (
                 SettingsMenuOptions::DisableAdapter.to_id(),
                 SettingsMenuOptions::DisableAdapter.to_str(),
             ),
             (
-                SettingsMenuOptions::ChangeMode.to_id(),
-                SettingsMenuOptions::ChangeMode.to_str(),
+                SettingsMenuOptions::SwitchMode.to_id(),
+                switch_mode_text.clone(),
             ),
         ];
 
@@ -940,8 +936,10 @@ impl Menu {
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
-            if let Some(option) = SettingsMenuOptions::from_str(&cleaned_output) {
-                return Ok(Some(option));
+            if cleaned_output == SettingsMenuOptions::DisableAdapter.to_str() {
+                return Ok(Some(SettingsMenuOptions::DisableAdapter));
+            } else if cleaned_output == switch_mode_text {
+                return Ok(Some(SettingsMenuOptions::SwitchMode));
             }
         }
 
@@ -974,55 +972,6 @@ impl Menu {
         None
     }
 
-    pub fn show_change_mode_menu<'a>(
-        &self,
-        menu_command: &Option<String>,
-        adapter: &'a Adapter,
-        icon_type: &str,
-        spaces: usize,
-    ) -> Result<Option<ChangeModeMenuOptions>> {
-        let options = adapter
-            .supported_modes
-            .iter()
-            .filter(|mode| mode == &"station" || mode == &"ap")
-            .map(|mode| {
-                let formatted_mode: Cow<'a, str> = match mode.as_str() {
-                    "station" => t!("menus.change_mode.options.station.name"),
-                    "ap" => t!("menus.change_mode.options.access_point.name"),
-                    _ => Cow::Borrowed(mode.as_str()),
-                };
-                let icon_key = match mode.as_str() {
-                    "station" => "station",
-                    "ap" => "access_point",
-                    _ => "",
-                };
-                (icon_key, formatted_mode)
-            })
-            .collect::<Vec<(&str, Cow<'a, str>)>>();
-
-        let input = self.icons.get_icon_text(options, icon_type, spaces);
-
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
-
-        if let Some(output) = menu_output {
-            let cleaned_output = self.clean_menu_output(&output, icon_type);
-
-            let mode_id = if cleaned_output == t!("menus.change_mode.options.station.name") {
-                "station"
-            } else if cleaned_output == t!("menus.change_mode.options.access_point.name") {
-                "ap"
-            } else {
-                cleaned_output.as_str()
-            };
-
-            if let Some(option) = ChangeModeMenuOptions::from_id(mode_id) {
-                return Ok(Some(option));
-            }
-        }
-
-        Ok(None)
-    }
-
     pub async fn show_ap_menu(
         &self,
         menu_command: &Option<String>,
@@ -1038,7 +987,7 @@ impl Menu {
             },
             ("set_ssid", t!("menus.ap.options.set_ssid.name")),
             ("set_password", t!("menus.ap.options.set_password.name")),
-            ("change_mode", t!("menus.ap.options.change_mode.name")),
+            ("settings", t!("menus.ap.options.settings.name")),
         ];
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
