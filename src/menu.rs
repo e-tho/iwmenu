@@ -217,6 +217,40 @@ impl ApMenuOptions {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub enum AdapterMenuOptions {
+    PowerOnDevice,
+}
+
+impl AdapterMenuOptions {
+    pub fn from_id(id: &str) -> Option<Self> {
+        match id {
+            "power_on_device" => Some(AdapterMenuOptions::PowerOnDevice),
+            _ => None,
+        }
+    }
+
+    pub fn to_id(&self) -> &'static str {
+        match self {
+            AdapterMenuOptions::PowerOnDevice => "power_on_device",
+        }
+    }
+
+    pub fn from_str(option: &str) -> Option<Self> {
+        if option == t!("menus.adapter.options.power_on_device.name") {
+            Some(AdapterMenuOptions::PowerOnDevice)
+        } else {
+            None
+        }
+    }
+
+    pub fn to_str(&self) -> Cow<'static, str> {
+        match self {
+            AdapterMenuOptions::PowerOnDevice => t!("menus.adapter.options.power_on_device.name"),
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Menu {
     pub menu_type: MenuType,
@@ -919,15 +953,25 @@ impl Menu {
         menu_command: &Option<String>,
         icon_type: &str,
         spaces: usize,
-    ) -> Option<String> {
-        let power_on_icon = self.icons.get_icon_text(
-            vec![("power_on_device", "Power On Device")],
-            icon_type,
-            spaces,
-        );
-        let input = format!("{}\n", power_on_icon);
+    ) -> Option<AdapterMenuOptions> {
+        let options = vec![(
+            AdapterMenuOptions::PowerOnDevice.to_id(),
+            AdapterMenuOptions::PowerOnDevice.to_str(),
+        )];
 
-        self.run_menu_command(menu_command, Some(&input), icon_type, None, false)
+        let input = self.icons.get_icon_text(options, icon_type, spaces);
+
+        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
+
+        if let Some(output) = menu_output {
+            let cleaned_output = self.clean_menu_output(&output, icon_type);
+
+            if let Some(option) = AdapterMenuOptions::from_str(&cleaned_output) {
+                return Some(option);
+            }
+        }
+
+        None
     }
 
     pub fn show_change_mode_menu<'a>(

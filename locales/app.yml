@@ -84,3 +84,10 @@ menus:
         name:
           en: "Access Point"
           fr: "Point d'accès"
+  adapter:
+    options:
+      power_on_device:
+        name:
+          en: "Power On Device"
+          fr: "Activer l'adaptateur"
+

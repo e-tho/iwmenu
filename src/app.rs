@@ -1,13 +1,13 @@
 use anyhow::Result;
 use iwdrs::{modes::Mode, session::Session};
+use rust_i18n::t;
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
-
 use crate::{
     iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork},
     menu::{
-        ApMenuOptions, ChangeModeMenuOptions, KnownNetworkOptions, MainMenuOptions, Menu,
-        SettingsMenuOptions,
+        AdapterMenuOptions, ApMenuOptions, ChangeModeMenuOptions, KnownNetworkOptions,
+        MainMenuOptions, Menu, SettingsMenuOptions,
     },
     notification::NotificationManager,
 };
@@ -177,8 +177,9 @@ impl App {
         icon_type: &str,
         spaces: usize,
     ) -> Result<()> {
-        if let Some(output) = menu.prompt_enable_adapter(menu_command, icon_type, spaces) {
-            if output.contains("Power On Device") {
+        if let Some(option) = menu.prompt_enable_adapter(menu_command, icon_type, spaces) {
+            match option {
+                AdapterMenuOptions::PowerOnDevice => {
                 self.adapter.device.power_on().await?;
                 self.log_sender
                     .send("Adapter enabled".to_string())
@@ -200,6 +201,8 @@ impl App {
                         )
                         .await?;
                     station.refresh(self.log_sender.clone()).await?;
+                    }
+                }
                 }
             } else {
                 self.log_sender
@@ -211,7 +214,6 @@ impl App {
                     None,
                     None,
                 );
-            }
         }
 
         Ok(())
