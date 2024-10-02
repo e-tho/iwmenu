@@ -42,9 +42,17 @@ menus:
         name:
           en: "Disable Adapter"
           fr: "Désactiver l'adaptateur"
-      change_mode:
+      switch_mode_to_station:
         name:
-          en: "Change Mode"
+          en: "Switch mode to Station"
+          fr: "Basculer en mode Station"
+      switch_mode_to_ap:
+        name:
+          en: "Switch mode to Access Point"
+          fr: "Basculer en mode Point d'accès"
+      switch_mode:
+        name:
+          en: "Switch mode"
           fr: "Changer de mode"
   ap:
     options:
@@ -70,20 +78,10 @@ menus:
         prompt:
           en: "Entrez la passphrase pour %{ssid}:"
           fr: "Entrez le mot de passe pour le point d'accès:"
-      change_mode:
+      settings:
         name:
-          en: "Change Mode"
-          fr: "Changer de mode"
-  change_mode:
-    options:
-      station:
-        name:
-          en: "Station"
-          fr: "Station"
-      access_point:
-        name:
-          en: "Access Point"
-          fr: "Point d'accès"
+          en: "Settings"
+          fr: "Paramètres"
   adapter:
     options:
       power_on_device:

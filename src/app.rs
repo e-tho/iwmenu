@@ -338,7 +338,7 @@ impl App {
         spaces: usize,
     ) -> Result<()> {
         if let Some(option) = menu
-            .show_settings_menu(menu_command, icon_type, spaces)
+            .show_settings_menu(menu_command, &self.current_mode, icon_type, spaces)
             .await?
         {
             match option {
@@ -346,12 +346,36 @@ impl App {
                     self.disable_adapter(menu, menu_command, icon_type, spaces)
                         .await?;
                 }
-                SettingsMenuOptions::ChangeMode => {
-                    self.handle_change_mode(menu, menu_command, icon_type, spaces)
-                        .await?;
+                SettingsMenuOptions::SwitchMode => {
+                    self.switch_mode().await?;
+                    self.reset_mode = true;
+                    self.running = false;
                 }
             }
         }
+
+        Ok(())
+    }
+
+    async fn switch_mode(&mut self) -> Result<()> {
+        let new_mode = match self.current_mode {
+            Mode::Station => Mode::Ap,
+            Mode::Ap => Mode::Station,
+            _ => Mode::Station, // Valeur par défaut
+        };
+
+        self.reset(new_mode, self.log_sender.clone()).await?;
+
+        self.log_sender
+            .send(format!("Switched to mode: {:?}", self.current_mode))
+            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+        self.notification_manager.send_notification(
+            None,
+            Some(format!("Switched to mode: {:?}", self.current_mode)),
+            None,
+            None,
+        );
 
         Ok(())
     }
@@ -377,30 +401,6 @@ impl App {
         self.handle_device_off(menu, menu_command, icon_type, spaces)
             .await?;
 
-        Ok(())
-    }
-
-    async fn handle_change_mode(
-        &mut self,
-        menu: &Menu,
-        menu_command: &Option<String>,
-        icon_type: &str,
-        spaces: usize,
-    ) -> Result<()> {
-        if let Ok(Some(change_mode_option)) =
-            menu.show_change_mode_menu(menu_command, &self.adapter, icon_type, spaces)
-        {
-            let mode = match change_mode_option {
-                ChangeModeMenuOptions::Station => Mode::Station,
-                ChangeModeMenuOptions::Ap => Mode::Ap,
-            };
-
-            if self.adapter.supported_modes.contains(&mode.to_string()) {
-                self.reset(mode, self.log_sender.clone()).await?;
-                self.reset_mode = true;
-                self.running = false;
-            }
-        }
         Ok(())
     }
 
@@ -462,12 +462,9 @@ impl App {
                                     });
                             }
                         }
-                        ApMenuOptions::ChangeMode => {
-                            self.handle_change_mode(menu, menu_command, icon_type, spaces)
+                        ApMenuOptions::Settings => {
+                            self.handle_settings(menu, menu_command, icon_type, spaces)
                                 .await?;
-                            if self.reset_mode {
-                                break;
-                            }
                         }
                     }
                 } else {
