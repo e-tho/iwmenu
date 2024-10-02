@@ -2,6 +2,7 @@ use anyhow::Result;
 use futures::future::join_all;
 use iwdrs::session::Session;
 use notify_rust::Timeout;
+use rust_i18n::t;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
     sync::mpsc::UnboundedSender,
@@ -123,20 +124,31 @@ impl Station {
             match result {
                 Ok((network, signal)) => {
                     if network.known_network.is_some() {
+                        let msg = t!(
+                            "notifications.station.discovered_known_network",
+                            network_name = network.name
+                        );
                         sender
-                            .send(format!("Discovered known network: {}", network.name))
+                            .send(msg.to_string())
                             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     } else {
+                        let msg = t!(
+                            "notifications.station.discovered_network",
+                            network_name = network.name
+                        );
                         sender
-                            .send(format!("Discovered network: {}", network.name))
+                            .send(msg.to_string())
                             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     }
                     networks.push((network, signal));
                 }
                 Err(e) => {
-                    let msg = format!("Error processing network: {}", e);
+                    let msg = t!(
+                        "notifications.station.error_processing_network",
+                        error_message = e.to_string()
+                    );
                     sender
-                        .send(msg.clone())
+                        .send(msg.to_string())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                 }
             }
@@ -171,32 +183,37 @@ impl Station {
         let iwd_station = self.session.station().unwrap();
 
         if iwd_station.is_scanning().await? {
-            let msg = "Scan already in progress".to_string();
+            let msg = t!("notifications.station.scan_already_in_progress");
             sender
-                .send(msg.clone())
+                .send(msg.to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-            notification_manager.send_notification(None, Some(msg), None, None);
+            notification_manager.send_notification(None, Some(msg.to_string()), None, None);
             return Ok(());
         }
 
         let handle = match iwd_station.scan().await {
             Ok(_) => {
+                let msg = t!("notifications.station.start_scanning");
                 sender
-                    .send("Start Scanning".to_string())
+                    .send(msg.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                let notification_msg = t!("notifications.station.scan_in_progress");
                 Some(notification_manager.send_notification(
                     None,
-                    Some("Wi-Fi scan in progress".to_string()),
+                    Some(notification_msg.to_string()),
                     None,
                     Some(Timeout::Never),
                 ))
             }
             Err(e) => {
-                let msg = format!("Error initiating scan: {}", e);
+                let msg = t!(
+                    "notifications.station.error_initiating_scan",
+                    error_message = e.to_string()
+                );
                 sender
-                    .send(msg.clone())
+                    .send(msg.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                notification_manager.send_notification(None, Some(msg), None, None);
+                notification_manager.send_notification(None, Some(msg.to_string()), None, None);
                 return Err(e.into());
             }
         };
@@ -209,8 +226,9 @@ impl Station {
             handle.close();
         }
 
+        let msg = t!("notifications.station.scan_completed");
         sender
-            .send("Scan completed".to_string())
+            .send(msg.to_string())
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
         Ok(())
@@ -224,28 +242,31 @@ impl Station {
         let iwd_station = self.session.station().unwrap();
         match iwd_station.disconnect().await {
             Ok(_) => {
-                let msg = format!(
-                    "Disconnected from {}",
-                    self.connected_network.as_ref().unwrap().name
+                let msg = t!(
+                    "notifications.station.disconnected_from_network",
+                    network_name = self.connected_network.as_ref().unwrap().name
                 );
                 sender
-                    .send(msg.clone())
+                    .send(msg.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                 notification_manager.send_notification(
                     None,
-                    Some(msg.clone()),
+                    Some(msg.to_string()),
                     None,
                     Some(Timeout::Milliseconds(3000)),
                 );
             }
             Err(e) => {
-                let msg = e.to_string();
+                let msg = t!(
+                    "notifications.station.error_disconnecting",
+                    error_message = e.to_string()
+                );
                 sender
-                    .send(msg.clone())
+                    .send(msg.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                 notification_manager.send_notification(
                     None,
-                    Some(msg.clone()),
+                    Some(msg.to_string()),
                     None,
                     Some(Timeout::Milliseconds(3000)),
                 );

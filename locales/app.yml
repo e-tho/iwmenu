@@ -91,3 +91,71 @@ menus:
           en: "Power On Device"
           fr: "Activer l'adaptateur"
 
+notifications:
+  station:
+    discovered_known_network:
+      en: "Discovered known network: %{network_name}"
+      fr: "Réseau connu découvert : %{network_name}"
+    discovered_network:
+      en: "Discovered network: %{network_name}"
+      fr: "Réseau découvert : %{network_name}"
+    error_processing_network:
+      en: "Error processing network: %{error_message}"
+      fr: "Erreur lors du traitement du réseau : %{error_message}"
+    scan_already_in_progress:
+      en: "Scan already in progress"
+      fr: "Analyse déjà en cours"
+    start_scanning:
+      en: "Starting scan"
+      fr: "Début de l'analyse"
+    scan_in_progress:
+      en: "Wi-Fi scan in progress"
+      fr: "Analyse Wi-Fi en cours"
+    error_initiating_scan:
+      en: "Error initiating scan: %{error_message}"
+      fr: "Erreur lors de l'initialisation de l'analyse : %{error_message}"
+    scan_completed:
+      en: "Scan completed"
+      fr: "Analyse terminée"
+    disconnected_from_network:
+      en: "Disconnected from %{network_name}"
+      fr: "Déconnecté de %{network_name}"
+    error_disconnecting:
+      en: "Error disconnecting: %{error_message}"
+      fr: "Erreur lors de la déconnexion : %{error_message}"
+  network:
+    connected:
+      en: "Connected to %{network_name}"
+      fr: "Connecté à %{network_name}"
+    connection_canceled:
+      en: "Connection canceled"
+      fr: "Connexion annulée"
+  known_networks:
+    disable_autoconnect:
+      en: "Autoconnect disabled for %{network_name}"
+      fr: "Connexion automatique désactivée pour %{network_name}"
+    enable_autoconnect:
+      en: "Autoconnect enabled for %{network_name}"
+      fr: "Connexion automatique activée pour %{network_name}"
+    forget_network:
+      en: "Network removed"
+      fr: "Réseau supprimé"
+  app:
+    no_network_selected:
+      en: "No network selected"
+      fr: "Aucun réseau sélectionné"
+    no_station_available:
+      en: "No station available"
+      fr: "Aucune station disponible"
+    unknown_mode:
+      en: "Unknown mode"
+      fr: "Mode inconnu"
+    adapter_enabled:
+      en: "Adapter enabled"
+      fr: "Adaptateur activé"
+    adapter_disabled:
+      en: "Adapter disabled"
+      fr: "Adaptateur désactivé"
+    power_on_device:
+      en: "Power On Device"
+      fr: "Activer l'appareil"

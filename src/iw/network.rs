@@ -1,6 +1,7 @@
 use anyhow::Result;
 use iwdrs::netowrk::Network as IwdNetwork;
 use notify_rust::Timeout;
+use rust_i18n::t;
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -46,20 +47,23 @@ impl Network {
     ) -> Result<()> {
         match self.n.connect().await {
             Ok(_) => {
-                let msg = format!("Connected to {}", self.name);
-                sender.send(msg.clone()).unwrap_or_else(|err| {
+                let msg = t!(
+                    "notifications.network.connected", 
+                    network_name = self.name
+                );
+                sender.send(msg.to_string()).unwrap_or_else(|err| {
                     println!("Failed to send log message: {}", err);
                 });
                 notification_manager.send_notification(
                     None,
-                    Some(msg.clone()),
+                    Some(msg.to_string()),
                     None,
                     Some(Timeout::Milliseconds(3000)),
                 );
             }
             Err(e) => {
                 let msg = if e.to_string().contains("net.connman.iwd.Aborted") {
-                    "Connection canceled".to_string()
+                    t!("notifications.network.connection_canceled").to_string()
                 } else {
                     e.to_string()
                 };
