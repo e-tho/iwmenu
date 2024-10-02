@@ -2,6 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, FixedOffset};
 use iwdrs::known_netowk::KnownNetwork as IwdKnownNetwork;
 use notify_rust::Timeout;
+use rust_i18n::t;
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -45,14 +46,17 @@ impl KnownNetwork {
     ) -> Result<()> {
         match self.n.forget().await {
             Ok(_) => {
-                let msg = "Network Removed".to_string();
+                let msg = t!(
+                    "notifications.known_networks.forget_network",
+                    network_name = self.name
+                );
                 sender
-                    .send(msg.clone())
+                    .send(msg.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
                 notification_manager.send_notification(
                     None,
-                    Some(msg.clone()),
+                    Some(msg.to_string()),
                     None,
                     Some(Timeout::Milliseconds(3000)),
                 );
@@ -65,7 +69,7 @@ impl KnownNetwork {
 
                 notification_manager.send_notification(
                     None,
-                    Some(msg.clone()),
+                    Some(msg),
                     None,
                     Some(Timeout::Milliseconds(3000)),
                 );
@@ -82,14 +86,17 @@ impl KnownNetwork {
         if self.is_autoconnect {
             match self.n.set_autoconnect(false).await {
                 Ok(_) => {
-                    let msg = format!("Disable Autoconnect for: {}", self.name);
+                    let msg = t!(
+                        "notifications.known_networks.disable_autoconnect",
+                        network_name = self.name
+                    );
                     sender
-                        .send(msg.clone())
+                        .send(msg.to_string())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
                     notification_manager.send_notification(
                         None,
-                        Some(msg.clone()),
+                        Some(msg.to_string()),
                         None,
                         Some(Timeout::Milliseconds(3000)),
                     );
@@ -102,7 +109,7 @@ impl KnownNetwork {
 
                     notification_manager.send_notification(
                         None,
-                        Some(msg.clone()),
+                        Some(msg),
                         None,
                         Some(Timeout::Milliseconds(3000)),
                     );
@@ -111,14 +118,17 @@ impl KnownNetwork {
         } else {
             match self.n.set_autoconnect(true).await {
                 Ok(_) => {
-                    let msg = format!("Enable Autoconnect for: {}", self.name);
+                    let msg = t!(
+                        "notifications.known_networks.enable_autoconnect",
+                        network_name = self.name
+                    );
                     sender
-                        .send(msg.clone())
+                        .send(msg.to_string())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
                     notification_manager.send_notification(
                         None,
-                        Some(msg.clone()),
+                        Some(msg.to_string()),
                         None,
                         Some(Timeout::Milliseconds(3000)),
                     );
@@ -131,7 +141,7 @@ impl KnownNetwork {
 
                     notification_manager.send_notification(
                         None,
-                        Some(msg.clone()),
+                        Some(msg),
                         None,
                         Some(Timeout::Milliseconds(3000)),
                     );

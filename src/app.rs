@@ -1,8 +1,3 @@
-use anyhow::Result;
-use iwdrs::{modes::Mode, session::Session};
-use rust_i18n::t;
-use std::sync::Arc;
-use tokio::sync::mpsc::UnboundedSender;
 use crate::{
     iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork},
     menu::{
@@ -11,6 +6,11 @@ use crate::{
     },
     notification::NotificationManager,
 };
+use anyhow::Result;
+use iwdrs::{modes::Mode, session::Session};
+use rust_i18n::t;
+use std::sync::Arc;
+use tokio::sync::mpsc::UnboundedSender;
 
 pub struct App {
     pub running: bool,
@@ -136,14 +136,14 @@ impl App {
                             }
                         } else {
                             self.log_sender
-                                .send("No network selected".to_string())
+                                .send(t!("notifications.app.no_network_selected").to_string())
                                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                             self.running = false;
                             return Ok(None);
                         }
                     } else {
                         self.log_sender
-                            .send("No station available".to_string())
+                            .send(t!("notifications.app.no_station_available").to_string())
                             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                         self.running = false;
                         return Ok(None);
@@ -155,7 +155,7 @@ impl App {
                 }
                 _ => {
                     self.log_sender
-                        .send("Unknown mode".to_string())
+                        .send(t!("notifications.app.unknown_mode").to_string())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     self.running = false;
                     return Ok(None);
@@ -180,40 +180,40 @@ impl App {
         if let Some(option) = menu.prompt_enable_adapter(menu_command, icon_type, spaces) {
             match option {
                 AdapterMenuOptions::PowerOnDevice => {
-                self.adapter.device.power_on().await?;
-                self.log_sender
-                    .send("Adapter enabled".to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                self.notification_manager.send_notification(
-                    None,
-                    Some("Adapter enabled".to_string()),
-                    None,
-                    None,
-                );
+                    self.adapter.device.power_on().await?;
+                    self.log_sender
+                        .send(t!("notifications.app.adapter_enabled").to_string())
+                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    self.notification_manager.send_notification(
+                        None,
+                        Some(t!("notifications.app.adapter_enabled").to_string()),
+                        None,
+                        None,
+                    );
 
-                self.adapter.refresh(self.log_sender.clone()).await?;
+                    self.adapter.refresh(self.log_sender.clone()).await?;
 
-                if let Some(station) = self.adapter.device.station.as_mut() {
-                    station
-                        .scan(
-                            self.log_sender.clone(),
-                            Arc::clone(&self.notification_manager),
-                        )
-                        .await?;
-                    station.refresh(self.log_sender.clone()).await?;
+                    if let Some(station) = self.adapter.device.station.as_mut() {
+                        station
+                            .scan(
+                                self.log_sender.clone(),
+                                Arc::clone(&self.notification_manager),
+                            )
+                            .await?;
+                        station.refresh(self.log_sender.clone()).await?;
                     }
                 }
-                }
-            } else {
-                self.log_sender
-                    .send("Adapter remains disabled".to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                self.notification_manager.send_notification(
-                    None,
-                    Some("Adapter remains disabled".to_string()),
-                    None,
-                    None,
-                );
+            }
+        } else {
+            self.log_sender
+                .send(t!("notifications.app.adapter_disabled").to_string())
+                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            self.notification_manager.send_notification(
+                None,
+                Some(t!("notifications.app.adapter_disabled").to_string()),
+                None,
+                None,
+            );
         }
 
         Ok(())
@@ -373,11 +373,11 @@ impl App {
     ) -> Result<()> {
         self.adapter.device.power_off().await?;
         self.log_sender
-            .send("Adapter disabled".to_string())
+            .send(t!("notifications.app.adapter_disabled").to_string())
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
         self.notification_manager.send_notification(
             None,
-            Some("Adapter disabled".to_string()),
+            Some(t!("notifications.app.adapter_disabled").to_string()),
             None,
             None,
         );
