@@ -295,44 +295,36 @@ impl App {
                     return Ok(None);
                 }
 
-                if station
-                    .new_networks
-                    .iter()
-                    .any(|(n, _)| n.name == network.name)
-                {
+                if network.known_network.is_some() {
+                    self.log_sender
+                        .send(format!("Connecting to known network: {}", network.name))
+                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+                    network
+                        .connect(self.log_sender.clone(), self.notification_manager.clone())
+                        .await?;
+                    station.refresh(self.log_sender.clone()).await?;
+                    return Ok(Some(network.name.clone()));
+                } else {
                     self.log_sender
                         .send(format!("Connecting to new network: {}", network.name))
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                }
 
-                if let Some(known_network) = &network.known_network {
-                    if known_network.is_autoconnect {
-                        self.log_sender
-                            .send(format!(
-                                "Auto-connecting to known network: {}",
-                                network.name
-                            ))
-                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                        network
-                            .connect(self.log_sender.clone(), self.notification_manager.clone())
-                            .await?;
-                        return Ok(Some(network.name.clone()));
+                    if let Some(passphrase) =
+                        menu.prompt_passphrase(menu_command, &network.name, icon_type)
+                    {
+                        self.agent_manager.send_passkey(passphrase)?;
+                    } else {
+                        self.agent_manager.cancel_auth()?;
+                        return Ok(None);
                     }
-                }
 
-                if let Some(passphrase) =
-                    menu.prompt_passphrase(menu_command, &network.name, icon_type)
-                {
-                    self.agent_manager.send_passkey(passphrase)?;
-                } else {
-                    self.agent_manager.cancel_auth()?;
+                    network
+                        .connect(self.log_sender.clone(), self.notification_manager.clone())
+                        .await?;
+                    station.refresh(self.log_sender.clone()).await?;
+                    return Ok(Some(network.name.clone()));
                 }
-
-                network
-                    .connect(self.log_sender.clone(), self.notification_manager.clone())
-                    .await?;
-                station.refresh(self.log_sender.clone()).await?;
-                return Ok(Some(network.name.clone()));
             }
         }
         Ok(None)
