@@ -175,61 +175,19 @@ impl Station {
         Ok(())
     }
 
-    pub async fn scan(
-        &self,
-        sender: UnboundedSender<String>,
-        notification_manager: Arc<NotificationManager>,
-    ) -> Result<()> {
+    pub async fn scan(&mut self) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
 
-        if iwd_station.is_scanning().await? {
-            let msg = t!("notifications.station.scan_already_in_progress");
-            sender
-                .send(msg.to_string())
-                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-            notification_manager.send_notification(None, Some(msg.to_string()), None, None);
+        if self.is_scanning {
             return Ok(());
         }
 
-        let handle = match iwd_station.scan().await {
-            Ok(_) => {
-                let msg = t!("notifications.station.start_scanning");
-                sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                let notification_msg = t!("notifications.station.scan_in_progress");
-                Some(notification_manager.send_notification(
-                    None,
-                    Some(notification_msg.to_string()),
-                    None,
-                    Some(Timeout::Never),
-                ))
-            }
-            Err(e) => {
-                let msg = t!(
-                    "notifications.station.error_initiating_scan",
-                    error_message = e.to_string()
-                );
-                sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                notification_manager.send_notification(None, Some(msg.to_string()), None, None);
-                return Err(e.into());
-            }
-        };
+        self.is_scanning = true;
 
-        while iwd_station.is_scanning().await? {
-            sleep(Duration::from_millis(500)).await;
+        if let Err(e) = iwd_station.scan().await {
+            self.is_scanning = false;
+            return Err(e.into());
         }
-
-        if let Some(handle) = handle {
-            handle.close();
-        }
-
-        let msg = t!("notifications.station.scan_completed");
-        sender
-            .send(msg.to_string())
-            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
         Ok(())
     }
