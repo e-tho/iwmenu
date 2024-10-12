@@ -1,6 +1,6 @@
 use notify_rust::{Notification, NotificationHandle, Timeout};
-use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
+use std::sync::Arc;
+use tokio::sync::{Mutex, mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender}};
 
 pub struct NotificationManager {
     sender: UnboundedSender<NotificationMessage>,
@@ -57,7 +57,7 @@ impl NotificationManager {
 
             match notification.show() {
                 Ok(handle) => {
-                    let mut handle_lock = notification_handle.lock().unwrap();
+                    let mut handle_lock = notification_handle.lock().await;
                     if let Some(existing_handle) = handle_lock.take() {
                         existing_handle.close();
                     }

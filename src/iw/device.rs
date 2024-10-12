@@ -2,6 +2,7 @@ use anyhow::{Context, Result};
 use iwdrs::{device::Device as IwdDevice, modes::Mode, session::Session};
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
+use tokio::sync::RwLock;
 
 use crate::iw::{access_point::AccessPoint, station::Station};
 
@@ -13,8 +14,8 @@ pub struct Device {
     pub address: String,
     pub mode: Mode,
     pub is_powered: bool,
-    pub station: Option<Station>,
-    pub access_point: Option<AccessPoint>,
+    pub station: Option<Arc<RwLock<Station>>>,
+    pub access_point: Option<Arc<RwLock<AccessPoint>>>,
 }
 
 impl Device {
@@ -28,7 +29,7 @@ impl Device {
 
         let station = match session.station() {
             Some(_) => match Station::new(session.clone()).await {
-                Ok(v) => Some(v),
+                Ok(v) => Some(Arc::new(RwLock::new(v))),
                 Err(e) => {
                     let msg = format!("Failed to initialize Station: {}", e);
                     sender.send(msg).unwrap_or_else(|err| {
@@ -42,7 +43,7 @@ impl Device {
 
         let access_point = match session.access_point() {
             Some(_) => match AccessPoint::new(session.clone()).await {
-                Ok(v) => Some(v),
+                Ok(v) => Some(Arc::new(RwLock::new(v))),
                 Err(e) => {
                     let msg = format!("Failed to initialize AccessPoint: {}", e);
                     sender.send(msg).unwrap_or_else(|err| {
@@ -88,15 +89,16 @@ impl Device {
         match current_mode {
             Mode::Station => match self.mode {
                 Mode::Station => {
-                    if let Some(station) = &mut self.station {
-                        station.refresh(sender).await?;
+                    if let Some(station) = &self.station {
+                        let mut station_guard = station.write().await;
+                        station_guard.refresh(sender.clone()).await?;
                     }
                 }
                 Mode::Ap => {
                     self.access_point = None;
                     self.station = match self.session.station() {
                         Some(_) => match Station::new(self.session.clone()).await {
-                            Ok(v) => Some(v),
+                            Ok(v) => Some(Arc::new(RwLock::new(v))),
                             Err(e) => {
                                 let msg = format!("Failed to initialize Station: {}", e);
                                 sender.send(msg).unwrap_or_else(|err| {
@@ -115,7 +117,7 @@ impl Device {
                     self.station = None;
                     self.access_point = match self.session.access_point() {
                         Some(_) => match AccessPoint::new(self.session.clone()).await {
-                            Ok(v) => Some(v),
+                            Ok(v) => Some(Arc::new(RwLock::new(v))),
                             Err(e) => {
                                 let msg = format!("Failed to initialize AccessPoint: {}", e);
                                 sender.send(msg).unwrap_or_else(|err| {
@@ -128,8 +130,9 @@ impl Device {
                     };
                 }
                 Mode::Ap => {
-                    if self.access_point.is_some() {
-                        self.access_point.as_mut().unwrap().refresh().await?;
+                    if let Some(access_point) = &self.access_point {
+                        let mut ap_guard = access_point.write().await;
+                        ap_guard.refresh().await?;
                     }
                 }
                 _ => {}

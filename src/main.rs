@@ -6,12 +6,9 @@ use iwmenu::{
     notification::NotificationManager,
 };
 use notify_rust::NotificationHandle;
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::{env, sync::Arc};
 use sys_locale::get_locale;
-use tokio::sync::mpsc::unbounded_channel;
+use tokio::sync::{mpsc::unbounded_channel, Mutex};
 
 rust_i18n::i18n!("locales");
 

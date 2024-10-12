@@ -4,16 +4,14 @@ use iwdrs::modes::Mode;
 use regex::Regex;
 use rust_i18n::t;
 use shlex::Shlex;
-use std::{
-    borrow::Cow,
-    collections::HashMap,
-    io::Write,
-    process::{Command, Stdio},
+use std::{borrow::Cow, collections::HashMap, future::Future, pin::Pin, process::Stdio};
+use tokio::{
+    io::{self, AsyncReadExt, AsyncWriteExt},
+    process::{Child, Command},
 };
 
 use crate::iw::{
-    access_point::AccessPoint, known_network::KnownNetwork, network::Network,
-    station::Station,
+    access_point::AccessPoint, known_network::KnownNetwork, network::Network, station::Station,
 };
 
 #[derive(Debug, Clone, ArgEnum)]
@@ -252,6 +250,11 @@ pub struct Icons {
     xdg_icons: HashMap<&'static str, &'static str>,
 }
 
+pub struct MenuProcess {
+    pub child: Child,
+    pub output_future: Pin<Box<dyn Future<Output = Option<String>> + Send>>,
+}
+
 impl Icons {
     pub fn new() -> Self {
         let mut font_icons = HashMap::new();
@@ -483,15 +486,15 @@ impl Menu {
         }
     }
 
-    pub fn run_menu_command(
+    pub async fn run_menu_command(
         &self,
         menu_command: &Option<String>,
         input: Option<&str>,
         icon_type: &str,
         prompt: Option<&str>,
         obfuscate: bool,
-    ) -> Option<String> {
-        let output = match self.menu_type {
+    ) -> Result<MenuProcess> {
+        let mut command = match self.menu_type {
             MenuType::Fuzzel => {
                 let mut command = Command::new("fuzzel");
                 command.arg("-d");
@@ -508,23 +511,7 @@ impl Menu {
                     command.arg("--password");
                 }
 
-                let mut child = command
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .ok()?;
-
-                if let Some(input_data) = input {
-                    child
-                        .stdin
-                        .as_mut()
-                        .unwrap()
-                        .write_all(input_data.as_bytes())
-                        .unwrap();
-                }
-
-                let output = child.wait_with_output().ok()?;
-                String::from_utf8_lossy(&output.stdout).to_string()
+                command
             }
             MenuType::Wofi => {
                 let mut command = Command::new("wofi");
@@ -542,23 +529,7 @@ impl Menu {
                     command.arg("--password");
                 }
 
-                let mut child = command
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .ok()?;
-
-                if let Some(input_data) = input {
-                    child
-                        .stdin
-                        .as_mut()
-                        .unwrap()
-                        .write_all(input_data.as_bytes())
-                        .unwrap();
-                }
-
-                let output = child.wait_with_output().ok()?;
-                String::from_utf8_lossy(&output.stdout).to_string()
+                command
             }
             MenuType::Rofi => {
                 let mut command = Command::new("rofi");
@@ -576,23 +547,7 @@ impl Menu {
                     command.arg("-password");
                 }
 
-                let mut child = command
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .ok()?;
-
-                if let Some(input_data) = input {
-                    child
-                        .stdin
-                        .as_mut()
-                        .unwrap()
-                        .write_all(input_data.as_bytes())
-                        .unwrap();
-                }
-
-                let output = child.wait_with_output().ok()?;
-                String::from_utf8_lossy(&output.stdout).to_string()
+                command
             }
             MenuType::Dmenu => {
                 let mut command = Command::new("dmenu");
@@ -601,86 +556,46 @@ impl Menu {
                     command.arg("-p").arg(prompt_text);
                 }
 
-                let mut child = command
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .ok()?;
-
-                if let Some(input_data) = input {
-                    child
-                        .stdin
-                        .as_mut()
-                        .unwrap()
-                        .write_all(input_data.as_bytes())
-                        .unwrap();
-                }
-
-                let output = child.wait_with_output().ok()?;
-                String::from_utf8_lossy(&output.stdout).to_string()
+                command
             }
             MenuType::Custom => {
                 if let Some(cmd) = menu_command {
-                    let mut cmd_processed = cmd.clone();
-
-                    let prompt_text = prompt.unwrap_or("");
-                    cmd_processed = cmd_processed.replace("{prompt}", prompt_text);
-
-                    let re = Regex::new(r"\{(\w+):([^\}]+)\}").unwrap();
-
-                    cmd_processed = re
-                        .replace_all(&cmd_processed, |caps: &regex::Captures| {
-                            let placeholder_name = &caps[1];
-                            let default_value = &caps[2];
-
-                            match placeholder_name {
-                                "password_flag" => {
-                                    if obfuscate {
-                                        default_value.to_string()
-                                    } else {
-                                        "".to_string()
-                                    }
-                                }
-                                _ => caps[0].to_string(),
-                            }
-                        })
-                        .to_string();
-
-                    let parts: Vec<String> = Shlex::new(&cmd_processed).collect();
-
-                    let (cmd_program, args) = parts.split_first().unwrap();
-                    let mut command = Command::new(cmd_program);
-                    command.args(args);
-
-                    let mut child = command
-                        .stdin(Stdio::piped())
-                        .stdout(Stdio::piped())
-                        .spawn()
-                        .ok()?;
-
-                    if let Some(input_data) = input {
-                        child
-                            .stdin
-                            .as_mut()
-                            .unwrap()
-                            .write_all(input_data.as_bytes())
-                            .unwrap();
-                    }
-
-                    let output = child.wait_with_output().ok()?;
-                    String::from_utf8_lossy(&output.stdout).to_string()
+                    let mut command = Command::new("sh");
+                    command.arg("-c").arg(cmd);
+                    command
                 } else {
-                    return None;
+                    return Err(anyhow::anyhow!("Custom menu command is missing"));
                 }
             }
         };
 
-        let trimmed_output = output.trim().to_string();
-        if trimmed_output.is_empty() {
-            None
-        } else {
-            Some(trimmed_output)
+        command.stdin(Stdio::piped()).stdout(Stdio::piped());
+
+        let mut child = command.spawn().expect("Failed to spawn menu command");
+
+        if let Some(input_data) = input {
+            if let Some(stdin) = &mut child.stdin {
+                if let Err(e) = stdin.write_all(input_data.as_bytes()).await {
+                    return Err(anyhow::anyhow!("Failed to write to stdin: {:?}", e));
+                }
+            }
         }
+
+        let stdout = child.stdout.take().unwrap();
+        let output_future = Box::pin(async move {
+            let mut reader = io::BufReader::new(stdout);
+            let mut output = String::new();
+            if reader.read_to_string(&mut output).await.is_ok() {
+                Some(output)
+            } else {
+                None
+            }
+        });
+
+        Ok(MenuProcess {
+            child,
+            output_future,
+        })
     }
 
     pub fn clean_menu_output(&self, output: &str, icon_type: &str) -> String {
@@ -740,112 +655,100 @@ impl Menu {
             .cloned()
     }
 
-    pub fn prompt_passphrase(
-        &self,
-        menu_command: &Option<String>,
-        ssid: &str,
-        icon_type: &str,
-    ) -> Option<String> {
-        let prompt_text = t!("menus.main.options.network.prompt", ssid = ssid);
-        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
-    }
-
     pub async fn show_main_menu(
         &self,
         menu_command: &Option<String>,
         station: &mut Station,
         icon_type: &str,
         spaces: usize,
-    ) -> Result<Option<MainMenuOptions>> {
+    ) -> Result<Option<MenuProcess>> {
         let scan_text = MainMenuOptions::Scan.to_str();
         let known_networks_text = MainMenuOptions::KnownNetworks.to_str();
-
+    
         let options_before_networks = vec![
             ("scan", scan_text.as_ref()),
             ("known_networks", known_networks_text.as_ref()),
         ];
-
-        let mut input = self
-            .icons
-            .get_icon_text(options_before_networks, icon_type, spaces);
-
+    
+        let before_networks_input =
+            self.icons
+                .get_icon_text(options_before_networks, icon_type, spaces);
+    
+        let mut options = vec![before_networks_input];
+    
         for (network, signal_strength) in &station.known_networks {
             let network_info =
                 self.icons
                     .format_network_display(network, *signal_strength, icon_type, spaces);
-            input.push_str(&format!("\n{}", network_info));
+            options.push(network_info);
         }
-
+    
         for (network, signal_strength) in &station.new_networks {
             let network_info =
                 self.icons
                     .format_network_display(network, *signal_strength, icon_type, spaces);
-            input.push_str(&format!("\n{}", network_info));
+            options.push(network_info);
         }
-
+    
         let settings_text = MainMenuOptions::Settings.to_str();
         let options_after_networks = vec![("settings", settings_text.as_ref())];
-
-        let settings_input = self
-            .icons
-            .get_icon_text(options_after_networks, icon_type, spaces);
-        input.push_str(&format!("\n{}", settings_input));
-
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
-
-        if let Some(output) = menu_output {
-            let cleaned_output = self.clean_menu_output(&output, icon_type);
-            if let Some(option) = MainMenuOptions::from_str(&cleaned_output) {
-                return Ok(Some(option));
-            }
-        }
-
-        Ok(None)
+    
+        let after_networks_input =
+            self.icons
+                .get_icon_text(options_after_networks, icon_type, spaces);
+    
+        options.push(after_networks_input);
+    
+        let input = options.join("\n");
+    
+        // println!("Menu input: {:?}", input);
+    
+        let menu_process = self
+            .run_menu_command(menu_command, Some(&input), icon_type, None, false)
+            .await?;
+    
+        Ok(Some(menu_process))
     }
+    
 
     pub async fn show_known_networks_menu(
         &self,
         menu_command: &Option<String>,
-        station: &mut Station,
+        known_networks: &[(KnownNetwork, i16)],
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<KnownNetwork>> {
         let mut input = String::new();
 
-        for (network, _signal_strength) in &station.known_networks {
-            if let Some(ref known_network) = network.known_network {
-                let network_info =
-                    self.icons
-                        .format_known_network_display(known_network, icon_type, spaces);
-                input.push_str(&format!("{}\n", network_info));
-            }
+        for (known_network, _signal_strength) in known_networks {
+            let network_info =
+                self.icons
+                    .format_known_network_display(known_network, icon_type, spaces);
+            input.push_str(&format!("{}\n", network_info));
         }
 
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
+        let menu_process = self
+            .run_menu_command(menu_command, Some(&input), icon_type, None, false)
+            .await?;
 
-        if let Some(output) = menu_output {
+        let output = menu_process.output_future.await;
+
+        if let Some(output) = output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
-            let selected_known_network = station
-                .known_networks
+            let selected_known_network = known_networks
                 .iter()
                 .find(|(network, _)| {
-                    if let Some(ref known_network) = network.known_network {
-                        let formatted_network_name = self.clean_menu_output(
-                            &self.icons.format_known_network_display(
-                                known_network,
-                                icon_type,
-                                spaces,
-                            ),
-                            icon_type,
-                        );
+                    let formatted_network_name = self.clean_menu_output(
+                        &self
+                            .icons
+                            .format_known_network_display(network, icon_type, spaces),
+                        icon_type,
+                    );
 
-                        formatted_network_name == cleaned_output
-                    } else {
-                        false
-                    }
+                    formatted_network_name == cleaned_output
                 })
-                .and_then(|(network, _)| network.known_network.clone());
+                .map(|(network, _)| network.clone());
 
             Ok(selected_known_network)
         } else {
@@ -890,9 +793,14 @@ impl Menu {
         );
 
         let input = format!("{}\n{}", toggle_autoconnect_option, forget_option);
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
-        if let Some(output) = menu_output {
+        let menu_process = self
+            .run_menu_command(menu_command, Some(&input), icon_type, None, false)
+            .await?;
+
+        let output = menu_process.output_future.await;
+
+        if let Some(output) = output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
             if let Some(option) = KnownNetworkOptions::from_str(&cleaned_output) {
@@ -931,27 +839,33 @@ impl Menu {
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
 
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
+        let menu_process = self
+            .run_menu_command(menu_command, Some(&input), icon_type, None, false)
+            .await?;
 
-        if let Some(output) = menu_output {
+        let output = menu_process.output_future.await;
+
+        if let Some(output) = output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
             if cleaned_output == SettingsMenuOptions::DisableAdapter.to_str() {
-                return Ok(Some(SettingsMenuOptions::DisableAdapter));
+                Ok(Some(SettingsMenuOptions::DisableAdapter))
             } else if cleaned_output == switch_mode_text {
-                return Ok(Some(SettingsMenuOptions::SwitchMode));
+                Ok(Some(SettingsMenuOptions::SwitchMode))
+            } else {
+                Ok(None)
             }
+        } else {
+            Ok(None)
         }
-
-        Ok(None)
     }
 
-    pub fn prompt_enable_adapter(
+    pub async fn prompt_enable_adapter(
         &self,
         menu_command: &Option<String>,
         icon_type: &str,
         spaces: usize,
-    ) -> Option<AdapterMenuOptions> {
+    ) -> Result<Option<AdapterMenuOptions>> {
         let options = vec![(
             AdapterMenuOptions::PowerOnDevice.to_id(),
             AdapterMenuOptions::PowerOnDevice.to_str(),
@@ -959,17 +873,23 @@ impl Menu {
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
 
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
+        let menu_process = self
+            .run_menu_command(menu_command, Some(&input), icon_type, None, false)
+            .await?;
 
-        if let Some(output) = menu_output {
+        let output = menu_process.output_future.await;
+
+        if let Some(output) = output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
             if let Some(option) = AdapterMenuOptions::from_str(&cleaned_output) {
-                return Some(option);
+                Ok(Some(option))
+            } else {
+                Ok(None)
             }
+        } else {
+            Ok(None)
         }
-
-        None
     }
 
     pub async fn show_ap_menu(
@@ -978,7 +898,7 @@ impl Menu {
         access_point: &AccessPoint,
         icon_type: &str,
         spaces: usize,
-    ) -> Result<Option<ApMenuOptions>> {
+    ) -> Result<Option<String>> {
         let options = vec![
             if access_point.has_started {
                 ("stop_ap", t!("menus.ap.options.stop_ap.name"))
@@ -992,30 +912,57 @@ impl Menu {
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
 
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
+        let menu_process = self
+            .run_menu_command(menu_command, Some(&input), icon_type, None, false)
+            .await?;
 
-        if let Some(output) = menu_output {
-            let cleaned_output = self.clean_menu_output(&output, icon_type);
-
-            if let Some(option) = ApMenuOptions::from_str(&cleaned_output) {
-                return Ok(Some(option));
-            }
-        }
-
-        Ok(None)
+        let output = menu_process.output_future.await;
+        Ok(output)
     }
 
-    pub fn prompt_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
-        let prompt_text = t!("menus.ap.options.set_ssid.prompt");
-        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), false)
+    pub async fn prompt_passphrase(
+        &self,
+        menu_command: &Option<String>,
+        ssid: &str,
+        icon_type: &str,
+    ) -> Result<Option<String>> {
+        let prompt_text = t!("menus.main.options.network.prompt", ssid = ssid);
+
+        let menu_process = self
+            .run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
+            .await?;
+
+        let output = menu_process.output_future.await;
+        Ok(output)
     }
 
-    pub fn prompt_password(
+    pub async fn prompt_ssid(
         &self,
         menu_command: &Option<String>,
         icon_type: &str,
-    ) -> Option<String> {
+    ) -> Result<Option<String>> {
+        let prompt_text = t!("menus.ap.options.set_ssid.prompt");
+
+        let menu_process = self
+            .run_menu_command(menu_command, None, icon_type, Some(&prompt_text), false)
+            .await?;
+
+        let output = menu_process.output_future.await;
+        Ok(output)
+    }
+
+    pub async fn prompt_password(
+        &self,
+        menu_command: &Option<String>,
+        icon_type: &str,
+    ) -> Result<Option<String>> {
         let prompt_text = t!("menus.ap.options.set_password.prompt");
-        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
+
+        let menu_process = self
+            .run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
+            .await?;
+
+        let output = menu_process.output_future.await;
+        Ok(output)
     }
 }
