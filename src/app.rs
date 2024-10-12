@@ -351,18 +351,7 @@ impl App {
                         None,
                         None,
                     );
-
                     self.adapter.refresh(self.log_sender.clone()).await?;
-
-                    if let Some(station) = self.adapter.device.station.as_mut() {
-                        station
-                            .scan(
-                                self.log_sender.clone(),
-                                Arc::clone(&self.notification_manager),
-                            )
-                            .await?;
-                        station.refresh(self.log_sender.clone()).await?;
-                    }
                 }
             }
         } else {
@@ -512,7 +501,7 @@ impl App {
             let iwd_station = station.session.station().unwrap();
             while iwd_station.is_scanning().await? {
                 sleep(Duration::from_millis(500)).await;
-        }
+            }
 
             handle.close();
 
