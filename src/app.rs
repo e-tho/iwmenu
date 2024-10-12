@@ -8,9 +8,10 @@ use crate::{
 };
 use anyhow::Result;
 use iwdrs::{modes::Mode, session::Session};
+use notify_rust::Timeout;
 use rust_i18n::t;
-use std::sync::Arc;
-use tokio::sync::mpsc::UnboundedSender;
+use std::{sync::Arc, time::Duration};
+use tokio::{sync::mpsc::UnboundedSender, time::sleep};
 
 pub struct App {
     pub running: bool,
@@ -470,13 +471,59 @@ impl App {
 
     async fn perform_network_scan(&mut self) -> Result<()> {
         if let Some(station) = self.adapter.device.station.as_mut() {
-            station
-                .scan(
-                    self.log_sender.clone(),
-                    Arc::clone(&self.notification_manager),
-                )
-                .await?;
+            if station.is_scanning {
+                let msg = t!("notifications.station.scan_already_in_progress");
+                self.log_sender
+                    .send(msg.to_string())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                self.notification_manager.send_notification(
+                    None,
+                    Some(msg.to_string()),
+                    None,
+                    None,
+                );
+                return Ok(());
+            }
+
+            let handle = self.notification_manager.send_notification(
+                None,
+                Some(t!("notifications.station.scan_in_progress").to_string()),
+                None,
+                Some(Timeout::Never),
+            );
+
+            if let Err(e) = station.scan().await {
+                let msg = t!(
+                    "notifications.station.error_initiating_scan",
+                    error_message = e.to_string()
+                );
+                self.log_sender
+                    .send(msg.to_string())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                self.notification_manager.send_notification(
+                    None,
+                    Some(msg.to_string()),
+                    None,
+                    None,
+                );
+                return Err(e.into());
+            }
+
+            let iwd_station = station.session.station().unwrap();
+            while iwd_station.is_scanning().await? {
+                sleep(Duration::from_millis(500)).await;
         }
+
+            handle.close();
+
+            let msg = t!("notifications.station.scan_completed");
+            self.log_sender
+                .send(msg.to_string())
+                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            self.notification_manager
+                .send_notification(None, Some(msg.to_string()), None, None);
+        }
+
         Ok(())
     }
 
