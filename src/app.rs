@@ -1,8 +1,8 @@
 use crate::{
-    iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork},
+    iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork, network::Network},
     menu::{
-        AdapterMenuOptions, ApMenuOptions, ChangeModeMenuOptions, KnownNetworkOptions,
-        MainMenuOptions, Menu, SettingsMenuOptions,
+        AdapterMenuOptions, ApMenuOptions, KnownNetworkOptions, MainMenuOptions, Menu,
+        SettingsMenuOptions,
     },
     notification::NotificationManager,
 };
@@ -69,6 +69,10 @@ impl App {
         Ok(())
     }
 
+    pub fn quit(&mut self) {
+        self.running = false;
+    }
+
     pub async fn run(
         &mut self,
         menu: &Menu,
@@ -77,7 +81,7 @@ impl App {
         spaces: usize,
     ) -> Result<Option<String>> {
         if !self.adapter.device.is_powered {
-            self.handle_device_off(menu, menu_command, icon_type, spaces)
+            self.handle_adapter_options(menu, menu_command, icon_type, spaces)
                 .await?;
         }
 
@@ -86,73 +90,65 @@ impl App {
 
             match self.adapter.device.mode {
                 Mode::Station => {
-                    if let Some(station) = self.adapter.device.station.as_mut() {
-                        if let Some(main_menu_option) = menu
-                            .show_main_menu(menu_command, station, icon_type, spaces)
-                            .await?
-                        {
-                            match main_menu_option {
-                                MainMenuOptions::Scan => {
-                                    self.handle_scan().await?;
-                                }
-                                MainMenuOptions::KnownNetworks => {
-                                    if let Some(known_network) = menu
-                                        .show_known_networks_menu(
-                                            menu_command,
-                                            station,
-                                            icon_type,
-                                            spaces,
-                                        )
-                                        .await?
-                                    {
-                                        self.handle_known_network_options(
-                                            menu,
-                                            menu_command,
-                                            &known_network,
-                                            icon_type,
-                                            spaces,
-                                        )
-                                        .await?;
-                                    }
-                                }
-                                MainMenuOptions::Settings => {
-                                    self.handle_settings(menu, menu_command, icon_type, spaces)
-                                        .await?;
-                                }
-                                MainMenuOptions::Network(output) => {
-                                    if let Some(ssid) = self
-                                        .handle_network_selection(
-                                            menu,
-                                            menu_command,
-                                            &output,
-                                            icon_type,
-                                            spaces,
-                                        )
-                                        .await?
-                                    {
-                                        return Ok(Some(ssid));
-                                    }
-                                }
+                    let ssid = {
+                        if let Some(station) = self.adapter.device.station.as_mut() {
+                            if let Some(main_menu_option) = menu
+                                .show_main_menu(menu_command, station, icon_type, spaces)
+                                .await?
+                            {
+                                self.handle_main_options(
+                                    menu,
+                                    menu_command,
+                                    icon_type,
+                                    spaces,
+                                    main_menu_option,
+                                )
+                                .await?
+                            } else {
+                                self.log_sender
+                                    .send(t!("notifications.app.no_network_selected").to_string())
+                                    .unwrap_or_else(|err| {
+                                        println!("Failed to send message: {}", err)
+                                    });
+                                self.running = false;
+                                return Ok(None);
                             }
                         } else {
                             self.log_sender
-                                .send(t!("notifications.app.no_network_selected").to_string())
+                                .send(t!("notifications.app.no_station_available").to_string())
                                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                             self.running = false;
                             return Ok(None);
                         }
-                    } else {
-                        self.log_sender
-                            .send(t!("notifications.app.no_station_available").to_string())
-                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                        self.running = false;
-                        return Ok(None);
+                    };
+
+                    if let Some(ssid) = ssid {
+                        return Ok(Some(ssid));
                     }
                 }
                 Mode::Ap => {
-                    self.handle_ap_menu(menu, menu_command, icon_type, spaces)
+                    if let Some(ap_menu_option) = menu
+                        .show_ap_menu(
+                            menu_command,
+                            self.adapter.device.access_point.as_mut().unwrap(),
+                            icon_type,
+                            spaces,
+                        )
+                        .await?
+                    {
+                        self.handle_ap_options(
+                            ap_menu_option,
+                            menu,
+                            menu_command,
+                            icon_type,
+                            spaces,
+                        )
                         .await?;
+                    } else {
+                        self.perform_mode_switch().await?;
+                    }
                 }
+
                 _ => {
                     self.log_sender
                         .send(t!("notifications.app.unknown_mode").to_string())
@@ -166,11 +162,175 @@ impl App {
         Ok(None)
     }
 
-    pub fn quit(&mut self) {
-        self.running = false;
+    async fn handle_main_options(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+        main_menu_option: MainMenuOptions,
+    ) -> Result<Option<String>> {
+        match main_menu_option {
+            MainMenuOptions::Scan => {
+                self.perform_network_scan().await?;
+            }
+            MainMenuOptions::KnownNetworks => {
+                if let Some(station) = self.adapter.device.station.as_mut() {
+                    if let Some(known_network) = menu
+                        .show_known_networks_menu(menu_command, station, icon_type, spaces)
+                        .await?
+                    {
+                        self.handle_known_network_options(
+                            menu,
+                            menu_command,
+                            &known_network,
+                            icon_type,
+                            spaces,
+                        )
+                        .await?;
+                    }
+                }
+            }
+            MainMenuOptions::Settings => {
+                if let Some(option) = menu
+                    .show_settings_menu(menu_command, &self.current_mode, icon_type, spaces)
+                    .await?
+                {
+                    self.handle_settings_options(option, menu, menu_command, icon_type, spaces)
+                        .await?;
+                }
+            }
+            MainMenuOptions::Network(output) => {
+                if let Some(ssid) = self
+                    .handle_network_selection(menu, menu_command, &output, icon_type, spaces)
+                    .await?
+                {
+                    return Ok(Some(ssid));
+                }
+            }
+        }
+        Ok(None)
     }
 
-    async fn handle_device_off(
+    async fn handle_ap_options(
+        &mut self,
+        ap_menu_option: ApMenuOptions,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
+        if let Some(ap) = self.adapter.device.access_point.as_mut() {
+            match ap_menu_option {
+                ApMenuOptions::StartAp => {
+                    if ap.ssid.is_empty() || ap.psk.is_empty() {
+                        self.log_sender
+                            .send("SSID or Password not set".to_string())
+                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                        if ap.ssid.is_empty() {
+                            if let Some(ssid) = menu.prompt_ssid(menu_command, icon_type) {
+                                ap.set_ssid(ssid);
+                            }
+                        }
+                        if ap.psk.is_empty() {
+                            if let Some(password) = menu.prompt_password(menu_command, icon_type) {
+                                ap.set_psk(password);
+                            }
+                        }
+                    }
+                    if !ap.ssid.is_empty() && !ap.psk.is_empty() {
+                        self.perform_ap_start(menu, menu_command, icon_type).await?;
+                    }
+                }
+                ApMenuOptions::StopAp => self.perform_ap_stop().await?,
+                ApMenuOptions::SetSsid => {
+                    if let Some(ssid) = menu.prompt_ssid(menu_command, icon_type) {
+                        ap.set_ssid(ssid.clone());
+                        self.log_sender
+                            .send(format!("SSID set to {}", ssid))
+                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    }
+                }
+                ApMenuOptions::SetPassword => {
+                    if let Some(password) = menu.prompt_password(menu_command, icon_type) {
+                        ap.set_psk(password.clone());
+                        self.log_sender
+                            .send("Password set".to_string())
+                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    }
+                }
+                ApMenuOptions::Settings => {
+                    if let Some(option) = menu
+                        .show_settings_menu(menu_command, &self.current_mode, icon_type, spaces)
+                        .await?
+                    {
+                        self.handle_settings_options(option, menu, menu_command, icon_type, spaces)
+                            .await?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+
+    async fn handle_known_network_options(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        known_network: &KnownNetwork,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
+        if let Some(option) = menu
+            .show_known_network_options(menu_command, known_network, icon_type, spaces)
+            .await?
+        {
+            match option {
+                KnownNetworkOptions::DisableAutoconnect
+                | KnownNetworkOptions::EnableAutoconnect => {
+                    known_network
+                        .toggle_autoconnect(
+                            self.log_sender.clone(),
+                            self.notification_manager.clone(),
+                        )
+                        .await?;
+                }
+                KnownNetworkOptions::ForgetNetwork => {
+                    known_network
+                        .forget(self.log_sender.clone(), self.notification_manager.clone())
+                        .await?;
+                }
+            }
+        }
+        if let Some(station) = self.adapter.device.station.as_mut() {
+            station.refresh(self.log_sender.clone()).await?;
+        }
+        Ok(())
+    }
+
+    async fn handle_settings_options(
+        &mut self,
+        option: SettingsMenuOptions,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
+        match option {
+            SettingsMenuOptions::DisableAdapter => {
+                self.perform_adapter_disable(menu, menu_command, icon_type, spaces)
+                    .await?;
+            }
+            SettingsMenuOptions::SwitchMode => {
+                self.perform_mode_switch().await?;
+                self.reset_mode = true;
+                self.running = false;
+            }
+        }
+        Ok(())
+    }
+
+    async fn handle_adapter_options(
         &mut self,
         menu: &Menu,
         menu_command: &Option<String>,
@@ -219,53 +379,6 @@ impl App {
         Ok(())
     }
 
-    async fn handle_scan(&mut self) -> Result<()> {
-        if let Some(station) = self.adapter.device.station.as_mut() {
-            station
-                .scan(
-                    self.log_sender.clone(),
-                    Arc::clone(&self.notification_manager),
-                )
-                .await?;
-        }
-        Ok(())
-    }
-
-    async fn handle_known_network_options(
-        &mut self,
-        menu: &Menu,
-        menu_command: &Option<String>,
-        known_network: &KnownNetwork,
-        icon_type: &str,
-        spaces: usize,
-    ) -> Result<()> {
-        if let Some(option) = menu
-            .show_known_network_options(menu_command, known_network, icon_type, spaces)
-            .await?
-        {
-            match option {
-                KnownNetworkOptions::DisableAutoconnect
-                | KnownNetworkOptions::EnableAutoconnect => {
-                    known_network
-                        .toggle_autoconnect(
-                            self.log_sender.clone(),
-                            self.notification_manager.clone(),
-                        )
-                        .await?;
-                }
-                KnownNetworkOptions::ForgetNetwork => {
-                    known_network
-                        .forget(self.log_sender.clone(), self.notification_manager.clone())
-                        .await?;
-                }
-            }
-        }
-        if let Some(station) = self.adapter.device.station.as_mut() {
-            station.refresh(self.log_sender.clone()).await?;
-        }
-        Ok(())
-    }
-
     async fn handle_network_selection(
         &mut self,
         menu: &Menu,
@@ -288,80 +401,90 @@ impl App {
                     .as_ref()
                     .map_or(false, |cn| cn.name == network.name)
                 {
-                    station
-                        .disconnect(self.log_sender.clone(), self.notification_manager.clone())
-                        .await?;
-                    station.refresh(self.log_sender.clone()).await?;
+                    self.perform_network_disconnection(&network).await?;
                     return Ok(None);
                 }
 
-                if network.known_network.is_some() {
-                    self.log_sender
-                        .send(format!("Connecting to known network: {}", network.name))
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                    network
-                        .connect(self.log_sender.clone(), self.notification_manager.clone())
-                        .await?;
-                    station.refresh(self.log_sender.clone()).await?;
-                    return Ok(Some(network.name.clone()));
-                } else {
-                    self.log_sender
-                        .send(format!("Connecting to new network: {}", network.name))
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                    if let Some(passphrase) =
-                        menu.prompt_passphrase(menu_command, &network.name, icon_type)
-                    {
-                        self.agent_manager.send_passkey(passphrase)?;
-                    } else {
-                        self.agent_manager.cancel_auth()?;
-                        return Ok(None);
-                    }
-
-                    network
-                        .connect(self.log_sender.clone(), self.notification_manager.clone())
-                        .await?;
-                    station.refresh(self.log_sender.clone()).await?;
-                    return Ok(Some(network.name.clone()));
-                }
+                return self
+                    .perform_network_connection(menu, menu_command, &network, icon_type)
+                    .await;
             }
         }
         Ok(None)
     }
 
-    async fn handle_settings(
+    async fn perform_network_connection(
         &mut self,
         menu: &Menu,
         menu_command: &Option<String>,
+        network: &Network,
         icon_type: &str,
-        spaces: usize,
-    ) -> Result<()> {
-        if let Some(option) = menu
-            .show_settings_menu(menu_command, &self.current_mode, icon_type, spaces)
-            .await?
-        {
-            match option {
-                SettingsMenuOptions::DisableAdapter => {
-                    self.disable_adapter(menu, menu_command, icon_type, spaces)
-                        .await?;
-                }
-                SettingsMenuOptions::SwitchMode => {
-                    self.switch_mode().await?;
-                    self.reset_mode = true;
-                    self.running = false;
-                }
+    ) -> Result<Option<String>> {
+        let station = self.adapter.device.station.as_mut().unwrap();
+
+        if network.known_network.is_some() {
+            self.log_sender
+                .send(format!("Connecting to known network: {}", network.name))
+                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+            network
+                .connect(self.log_sender.clone(), self.notification_manager.clone())
+                .await?;
+            station.refresh(self.log_sender.clone()).await?;
+            return Ok(Some(network.name.clone()));
+        } else {
+            self.log_sender
+                .send(format!("Connecting to new network: {}", network.name))
+                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+            if let Some(passphrase) = menu.prompt_passphrase(menu_command, &network.name, icon_type)
+            {
+                self.agent_manager.send_passkey(passphrase)?;
+            } else {
+                self.agent_manager.cancel_auth()?;
+                return Ok(None);
             }
+
+            network
+                .connect(self.log_sender.clone(), self.notification_manager.clone())
+                .await?;
+            station.refresh(self.log_sender.clone()).await?;
+            return Ok(Some(network.name.clone()));
         }
+    }
+
+    async fn perform_network_disconnection(&mut self, network: &Network) -> Result<()> {
+        let station = self.adapter.device.station.as_mut().unwrap();
+
+        self.log_sender
+            .send(format!("Disconnecting from network: {}", network.name))
+            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+        station
+            .disconnect(self.log_sender.clone(), self.notification_manager.clone())
+            .await?;
+        station.refresh(self.log_sender.clone()).await?;
 
         Ok(())
     }
 
-    async fn switch_mode(&mut self) -> Result<()> {
+    async fn perform_network_scan(&mut self) -> Result<()> {
+        if let Some(station) = self.adapter.device.station.as_mut() {
+            station
+                .scan(
+                    self.log_sender.clone(),
+                    Arc::clone(&self.notification_manager),
+                )
+                .await?;
+        }
+        Ok(())
+    }
+
+    async fn perform_mode_switch(&mut self) -> Result<()> {
         let new_mode = match self.current_mode {
             Mode::Station => Mode::Ap,
             Mode::Ap => Mode::Station,
-            _ => Mode::Station, // Valeur par défaut
+            _ => Mode::Station,
         };
 
         self.reset(new_mode, self.log_sender.clone()).await?;
@@ -380,7 +503,7 @@ impl App {
         Ok(())
     }
 
-    async fn disable_adapter(
+    async fn perform_adapter_disable(
         &mut self,
         menu: &Menu,
         menu_command: &Option<String>,
@@ -398,98 +521,13 @@ impl App {
             None,
         );
 
-        self.handle_device_off(menu, menu_command, icon_type, spaces)
+        self.handle_adapter_options(menu, menu_command, icon_type, spaces)
             .await?;
 
         Ok(())
     }
 
-    async fn handle_ap_menu(
-        &mut self,
-        menu: &Menu,
-        menu_command: &Option<String>,
-        icon_type: &str,
-        spaces: usize,
-    ) -> Result<()> {
-        loop {
-            if let Some(ap) = self.adapter.device.access_point.as_mut() {
-                if let Ok(Some(ap_menu_option)) =
-                    menu.show_ap_menu(menu_command, ap, icon_type, spaces).await
-                {
-                    match ap_menu_option {
-                        ApMenuOptions::StartAp => {
-                            if ap.ssid.is_empty() || ap.psk.is_empty() {
-                                self.log_sender
-                                    .send("SSID or Password not set".to_string())
-                                    .unwrap_or_else(|err| {
-                                        println!("Failed to send message: {}", err)
-                                    });
-                                if ap.ssid.is_empty() {
-                                    if let Some(ssid) = menu.prompt_ssid(menu_command, icon_type) {
-                                        ap.set_ssid(ssid);
-                                    }
-                                }
-                                if ap.psk.is_empty() {
-                                    if let Some(password) =
-                                        menu.prompt_password(menu_command, icon_type)
-                                    {
-                                        ap.set_psk(password);
-                                    }
-                                }
-                            }
-                            if !ap.ssid.is_empty() && !ap.psk.is_empty() {
-                                self.start_ap(menu, menu_command, icon_type).await?;
-                            }
-                        }
-                        ApMenuOptions::StopAp => self.stop_ap().await?,
-                        ApMenuOptions::SetSsid => {
-                            if let Some(ssid) = menu.prompt_ssid(menu_command, icon_type) {
-                                ap.set_ssid(ssid.clone());
-                                self.log_sender
-                                    .send(format!("SSID set to {}", ssid))
-                                    .unwrap_or_else(|err| {
-                                        println!("Failed to send message: {}", err)
-                                    });
-                            }
-                        }
-                        ApMenuOptions::SetPassword => {
-                            if let Some(password) = menu.prompt_password(menu_command, icon_type) {
-                                ap.set_psk(password.clone());
-                                self.log_sender
-                                    .send("Password set".to_string())
-                                    .unwrap_or_else(|err| {
-                                        println!("Failed to send message: {}", err)
-                                    });
-                            }
-                        }
-                        ApMenuOptions::Settings => {
-                            self.handle_settings(menu, menu_command, icon_type, spaces)
-                                .await?;
-                        }
-                    }
-                } else {
-                    self.running = false;
-                    break;
-                }
-            } else {
-                self.log_sender
-                    .send("No access point available".to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                self.reset(Mode::Station, self.log_sender.clone()).await?;
-                self.reset_mode = true;
-                self.running = false;
-                break;
-            }
-
-            if self.reset_mode {
-                break;
-            }
-        }
-
-        Ok(())
-    }
-
-    async fn start_ap(
+    async fn perform_ap_start(
         &mut self,
         menu: &Menu,
         menu_command: &Option<String>,
@@ -561,7 +599,7 @@ impl App {
         Ok(())
     }
 
-    async fn stop_ap(&mut self) -> Result<()> {
+    async fn perform_ap_stop(&mut self) -> Result<()> {
         if let Some(ap) = &self.adapter.device.access_point {
             ap.stop().await?;
             self.adapter.refresh(self.log_sender.clone()).await?;
