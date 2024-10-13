@@ -37,9 +37,9 @@ impl Adapter {
         })
     }
 
-    pub async fn refresh(&mut self, sender: UnboundedSender<String>) -> Result<()> {
+    pub async fn refresh(&mut self) -> Result<()> {
         self.is_powered = self.adapter.is_powered().await?;
-        self.device.refresh(sender).await?;
+        self.device.refresh().await?;
         Ok(())
     }
 }

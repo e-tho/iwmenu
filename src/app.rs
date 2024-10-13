@@ -87,7 +87,7 @@ impl App {
         }
 
         while self.running {
-            self.adapter.refresh(self.log_sender.clone()).await?;
+            self.adapter.refresh().await?;
 
             match self.adapter.device.mode {
                 Mode::Station => {
@@ -304,7 +304,7 @@ impl App {
             }
         }
         if let Some(station) = self.adapter.device.station.as_mut() {
-            station.refresh(self.log_sender.clone()).await?;
+            station.refresh().await?;
         }
         Ok(())
     }
@@ -351,7 +351,7 @@ impl App {
                         None,
                         None,
                     );
-                    self.adapter.refresh(self.log_sender.clone()).await?;
+                    self.adapter.refresh().await?;
                 }
             }
         } else {
@@ -420,7 +420,7 @@ impl App {
             network
                 .connect(self.log_sender.clone(), self.notification_manager.clone())
                 .await?;
-            station.refresh(self.log_sender.clone()).await?;
+            station.refresh().await?;
             return Ok(Some(network.name.clone()));
         } else {
             self.log_sender
@@ -438,7 +438,7 @@ impl App {
             network
                 .connect(self.log_sender.clone(), self.notification_manager.clone())
                 .await?;
-            station.refresh(self.log_sender.clone()).await?;
+            station.refresh().await?;
             return Ok(Some(network.name.clone()));
         }
     }
@@ -453,7 +453,7 @@ impl App {
         station
             .disconnect(self.log_sender.clone(), self.notification_manager.clone())
             .await?;
-        station.refresh(self.log_sender.clone()).await?;
+        station.refresh().await?;
 
         Ok(())
     }
@@ -504,6 +504,36 @@ impl App {
             }
 
             handle.close();
+
+            let new_network_ssids: Vec<String> = station
+                .new_networks
+                .iter()
+                .map(|(network, _)| network.name.clone())
+                .collect();
+
+            let known_network_ssids: Vec<String> = station
+                .known_networks
+                .iter()
+                .map(|(network, _)| network.name.clone())
+                .collect();
+
+            if !new_network_ssids.is_empty() {
+                let new_networks_msg =
+                    format!("Discovered networks: {}", new_network_ssids.join(", "));
+                self.log_sender
+                    .send(new_networks_msg.clone())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            }
+
+            if !known_network_ssids.is_empty() {
+                let known_networks_msg = format!(
+                    "Discovered known networks: {}",
+                    known_network_ssids.join(", ")
+                );
+                self.log_sender
+                    .send(known_networks_msg.clone())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            }
 
             let msg = t!("notifications.station.scan_completed");
             self.log_sender
@@ -619,7 +649,7 @@ impl App {
                 }
             }
 
-            self.adapter.refresh(self.log_sender.clone()).await?;
+            self.adapter.refresh().await?;
         } else {
             self.log_sender
                 .send("No Access Point available to start".to_string())
@@ -638,7 +668,7 @@ impl App {
     async fn perform_ap_stop(&mut self) -> Result<()> {
         if let Some(ap) = &self.adapter.device.access_point {
             ap.stop().await?;
-            self.adapter.refresh(self.log_sender.clone()).await?;
+            self.adapter.refresh().await?;
             self.log_sender
                 .send("Access Point stopped".to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));

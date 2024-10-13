@@ -6,7 +6,7 @@ use rust_i18n::t;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{
     sync::mpsc::UnboundedSender,
-    time::{sleep, Duration},
+    time::Duration,
 };
 
 use crate::{iw::network::Network, notification::NotificationManager};
@@ -85,7 +85,7 @@ impl Station {
         })
     }
 
-    pub async fn refresh(&mut self, sender: UnboundedSender<String>) -> Result<()> {
+    pub async fn refresh(&mut self) -> Result<()> {
         self.state = self.session.station().unwrap().state().await?;
         self.is_scanning = self.session.station().unwrap().is_scanning().await?;
 
@@ -123,33 +123,10 @@ impl Station {
         for result in networks_results {
             match result {
                 Ok((network, signal)) => {
-                    if network.known_network.is_some() {
-                        let msg = t!(
-                            "notifications.station.discovered_known_network",
-                            network_name = network.name
-                        );
-                        sender
-                            .send(msg.to_string())
-                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    } else {
-                        let msg = t!(
-                            "notifications.station.discovered_network",
-                            network_name = network.name
-                        );
-                        sender
-                            .send(msg.to_string())
-                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    }
                     networks.push((network, signal));
                 }
                 Err(e) => {
-                    let msg = t!(
-                        "notifications.station.error_processing_network",
-                        error_message = e.to_string()
-                    );
-                    sender
-                        .send(msg.to_string())
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    return Err(e.into());
                 }
             }
         }
