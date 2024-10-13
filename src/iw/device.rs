@@ -81,7 +81,7 @@ impl Device {
         Ok(())
     }
 
-    pub async fn refresh(&mut self, sender: UnboundedSender<String>) -> Result<()> {
+    pub async fn refresh(&mut self) -> Result<()> {
         self.is_powered = self.device.is_powered().await?;
         let current_mode = self.device.get_mode().await?;
 
@@ -89,7 +89,7 @@ impl Device {
             Mode::Station => match self.mode {
                 Mode::Station => {
                     if let Some(station) = &mut self.station {
-                        station.refresh(sender).await?;
+                        station.refresh().await?;
                     }
                 }
                 Mode::Ap => {
@@ -97,13 +97,7 @@ impl Device {
                     self.station = match self.session.station() {
                         Some(_) => match Station::new(self.session.clone()).await {
                             Ok(v) => Some(v),
-                            Err(e) => {
-                                let msg = format!("Failed to initialize Station: {}", e);
-                                sender.send(msg).unwrap_or_else(|err| {
-                                    println!("Failed to send log message: {}", err);
-                                });
-                                None
-                            }
+                            Err(_e) => None,
                         },
                         None => None,
                     };
@@ -116,20 +110,14 @@ impl Device {
                     self.access_point = match self.session.access_point() {
                         Some(_) => match AccessPoint::new(self.session.clone()).await {
                             Ok(v) => Some(v),
-                            Err(e) => {
-                                let msg = format!("Failed to initialize AccessPoint: {}", e);
-                                sender.send(msg).unwrap_or_else(|err| {
-                                    println!("Failed to send log message: {}", err);
-                                });
-                                None
-                            }
+                            Err(_e) => None,
                         },
                         None => None,
                     };
                 }
                 Mode::Ap => {
-                    if self.access_point.is_some() {
-                        self.access_point.as_mut().unwrap().refresh().await?;
+                    if let Some(access_point) = &mut self.access_point {
+                        access_point.refresh().await?;
                     }
                 }
                 _ => {}
