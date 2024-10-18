@@ -36,6 +36,14 @@ menus:
         name:
           en: "Forget Network"
           fr: "Oublier le réseau"
+      connect:
+        name:
+          en: "Connect"
+          fr: "Connexion"
+      disconnect:
+        name:
+          en: "Disconnect"
+          fr: "Déconnexion"
   settings:
     options:
       disable_adapter:
