@@ -177,16 +177,33 @@ impl App {
             }
             MainMenuOptions::KnownNetworks => {
                 if let Some(station) = self.adapter.device.station.as_mut() {
-                    if let Some(known_network) = menu
-                        .show_known_networks_menu(menu_command, station, icon_type, spaces)
+                    let connected_known_network = station
+                        .connected_network
+                        .as_ref()
+                        .and_then(|cn| cn.known_network.as_ref())
+                        .cloned();
+
+                    if let Some((known_network, _options)) = menu
+                        .show_known_networks_menu(
+                            menu_command,
+                            station,
+                            icon_type,
+                            spaces,
+                            connected_known_network.as_ref(),
+                        )
                         .await?
                     {
+                        let is_connected = connected_known_network
+                            .as_ref()
+                            .map_or(false, |kn| kn.name == known_network.name);
+
                         self.handle_known_network_options(
                             menu,
                             menu_command,
                             &known_network,
                             icon_type,
                             spaces,
+                            is_connected,
                         )
                         .await?;
                     }
@@ -281,9 +298,25 @@ impl App {
         known_network: &KnownNetwork,
         icon_type: &str,
         spaces: usize,
+        is_connected: bool,
     ) -> Result<()> {
+        let mut available_options = vec![];
+
+        if is_connected {
+            available_options.push(KnownNetworkOptions::Disconnect);
+        } else {
+            available_options.push(KnownNetworkOptions::Connect);
+        }
+
+        available_options.push(KnownNetworkOptions::ForgetNetwork);
+        available_options.push(if known_network.is_autoconnect {
+            KnownNetworkOptions::DisableAutoconnect
+        } else {
+            KnownNetworkOptions::EnableAutoconnect
+        });
+
         if let Some(option) = menu
-            .show_known_network_options(menu_command, known_network, icon_type, spaces)
+            .show_known_network_options(menu_command, icon_type, spaces, available_options)
             .await?
         {
             match option {
@@ -301,11 +334,32 @@ impl App {
                         .forget(self.log_sender.clone(), self.notification_manager.clone())
                         .await?;
                 }
+                KnownNetworkOptions::Disconnect => {
+                    if is_connected {
+                        self.perform_network_disconnection().await?;
+                    }
+                }
+                KnownNetworkOptions::Connect => {
+                    if let Some(station) = self.adapter.device.station.as_mut() {
+                        if let Some(network) = station
+                            .known_networks
+                            .iter()
+                            .find(|(net, _)| net.name == known_network.name)
+                            .map(|(net, _)| net.clone())
+                        {
+                            self.perform_known_network_connection(&network).await?;
+                        }
+                    }
+                }
+
+                _ => {}
             }
         }
+
         if let Some(station) = self.adapter.device.station.as_mut() {
             station.refresh().await?;
         }
+
         Ok(())
     }
 
@@ -386,24 +440,52 @@ impl App {
             if let Some((network, _)) =
                 menu.select_network(networks, output.to_string(), icon_type, spaces)
             {
-                if station
-                    .connected_network
-                    .as_ref()
-                    .map_or(false, |cn| cn.name == network.name)
-                {
-                    self.perform_network_disconnection(&network).await?;
-                    return Ok(None);
-                }
+                if let Some(ref known_network) = network.known_network {
+                    let is_connected = station
+                        .connected_network
+                        .as_ref()
+                        .map_or(false, |cn| cn.name == network.name);
 
-                return self
-                    .perform_network_connection(menu, menu_command, &network, icon_type)
-                    .await;
+                    self.handle_known_network_options(
+                        menu,
+                        menu_command,
+                        known_network,
+                        icon_type,
+                        spaces,
+                        is_connected,
+                    )
+                    .await?;
+                    return Ok(None);
+                } else {
+                    return self
+                        .perform_new_network_connection(menu, menu_command, &network, icon_type)
+                        .await;
+                }
             }
         }
         Ok(None)
     }
 
-    async fn perform_network_connection(
+    async fn perform_known_network_connection(
+        &mut self,
+        network: &Network,
+    ) -> Result<Option<String>> {
+        let station = self.adapter.device.station.as_mut().unwrap();
+
+        self.log_sender
+            .send(format!("Connecting to known network: {}", network.name))
+            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+        network
+            .connect(self.log_sender.clone(), self.notification_manager.clone())
+            .await?;
+
+        station.refresh().await?;
+
+        Ok(Some(network.name.clone()))
+    }
+
+    async fn perform_new_network_connection(
         &mut self,
         menu: &Menu,
         menu_command: &Option<String>,
@@ -412,43 +494,41 @@ impl App {
     ) -> Result<Option<String>> {
         let station = self.adapter.device.station.as_mut().unwrap();
 
-        if network.known_network.is_some() {
-            self.log_sender
-                .send(format!("Connecting to known network: {}", network.name))
-                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+        self.log_sender
+            .send(format!("Connecting to new network: {}", network.name))
+            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-            network
-                .connect(self.log_sender.clone(), self.notification_manager.clone())
-                .await?;
-            station.refresh().await?;
-            return Ok(Some(network.name.clone()));
+        if let Some(passphrase) = menu.prompt_passphrase(menu_command, &network.name, icon_type) {
+            self.agent_manager.send_passkey(passphrase)?;
         } else {
-            self.log_sender
-                .send(format!("Connecting to new network: {}", network.name))
-                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-            if let Some(passphrase) = menu.prompt_passphrase(menu_command, &network.name, icon_type)
-            {
-                self.agent_manager.send_passkey(passphrase)?;
-            } else {
-                self.agent_manager.cancel_auth()?;
-                return Ok(None);
-            }
-
-            network
-                .connect(self.log_sender.clone(), self.notification_manager.clone())
-                .await?;
-            station.refresh().await?;
-            return Ok(Some(network.name.clone()));
+            self.agent_manager.cancel_auth()?;
+            return Ok(None);
         }
+
+        network
+            .connect(self.log_sender.clone(), self.notification_manager.clone())
+            .await?;
+
+        station.refresh().await?;
+
+        Ok(Some(network.name.clone()))
     }
 
-    async fn perform_network_disconnection(&mut self, network: &Network) -> Result<()> {
+    async fn perform_network_disconnection(&mut self) -> Result<()> {
         let station = self.adapter.device.station.as_mut().unwrap();
 
-        self.log_sender
-            .send(format!("Disconnecting from network: {}", network.name))
-            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+        if let Some(connected_network) = &station.connected_network {
+            self.log_sender
+                .send(format!(
+                    "Disconnecting from network: {}",
+                    connected_network.name
+                ))
+                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+        } else {
+            self.log_sender
+                .send("No network is currently connected.".to_string())
+                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+        }
 
         station
             .disconnect(self.log_sender.clone(), self.notification_manager.clone())
