@@ -1,15 +1,16 @@
 <div align="center">
-  <h1>iNet Wireless Menu</h1>
+  <h1>iwmenu</h1>
 </div>
 
 ## About
 
-`iwmenu` allows using your menu of choice to manage the wireless network.
+`iwmenu` (**i**Net **W**ireless **Menu**) allows using your menu of choice to manage the wireless network.
 
 ## Prerequisites
 
-[iwd](https://iwd.wiki.kernel.org/) must be installed, along with one of the supported launchers.
+[iwd](https://iwd.wiki.kernel.org/) must be installed, along with either a supported launcher or any `stdin` mode launcher.
 
+> [!NOTE]
 > To ensure proper icon display, you can either install [nerdfonts](https://www.nerdfonts.com/) for font-based icons (usage is optional) or use the `--icon xdg` flag for image-based icons from your XDG theme.
 
 ### Compatibility
@@ -40,13 +41,16 @@ An executable file will be generated at `target/release/iwmenu`, which you can t
 Add the flake as an input:
 
 ```nix
-iwmenu.url = "github:e-tho/iwmenu";
+inputs.iwmenu.url = "github:e-tho/iwmenu";
 ```
 
 Install the package:
 
 ```nix
-environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
+{ inputs, ... }:
+{
+  environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
+}
 ```
 
 ### Arch Linux
@@ -69,7 +73,7 @@ iwmenu -m fuzzel
 
 ### Custom menus
 
-Specify `custom` as the menu and set your command using the `--menu-command` flag. Ensure your launcher supports an input/script mode, and that it is properly configured in the command.
+Specify `custom` as the menu and set your command using the `--menu-command` flag. Ensure your launcher supports `stdin` mode, and that it is properly configured in the command.
 
 ```console
 iwmenu -m custom --menu-command "my_custom_launcher --flag"
@@ -91,13 +95,13 @@ To enable support for password obfuscation, set the appropriate flag via `{passw
 iwmenu -m custom --menu-command "my_custom_launcher {password_flag:--my-password-flag}"
 ```
 
----
+#### Example to enable all features
 
-> Example to enable all features using Fuzzel
->
-> ```
-> iwmenu -m custom --menu-command "fuzzel -d -p '{prompt}' {password_flag:--password}"
-> ```
+This example demonstrates enabling all available features in custom mode with `fuzzel`.
+
+```console
+iwmenu -m custom --menu-command "fuzzel -d -p '{prompt}' {password_flag:--password}"
+```
 
 ### Available Options
 
