@@ -38,10 +38,6 @@
             openssl
           ];
 
-          cargoBuildFlags = [
-            "--release"
-          ];
-
           doCheck = true;
           CARGO_BUILD_INCREMENTAL = "false";
           RUST_BACKTRACE = "full";
