@@ -11,16 +11,17 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         overlays = [ (import rust-overlay) ];
+
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-        mkDate = longDate:
-          builtins.substring 0 4 longDate +
-          builtins.substring 4 2 longDate +
-          builtins.substring 6 2 longDate;
-        lastCommitDate =  mkDate (self.lastModifiedDate or "19700101");
+
+        cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+        cargoPackageVersion = cargoToml.package.version;
+
         commitHash = self.shortRev or self.dirtyShortRev or "unknown";
-        version = "${lastCommitDate}_${commitHash}";
+
+        version = "${cargoPackageVersion}-unstable-${commitHash}";
       in
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
