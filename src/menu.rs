@@ -11,9 +11,7 @@ use std::{
     process::{Command, Stdio},
 };
 
-use crate::iw::{
-    access_point::AccessPoint, known_network::KnownNetwork, network::Network, station::Station,
-};
+use crate::iw::{access_point::AccessPoint, network::Network, station::Station};
 
 #[derive(Debug, Clone, ArgEnum)]
 pub enum MenuType {
@@ -27,7 +25,6 @@ pub enum MenuType {
 #[derive(Debug, Clone)]
 pub enum MainMenuOptions {
     Scan,
-    KnownNetworks,
     Settings,
     Network(String),
 }
@@ -36,9 +33,6 @@ impl MainMenuOptions {
     pub fn from_str(option: &str) -> Option<Self> {
         match option {
             s if s == t!("menus.main.options.scan.name") => Some(MainMenuOptions::Scan),
-            s if s == t!("menus.main.options.known_networks.name") => {
-                Some(MainMenuOptions::KnownNetworks)
-            }
             s if s == t!("menus.main.options.settings.name") => Some(MainMenuOptions::Settings),
             other => Some(MainMenuOptions::Network(other.to_string())),
         }
@@ -47,7 +41,6 @@ impl MainMenuOptions {
     pub fn to_str(&self) -> Cow<'static, str> {
         match self {
             MainMenuOptions::Scan => t!("menus.main.options.scan.name"),
-            MainMenuOptions::KnownNetworks => t!("menus.main.options.known_networks.name"),
             MainMenuOptions::Settings => t!("menus.main.options.settings.name"),
             MainMenuOptions::Network(_) => t!("menus.main.options.network.name"),
         }
@@ -66,19 +59,19 @@ pub enum KnownNetworkOptions {
 impl KnownNetworkOptions {
     pub fn from_str(option: &str) -> Option<Self> {
         match option {
-            s if s == t!("menus.known_networks.options.disable_autoconnect.name") => {
+            s if s == t!("menus.main.options.known_network.options.disable_autoconnect.name") => {
                 Some(KnownNetworkOptions::DisableAutoconnect)
             }
-            s if s == t!("menus.known_networks.options.enable_autoconnect.name") => {
+            s if s == t!("menus.main.options.known_network.options.enable_autoconnect.name") => {
                 Some(KnownNetworkOptions::EnableAutoconnect)
             }
-            s if s == t!("menus.known_networks.options.forget_network.name") => {
+            s if s == t!("menus.main.options.known_network.options.forget_network.name") => {
                 Some(KnownNetworkOptions::ForgetNetwork)
             }
-            s if s == t!("menus.known_networks.options.disconnect.name") => {
+            s if s == t!("menus.main.options.known_network.options.disconnect.name") => {
                 Some(KnownNetworkOptions::Disconnect)
             }
-            s if s == t!("menus.known_networks.options.connect.name") => {
+            s if s == t!("menus.main.options.known_network.options.connect.name") => {
                 Some(KnownNetworkOptions::Connect)
             }
             _ => None,
@@ -88,19 +81,19 @@ impl KnownNetworkOptions {
     pub fn to_str(&self) -> Cow<'static, str> {
         match self {
             KnownNetworkOptions::DisableAutoconnect => {
-                t!("menus.known_networks.options.disable_autoconnect.name")
+                t!("menus.main.options.known_network.options.disable_autoconnect.name")
             }
             KnownNetworkOptions::EnableAutoconnect => {
-                t!("menus.known_networks.options.enable_autoconnect.name")
+                t!("menus.main.options.known_network.options.enable_autoconnect.name")
             }
             KnownNetworkOptions::ForgetNetwork => {
-                t!("menus.known_networks.options.forget_network.name")
+                t!("menus.main.options.known_network.options.forget_network.name")
             }
             KnownNetworkOptions::Disconnect => {
-                t!("menus.known_networks.options.disconnect.name")
+                t!("menus.main.options.known_network.options.disconnect.name")
             }
             KnownNetworkOptions::Connect => {
-                t!("menus.known_networks.options.connect.name")
+                t!("menus.main.options.known_network.options.connect.name")
             }
         }
     }
@@ -283,7 +276,6 @@ impl Icons {
         font_icons.insert("connect", '\u{f16bd}');
         font_icons.insert("disconnect", '\u{f073a}');
         font_icons.insert("scan", '\u{f46a}');
-        font_icons.insert("known_networks", '\u{f0134}');
         font_icons.insert("settings", '\u{f0493}');
         font_icons.insert("disable_adapter", '\u{f092d}');
         font_icons.insert("power_on_device", '\u{f0425}');
@@ -322,7 +314,6 @@ impl Icons {
             "network-wireless-signal-excellent-secure-symbolic",
         );
         xdg_icons.insert("scan", "view-refresh-symbolic");
-        xdg_icons.insert("known_networks", "app-installed-symbolic");
         xdg_icons.insert("settings", "preferences-system-symbolic");
         xdg_icons.insert(
             "disable_adapter",
@@ -466,17 +457,6 @@ impl Icons {
         }
 
         self.format_display_with_icon(&display, &signal_icon, icon_type, spaces)
-    }
-
-    pub fn format_known_network_display(
-        &self,
-        known_network: &KnownNetwork,
-        icon_type: &str,
-        spaces: usize,
-    ) -> String {
-        let known_network_icon = self.get_icon("known_network", icon_type);
-
-        self.format_display_with_icon(&known_network.name, &known_network_icon, icon_type, spaces)
     }
 }
 
@@ -763,12 +743,7 @@ impl Menu {
         spaces: usize,
     ) -> Result<Option<MainMenuOptions>> {
         let scan_text = MainMenuOptions::Scan.to_str();
-        let known_networks_text = MainMenuOptions::KnownNetworks.to_str();
-
-        let options_before_networks = vec![
-            ("scan", scan_text.as_ref()),
-            ("known_networks", known_networks_text.as_ref()),
-        ];
+        let options_before_networks = vec![("scan", scan_text.as_ref())];
 
         let mut input = self
             .icons
@@ -802,71 +777,6 @@ impl Menu {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
             if let Some(option) = MainMenuOptions::from_str(&cleaned_output) {
                 return Ok(Some(option));
-            }
-        }
-
-        Ok(None)
-    }
-
-    pub async fn show_known_networks_menu(
-        &self,
-        menu_command: &Option<String>,
-        station: &mut Station,
-        icon_type: &str,
-        spaces: usize,
-        connected_network: Option<&KnownNetwork>,
-    ) -> Result<Option<(KnownNetwork, Vec<KnownNetworkOptions>)>> {
-        let mut input = String::new();
-        let mut network_options = Vec::new();
-
-        for (network, _signal_strength) in &station.known_networks {
-            if let Some(ref known_network) = network.known_network {
-                let network_info = self.icons.format_display_with_icon(
-                    &known_network.name,
-                    &self.icons.get_icon("known_network", icon_type),
-                    icon_type,
-                    spaces,
-                );
-                input.push_str(&format!("{}\n", network_info));
-
-                let mut options = vec![
-                    KnownNetworkOptions::ForgetNetwork,
-                    if known_network.is_autoconnect {
-                        KnownNetworkOptions::DisableAutoconnect
-                    } else {
-                        KnownNetworkOptions::EnableAutoconnect
-                    },
-                ];
-
-                if let Some(connected) = connected_network {
-                    if connected.name == known_network.name {
-                        options.insert(0, KnownNetworkOptions::Disconnect);
-                    } else {
-                        options.insert(0, KnownNetworkOptions::Connect);
-                    }
-                } else {
-                    options.insert(0, KnownNetworkOptions::Connect);
-                }
-
-                network_options.push((known_network.clone(), options));
-            }
-        }
-
-        let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
-
-        if let Some(output) = menu_output {
-            let cleaned_output = self.clean_menu_output(&output, icon_type);
-
-            if let Some((selected_network, options)) = network_options.iter().find(|(kn, _)| {
-                        let formatted_network_name = self.clean_menu_output(
-                    &self
-                        .icons
-                        .format_known_network_display(kn, icon_type, spaces),
-                            icon_type,
-                        );
-                        formatted_network_name == cleaned_output
-            }) {
-                return Ok(Some((selected_network.clone(), options.clone())));
                     }
         }
 
@@ -887,20 +797,20 @@ impl Menu {
                 KnownNetworkOptions::Disconnect => self.icons.get_icon_text(
                     vec![(
                         "disconnect",
-                        t!("menus.known_networks.options.disconnect.name"),
+                        t!("menus.main.options.known_network.options.disconnect.name"),
                     )],
                     icon_type,
                     spaces,
                 ),
                 KnownNetworkOptions::Connect => self.icons.get_icon_text(
-                    vec![("connect", t!("menus.known_networks.options.connect.name"))],
+                    vec![("connect", t!("menus.main.options.known_network.options.connect.name"))],
                     icon_type,
                     spaces,
                 ),
                 KnownNetworkOptions::DisableAutoconnect => self.icons.get_icon_text(
                 vec![(
                     "disable_autoconnect",
-                    t!("menus.known_networks.options.disable_autoconnect.name"),
+                        t!("menus.main.options.known_network.options.disable_autoconnect.name"),
                 )],
                 icon_type,
                 spaces,
@@ -908,7 +818,7 @@ impl Menu {
                 KnownNetworkOptions::EnableAutoconnect => self.icons.get_icon_text(
                 vec![(
                     "enable_autoconnect",
-                    t!("menus.known_networks.options.enable_autoconnect.name"),
+                        t!("menus.main.options.known_network.options.enable_autoconnect.name"),
                 )],
                 icon_type,
                 spaces,
@@ -916,7 +826,7 @@ impl Menu {
                 KnownNetworkOptions::ForgetNetwork => self.icons.get_icon_text(
             vec![(
                 "forget_network",
-                t!("menus.known_networks.options.forget_network.name"),
+                        t!("menus.main.options.known_network.options.forget_network.name"),
             )],
             icon_type,
             spaces,

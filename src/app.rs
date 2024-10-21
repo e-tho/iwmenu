@@ -175,40 +175,6 @@ impl App {
             MainMenuOptions::Scan => {
                 self.perform_network_scan().await?;
             }
-            MainMenuOptions::KnownNetworks => {
-                if let Some(station) = self.adapter.device.station.as_mut() {
-                    let connected_known_network = station
-                        .connected_network
-                        .as_ref()
-                        .and_then(|cn| cn.known_network.as_ref())
-                        .cloned();
-
-                    if let Some((known_network, _options)) = menu
-                        .show_known_networks_menu(
-                            menu_command,
-                            station,
-                            icon_type,
-                            spaces,
-                            connected_known_network.as_ref(),
-                        )
-                        .await?
-                    {
-                        let is_connected = connected_known_network
-                            .as_ref()
-                            .map_or(false, |kn| kn.name == known_network.name);
-
-                        self.handle_known_network_options(
-                            menu,
-                            menu_command,
-                            &known_network,
-                            icon_type,
-                            spaces,
-                            is_connected,
-                        )
-                        .await?;
-                    }
-                }
-            }
             MainMenuOptions::Settings => {
                 if let Some(option) = menu
                     .show_settings_menu(menu_command, &self.current_mode, icon_type, spaces)
