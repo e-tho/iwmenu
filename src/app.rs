@@ -212,12 +212,12 @@ impl App {
                             .send("SSID or Password not set".to_string())
                             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                         if ap.ssid.is_empty() {
-                            if let Some(ssid) = menu.prompt_ssid(menu_command, icon_type) {
+                            if let Some(ssid) = menu.prompt_ap_ssid(menu_command, icon_type) {
                                 ap.set_ssid(ssid);
                             }
                         }
                         if ap.psk.is_empty() {
-                            if let Some(password) = menu.prompt_password(menu_command, icon_type) {
+                            if let Some(password) = menu.prompt_ap_passphrase(menu_command, icon_type) {
                                 ap.set_psk(password);
                             }
                         }
@@ -228,7 +228,7 @@ impl App {
                 }
                 ApMenuOptions::StopAp => self.perform_ap_stop().await?,
                 ApMenuOptions::SetSsid => {
-                    if let Some(ssid) = menu.prompt_ssid(menu_command, icon_type) {
+                    if let Some(ssid) = menu.prompt_ap_ssid(menu_command, icon_type) {
                         ap.set_ssid(ssid.clone());
                         self.log_sender
                             .send(format!("SSID set to {}", ssid))
@@ -236,7 +236,7 @@ impl App {
                     }
                 }
                 ApMenuOptions::SetPassword => {
-                    if let Some(password) = menu.prompt_password(menu_command, icon_type) {
+                    if let Some(password) = menu.prompt_ap_passphrase(menu_command, icon_type) {
                         ap.set_psk(password.clone());
                         self.log_sender
                             .send("Password set".to_string())
@@ -464,7 +464,7 @@ impl App {
             .send(format!("Connecting to new network: {}", network.name))
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-        if let Some(passphrase) = menu.prompt_passphrase(menu_command, &network.name, icon_type) {
+        if let Some(passphrase) = menu.prompt_station_passphrase(menu_command, &network.name, icon_type) {
             self.agent_manager.send_passkey(passphrase)?;
         } else {
             self.agent_manager.cancel_auth()?;
@@ -654,14 +654,14 @@ impl App {
             }
 
             let ssid = if ap.ssid.is_empty() {
-                menu.prompt_ssid(menu_command, icon_type)
+                menu.prompt_ap_ssid(menu_command, icon_type)
                     .unwrap_or_else(|| "MySSID".to_string())
             } else {
                 ap.ssid.clone()
             };
 
             let psk = if ap.psk.is_empty() {
-                menu.prompt_password(menu_command, icon_type)
+                menu.prompt_ap_passphrase(menu_command, icon_type)
                     .unwrap_or_else(|| "MyPassword".to_string())
             } else {
                 ap.psk.clone()
