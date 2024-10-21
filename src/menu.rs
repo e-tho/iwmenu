@@ -858,18 +858,38 @@ impl Menu {
             _ => t!("menus.settings.options.switch_mode.name"),
         };
 
+        let switch_mode_icon = match current_mode {
+            Mode::Station => "access_point",
+            Mode::Ap => "station",
+            _ => "switch_mode",
+        };
+
         let options = vec![
             (
                 SettingsMenuOptions::DisableAdapter.to_id(),
-                SettingsMenuOptions::DisableAdapter.to_str(),
+                self.icons.format_display_with_icon(
+                    &SettingsMenuOptions::DisableAdapter.to_str(),
+                    &self.icons.get_icon("disable_adapter", icon_type),
+                    icon_type,
+                    spaces,
+                ),
             ),
             (
                 SettingsMenuOptions::SwitchMode.to_id(),
-                switch_mode_text.clone(),
+                self.icons.format_display_with_icon(
+                    &switch_mode_text,
+                    &self.icons.get_icon(switch_mode_icon, icon_type),
+                    icon_type,
+                    spaces,
+                ),
             ),
         ];
 
-        let input = self.icons.get_icon_text(options, icon_type, spaces);
+        let input = options
+            .into_iter()
+            .map(|(_, formatted_text)| formatted_text)
+            .collect::<Vec<String>>()
+            .join("\n");
 
         let menu_output = self.run_menu_command(menu_command, Some(&input), icon_type, None, false);
 
