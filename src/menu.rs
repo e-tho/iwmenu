@@ -132,29 +132,6 @@ impl SettingsMenuOptions {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum ChangeModeMenuOptions {
-    Station,
-    Ap,
-}
-
-impl ChangeModeMenuOptions {
-    pub fn from_id(id: &str) -> Option<Self> {
-        match id {
-            "station" => Some(ChangeModeMenuOptions::Station),
-            "ap" => Some(ChangeModeMenuOptions::Ap),
-            _ => None,
-        }
-    }
-
-    pub fn to_id(&self) -> &'static str {
-        match self {
-            ChangeModeMenuOptions::Station => "station",
-            ChangeModeMenuOptions::Ap => "ap",
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
 pub enum ApMenuOptions {
     StartAp,
     StopAp,
@@ -410,10 +387,6 @@ impl Icons {
         self.get_icon(icon_key, icon_type)
     }
 
-    pub fn get_connected_icon(&self) -> Option<char> {
-        self.get_icon_char("connected")
-    }
-
     pub fn format_with_spacing(icon: char, spaces: usize, before: bool) -> String {
         if before {
             format!("{}{}", " ".repeat(spaces), icon)
@@ -450,7 +423,7 @@ impl Icons {
             if icon_type == "xdg" {
                 display = format!("{} \u{2705}", display);
             } else if icon_type == "font" {
-                if let Some(connected_icon) = self.get_connected_icon() {
+                if let Some(connected_icon) = self.get_icon_char("connected") {
                     display.push_str(&Icons::format_with_spacing(connected_icon, spaces, true));
                 }
             }
@@ -725,16 +698,6 @@ impl Menu {
             .cloned()
     }
 
-    pub fn prompt_station_passphrase(
-        &self,
-        menu_command: &Option<String>,
-        ssid: &str,
-        icon_type: &str,
-    ) -> Option<String> {
-        let prompt_text = t!("menus.main.options.network.prompt", ssid = ssid);
-        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
-    }
-
     pub async fn show_main_menu(
         &self,
         menu_command: &Option<String>,
@@ -803,7 +766,10 @@ impl Menu {
                     spaces,
                 ),
                 KnownNetworkOptions::Connect => self.icons.get_icon_text(
-                    vec![("connect", t!("menus.main.options.known_network.options.connect.name"))],
+                    vec![(
+                        "connect",
+                        t!("menus.main.options.known_network.options.connect.name"),
+                    )],
                     icon_type,
                     spaces,
                 ),
@@ -963,6 +929,16 @@ impl Menu {
         }
 
         Ok(None)
+    }
+
+    pub fn prompt_station_passphrase(
+        &self,
+        menu_command: &Option<String>,
+        ssid: &str,
+        icon_type: &str,
+    ) -> Option<String> {
+        let prompt_text = t!("menus.main.options.network.prompt", ssid = ssid);
+        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
     }
 
     pub fn prompt_ap_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {

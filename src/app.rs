@@ -217,7 +217,9 @@ impl App {
                             }
                         }
                         if ap.psk.is_empty() {
-                            if let Some(password) = menu.prompt_ap_passphrase(menu_command, icon_type) {
+                            if let Some(password) =
+                                menu.prompt_ap_passphrase(menu_command, icon_type)
+                            {
                                 ap.set_psk(password);
                             }
                         }
@@ -317,8 +319,6 @@ impl App {
                         }
                     }
                 }
-
-                _ => {}
             }
         }
 
@@ -464,7 +464,9 @@ impl App {
             .send(format!("Connecting to new network: {}", network.name))
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-        if let Some(passphrase) = menu.prompt_station_passphrase(menu_command, &network.name, icon_type) {
+        if let Some(passphrase) =
+            menu.prompt_station_passphrase(menu_command, &network.name, icon_type)
+        {
             self.agent_manager.send_passkey(passphrase)?;
         } else {
             self.agent_manager.cancel_auth()?;
