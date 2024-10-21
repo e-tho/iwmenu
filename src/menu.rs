@@ -725,7 +725,7 @@ impl Menu {
             .cloned()
     }
 
-    pub fn prompt_passphrase(
+    pub fn prompt_station_passphrase(
         &self,
         menu_command: &Option<String>,
         ssid: &str,
@@ -965,12 +965,12 @@ impl Menu {
         Ok(None)
     }
 
-    pub fn prompt_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
+    pub fn prompt_ap_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
         let prompt_text = t!("menus.ap.options.set_ssid.prompt");
         self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), false)
     }
 
-    pub fn prompt_password(
+    pub fn prompt_ap_passphrase(
         &self,
         menu_command: &Option<String>,
         icon_type: &str,
