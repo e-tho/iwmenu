@@ -231,14 +231,18 @@ pub struct Menu {
 
 #[derive(Clone)]
 pub struct Icons {
+    generic_icons: HashMap<&'static str, char>,
     font_icons: HashMap<&'static str, char>,
     xdg_icons: HashMap<&'static str, &'static str>,
 }
 
 impl Icons {
     pub fn new() -> Self {
+        let mut generic_icons = HashMap::new();
         let mut font_icons = HashMap::new();
         let mut xdg_icons = HashMap::new();
+
+        generic_icons.insert("connected", '\u{23FA}');
 
         font_icons.insert("signal_weak_open", '\u{f16cb}');
         font_icons.insert("signal_weak_secure", '\u{f0921}');
@@ -315,6 +319,7 @@ impl Icons {
         Icons {
             font_icons,
             xdg_icons,
+            generic_icons,
         }
     }
 
@@ -328,12 +333,12 @@ impl Icons {
                 .xdg_icons
                 .get(key)
                 .map_or(String::new(), |&icon| icon.to_string()),
+            "generic" => self
+                .generic_icons
+                .get(key)
+                .map_or(String::new(), |&icon| icon.to_string()),
             _ => String::new(),
         }
-    }
-
-    pub fn get_icon_char(&self, key: &str) -> Option<char> {
-        self.font_icons.get(key).copied()
     }
 
     pub fn get_icon_text<T>(&self, items: Vec<(&str, T)>, icon_type: &str, spaces: usize) -> String
@@ -420,12 +425,8 @@ impl Icons {
         let mut display = network.name.clone();
 
         if network.is_connected {
-            if icon_type == "xdg" {
-                display = format!("{} \u{2705}", display);
-            } else if icon_type == "font" {
-                if let Some(connected_icon) = self.get_icon_char("connected") {
-                    display.push_str(&Icons::format_with_spacing(connected_icon, spaces, true));
-                }
+            if let Some(connected_icon) = self.generic_icons.get("connected").copied() {
+                display.push_str(&Icons::format_with_spacing(connected_icon, spaces, true));
             }
         }
 
@@ -740,11 +741,11 @@ impl Menu {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
             if let Some(option) = MainMenuOptions::from_str(&cleaned_output) {
                 return Ok(Some(option));
-                    }
+            }
         }
 
-            Ok(None)
-        }
+        Ok(None)
+    }
 
     pub async fn show_known_network_options(
         &self,
@@ -774,28 +775,28 @@ impl Menu {
                     spaces,
                 ),
                 KnownNetworkOptions::DisableAutoconnect => self.icons.get_icon_text(
-                vec![(
-                    "disable_autoconnect",
+                    vec![(
+                        "disable_autoconnect",
                         t!("menus.main.options.known_network.options.disable_autoconnect.name"),
-                )],
-                icon_type,
-                spaces,
+                    )],
+                    icon_type,
+                    spaces,
                 ),
                 KnownNetworkOptions::EnableAutoconnect => self.icons.get_icon_text(
-                vec![(
-                    "enable_autoconnect",
+                    vec![(
+                        "enable_autoconnect",
                         t!("menus.main.options.known_network.options.enable_autoconnect.name"),
-                )],
-                icon_type,
-                spaces,
+                    )],
+                    icon_type,
+                    spaces,
                 ),
                 KnownNetworkOptions::ForgetNetwork => self.icons.get_icon_text(
-            vec![(
-                "forget_network",
+                    vec![(
+                        "forget_network",
                         t!("menus.main.options.known_network.options.forget_network.name"),
-            )],
-            icon_type,
-            spaces,
+                    )],
+                    icon_type,
+                    spaces,
                 ),
             };
             input.push_str(&format!("{}\n", option_text));
@@ -808,7 +809,7 @@ impl Menu {
             return Ok(KnownNetworkOptions::from_str(&cleaned_output));
         }
 
-                Ok(None)
+        Ok(None)
     }
 
     pub async fn show_settings_menu(
