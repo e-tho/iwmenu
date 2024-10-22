@@ -248,7 +248,7 @@ impl Icons {
         font_icons.insert("signal_good_secure", '\u{f0927}');
         font_icons.insert("signal_excellent_open", '\u{f16ce}');
         font_icons.insert("signal_excellent_secure", '\u{f092a}');
-        font_icons.insert("connected", '\u{f0133}');
+        font_icons.insert("connected", '\u{f05a9}');
         font_icons.insert("disconnected", '\u{f16bc}');
         font_icons.insert("connect", '\u{f16bd}');
         font_icons.insert("disconnect", '\u{f073a}');
@@ -264,7 +264,7 @@ impl Icons {
         font_icons.insert("enable_autoconnect", '\u{f0547}');
         font_icons.insert("disable_autoconnect", '\u{f0547}');
         font_icons.insert("forget_network", '\u{f01b4}');
-        font_icons.insert("station", '\u{f05a9}');
+        font_icons.insert("station", '\u{f059f}');
         font_icons.insert("access_point", '\u{f0003}');
 
         xdg_icons.insert("signal_weak_open", "network-wireless-signal-weak-symbolic");
@@ -290,26 +290,26 @@ impl Icons {
             "signal_excellent_secure",
             "network-wireless-signal-excellent-secure-symbolic",
         );
-        xdg_icons.insert("scan", "view-refresh-symbolic");
+        xdg_icons.insert("scan", "sync-synchronizing-symbolic");
         xdg_icons.insert("settings", "preferences-system-symbolic");
         xdg_icons.insert(
             "disable_adapter",
             "network-wireless-hardware-disabled-symbolic",
         );
         xdg_icons.insert("power_on_device", "system-shutdown-symbolic");
-        xdg_icons.insert("switch_mode", "system-switch-user-symbolic");
+        xdg_icons.insert("switch_mode", "media-playlist-repeat-symbolic");
         xdg_icons.insert("start_ap", "media-playback-start-symbolic");
         xdg_icons.insert("stop_ap", "media-playback-stop-symbolic");
         xdg_icons.insert("set_ssid", "edit-paste-symbolic");
         xdg_icons.insert("set_password", "safety-symbolic");
-        xdg_icons.insert("enable_autoconnect", "media-playlist-repeat-symbolic");
-        xdg_icons.insert("disable_autoconnect", "media-playlist-repeat-symbolic");
-        xdg_icons.insert("forget_network", "close-symbolic");
+        xdg_icons.insert("enable_autoconnect", "on-outline-symbolic");
+        xdg_icons.insert("disable_autoconnect", "off-outline-symbolic");
+        xdg_icons.insert("forget_network", "minus-symbolic");
         xdg_icons.insert("connected", "network-wireless-connected-symbolic");
         xdg_icons.insert("disconnected", "network-wireless-disconnected-symbolic");
         xdg_icons.insert("connect", "entries-linked-symbolic");
         xdg_icons.insert("disconnect", "entries-unlinked-symbolic");
-        xdg_icons.insert("station", "network-wireless-symbolic");
+        xdg_icons.insert("station", "network-workgroup-symbolic");
         xdg_icons.insert("access_point", "network-cellular-symbolic");
 
         Icons {
