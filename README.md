@@ -79,12 +79,12 @@ Specify `custom` as the menu and set your command using the `--menu-command` fla
 iwmenu -m custom --menu-command "my_custom_launcher --flag"
 ```
 
-#### Prompt support
+#### Prompt and Placeholder support
 
-To enable prompt support, use `{prompt}` as the value for the relevant flag in your command. This way, when a prompt is required, it will be replaced with the appropriate text.
+Use either `{prompt}` or `{placeholder}` as the value for the relevant flag in your command; each will be replaced with the appropriate text as needed. They return the same string, with `{prompt}` adding a colon at the end.
 
 ```shell
-iwmenu -m custom --menu-command "my_custom_launcher --prompt-flag '{prompt}'"
+iwmenu -m custom --menu-command "my_custom_launcher --prompt-flag '{prompt}'" # or --placeholder-flag '{placeholder}'
 ```
 
 #### Password obfuscation support
