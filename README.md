@@ -28,7 +28,7 @@ Use `custom` mode if your launcher is not supported.
 
 Run the following commands:
 
-```console
+```shell
 git clone https://github.com/e-tho/iwmenu
 cd iwmenu
 cargo build --release
@@ -57,7 +57,7 @@ Install the package:
 
 Install the package with your favorite AUR helper:
 
-```console
+```shell
 paru -S iwmenu-git
 ```
 
@@ -67,7 +67,7 @@ paru -S iwmenu-git
 
 Specify an application using `-m` or `--menu` flag.
 
-```console
+```shell
 iwmenu -m fuzzel
 ```
 
@@ -75,7 +75,7 @@ iwmenu -m fuzzel
 
 Specify `custom` as the menu and set your command using the `--menu-command` flag. Ensure your launcher supports `stdin` mode, and that it is properly configured in the command.
 
-```console
+```shell
 iwmenu -m custom --menu-command "my_custom_launcher --flag"
 ```
 
@@ -83,7 +83,7 @@ iwmenu -m custom --menu-command "my_custom_launcher --flag"
 
 To enable prompt support, use `{prompt}` as the value for the relevant flag in your command. This way, when a prompt is required, it will be replaced with the appropriate text.
 
-```console
+```shell
 iwmenu -m custom --menu-command "my_custom_launcher --prompt-flag '{prompt}'"
 ```
 
@@ -91,7 +91,7 @@ iwmenu -m custom --menu-command "my_custom_launcher --prompt-flag '{prompt}'"
 
 To enable support for password obfuscation, set the appropriate flag via `{password_flag:--my-password-flag}`.
 
-```console
+```shell
 iwmenu -m custom --menu-command "my_custom_launcher {password_flag:--my-password-flag}"
 ```
 
@@ -99,7 +99,7 @@ iwmenu -m custom --menu-command "my_custom_launcher {password_flag:--my-password
 
 This example demonstrates enabling all available features in custom mode with `fuzzel`.
 
-```console
+```shell
 iwmenu -m custom --menu-command "fuzzel -d -p '{prompt}' {password_flag:--password}"
 ```
 
