@@ -16,8 +16,8 @@ menus:
           en: "Network"
           fr: "Réseau"
         prompt:
-          en: "Enter passphrase for %{ssid}:"
-          fr: "Entrez la passphrase pour %{ssid} :"
+          en: "Enter passphrase for %{ssid}"
+          fr: "Entrez la passphrase pour %{ssid}"
       known_network:
         name:
           en: "Known Network"
@@ -76,15 +76,15 @@ menus:
           en: "Set SSID"
           fr: "Définir le SSID"
         prompt:
-          en: "Enter SSID for AP:"
-          fr: "Entrez le SSID pour le point d'accès:"
+          en: "Enter SSID for AP"
+          fr: "Entrez le SSID pour le point d'accès"
       set_password:
         name:
           en: "Set Password"
           fr: "Définir le mot de passe"
         prompt:
-          en: "Entrez la passphrase pour %{ssid}:"
-          fr: "Entrez le mot de passe pour le point d'accès:"
+          en: "Entrez la passphrase pour %{ssid}"
+          fr: "Entrez le mot de passe pour le point d'accès"
       settings:
         name:
           en: "Settings"

@@ -582,8 +582,14 @@ impl Menu {
                 if let Some(cmd) = menu_command {
                     let mut cmd_processed = cmd.clone();
 
-                    let prompt_text = prompt.unwrap_or("");
-                    cmd_processed = cmd_processed.replace("{prompt}", prompt_text);
+                    if let Some(prompt_text) = prompt {
+                        cmd_processed =
+                            cmd_processed.replace("{prompt}", &format!("{}: ", prompt_text));
+                        cmd_processed = cmd_processed.replace("{placeholder}", prompt_text);
+                    } else {
+                        cmd_processed = cmd_processed.replace("{prompt}", "");
+                        cmd_processed = cmd_processed.replace("{placeholder}", "");
+                    }
 
                     let re = Regex::new(r"\{(\w+):([^\}]+)\}").unwrap();
 
