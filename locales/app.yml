@@ -116,9 +116,9 @@ notifications:
     scan_in_progress:
       en: "Wi-Fi scan in progress"
       fr: "Analyse Wi-Fi en cours"
-    error_initiating_scan:
-      en: "Error initiating scan: %{error_message}"
-      fr: "Erreur lors de l'initialisation de l'analyse : %{error_message}"
+    scan_failed:
+      en: "Failed to initiate network scan"
+      fr: "Échec du lancement du scan réseau"
     scan_completed:
       en: "Scan completed"
       fr: "Analyse terminée"

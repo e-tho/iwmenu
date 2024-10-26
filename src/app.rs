@@ -522,6 +522,18 @@ impl App {
                 return Ok(());
             }
 
+            if let Err(e) = station.scan().await {
+                let err_msg = format!("Failed to initiate network scan: {}", e);
+                self.log_sender.send(err_msg.clone()).ok();
+                self.notification_manager.send_notification(
+                    None,
+                    Some(t!("notifications.station.scan_failed").to_string()),
+                    None,
+                    None,
+                );
+                return Err(e.into());
+            }
+
             let handle = self.notification_manager.send_notification(
                 None,
                 Some(t!("notifications.station.scan_in_progress").to_string()),
@@ -529,66 +541,17 @@ impl App {
                 Some(Timeout::Never),
             );
 
-            if let Err(e) = station.scan().await {
-                let msg = t!(
-                    "notifications.station.error_initiating_scan",
-                    error_message = e.to_string()
-                );
-                self.log_sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                self.notification_manager.send_notification(
-                    None,
-                    Some(msg.to_string()),
-                    None,
-                    None,
-                );
-                return Err(e.into());
-            }
-
-            let iwd_station = station.session.station().unwrap();
-            while iwd_station.is_scanning().await? {
+            while station.is_scanning {
                 sleep(Duration::from_millis(500)).await;
             }
 
+            station.refresh().await?;
+
             handle.close();
 
-            let new_network_ssids: Vec<String> = station
-                .new_networks
-                .iter()
-                .map(|(network, _)| network.name.clone())
-                .collect();
-
-            let known_network_ssids: Vec<String> = station
-                .known_networks
-                .iter()
-                .map(|(network, _)| network.name.clone())
-                .collect();
-
-            if !new_network_ssids.is_empty() {
-                let new_networks_msg =
-                    format!("Discovered networks: {}", new_network_ssids.join(", "));
-                self.log_sender
-                    .send(new_networks_msg.clone())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-            }
-
-            if !known_network_ssids.is_empty() {
-                let known_networks_msg = format!(
-                    "Discovered known networks: {}",
-                    known_network_ssids.join(", ")
-                );
-                self.log_sender
-                    .send(known_networks_msg.clone())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-            }
-
-            let msg = t!("notifications.station.scan_completed");
             self.log_sender
-                .send(msg.to_string())
-                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-            self.notification_manager
-                .send_notification(None, Some(msg.to_string()), None, None);
+                .send("Scan completed".to_string())
+                .unwrap_or_else(|err| println!("Log error: {}", err));
         }
 
         Ok(())
