@@ -4,10 +4,7 @@ use iwdrs::session::Session;
 use notify_rust::Timeout;
 use rust_i18n::t;
 use std::{collections::HashMap, sync::Arc};
-use tokio::{
-    sync::mpsc::UnboundedSender,
-    time::Duration,
-};
+use tokio::{sync::mpsc::UnboundedSender, time::Duration};
 
 use crate::{iw::network::Network, notification::NotificationManager};
 
@@ -152,21 +149,9 @@ impl Station {
         Ok(())
     }
 
-    pub async fn scan(&mut self) -> Result<()> {
+    pub async fn scan(&self) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
-
-        if self.is_scanning {
-            return Ok(());
-        }
-
-        self.is_scanning = true;
-
-        if let Err(e) = iwd_station.scan().await {
-            self.is_scanning = false;
-            return Err(e.into());
-        }
-
-        Ok(())
+        iwd_station.scan().await.map_err(|e| e.into())
     }
 
     pub async fn disconnect(
