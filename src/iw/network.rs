@@ -1,6 +1,5 @@
 use anyhow::Result;
 use iwdrs::netowrk::Network as IwdNetwork;
-use notify_rust::Timeout;
 use rust_i18n::t;
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
@@ -58,7 +57,7 @@ impl Network {
                     None,
                     Some(msg.to_string()),
                     None,
-                    Some(Timeout::Milliseconds(3000)),
+                    None,
                 );
             }
             Err(e) => {
@@ -74,7 +73,7 @@ impl Network {
                     None,
                     Some(msg.clone()),
                     None,
-                    Some(Timeout::Milliseconds(3000)),
+                    None,
                 );
             }
         }
