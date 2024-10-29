@@ -146,7 +146,7 @@ impl ApMenuOptions {
             "start_ap" => Some(ApMenuOptions::StartAp),
             "stop_ap" => Some(ApMenuOptions::StopAp),
             "set_ssid" => Some(ApMenuOptions::SetSsid),
-            "set_password" => Some(ApMenuOptions::SetPassword),
+            "set_passphrase" => Some(ApMenuOptions::SetPassword),
             "settings" => Some(ApMenuOptions::Settings),
             _ => None,
         }
@@ -159,7 +159,7 @@ impl ApMenuOptions {
             Some(ApMenuOptions::StopAp)
         } else if s == t!("menus.ap.options.set_ssid.name") {
             Some(ApMenuOptions::SetSsid)
-        } else if s == t!("menus.ap.options.set_password.name") {
+        } else if s == t!("menus.ap.options.set_passphrase.name") {
             Some(ApMenuOptions::SetPassword)
         } else if s == t!("menus.ap.options.settings.name") {
             Some(ApMenuOptions::Settings)
@@ -173,7 +173,7 @@ impl ApMenuOptions {
             ApMenuOptions::StartAp => "start_ap",
             ApMenuOptions::StopAp => "stop_ap",
             ApMenuOptions::SetSsid => "set_ssid",
-            ApMenuOptions::SetPassword => "set_password",
+            ApMenuOptions::SetPassword => "set_passphrase",
             ApMenuOptions::Settings => "settings",
         }
     }
@@ -183,7 +183,7 @@ impl ApMenuOptions {
             ApMenuOptions::StartAp => t!("menus.ap.options.start_ap.name"),
             ApMenuOptions::StopAp => t!("menus.ap.options.stop_ap.name"),
             ApMenuOptions::SetSsid => t!("menus.ap.options.set_ssid.name"),
-            ApMenuOptions::SetPassword => t!("menus.ap.options.set_password.name"),
+            ApMenuOptions::SetPassword => t!("menus.ap.options.set_passphrase.name"),
             ApMenuOptions::Settings => t!("menus.ap.options.settings.name"),
         }
     }
@@ -264,7 +264,7 @@ impl Icons {
         font_icons.insert("start_ap", '\u{f040d}');
         font_icons.insert("stop_ap", '\u{f0667}');
         font_icons.insert("set_ssid", '\u{f08d5}');
-        font_icons.insert("set_password", '\u{f0bc5}');
+        font_icons.insert("set_passphrase", '\u{f0bc5}');
         font_icons.insert("enable_autoconnect", '\u{f0547}');
         font_icons.insert("disable_autoconnect", '\u{f0547}');
         font_icons.insert("forget_network", '\u{f01b4}');
@@ -304,8 +304,8 @@ impl Icons {
         xdg_icons.insert("switch_mode", "media-playlist-repeat-symbolic");
         xdg_icons.insert("start_ap", "media-playback-start-symbolic");
         xdg_icons.insert("stop_ap", "media-playback-stop-symbolic");
-        xdg_icons.insert("set_ssid", "edit-paste-symbolic");
-        xdg_icons.insert("set_password", "safety-symbolic");
+        xdg_icons.insert("set_ssid", "edit-symbolic");
+        xdg_icons.insert("set_passphrase", "device-security-symbolic");
         xdg_icons.insert("enable_autoconnect", "on-outline-symbolic");
         xdg_icons.insert("disable_autoconnect", "off-outline-symbolic");
         xdg_icons.insert("forget_network", "minus-symbolic");
@@ -935,7 +935,7 @@ impl Menu {
                 ("start_ap", t!("menus.ap.options.start_ap.name"))
             },
             ("set_ssid", t!("menus.ap.options.set_ssid.name")),
-            ("set_password", t!("menus.ap.options.set_password.name")),
+            ("set_passphrase", t!("menus.ap.options.set_passphrase.name")),
             ("settings", t!("menus.ap.options.settings.name")),
         ];
 
@@ -974,7 +974,7 @@ impl Menu {
         menu_command: &Option<String>,
         icon_type: &str,
     ) -> Option<String> {
-        let prompt_text = t!("menus.ap.options.set_password.prompt");
+        let prompt_text = t!("menus.ap.options.set_passphrase.prompt");
         self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
     }
 }
