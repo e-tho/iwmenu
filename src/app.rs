@@ -173,7 +173,7 @@ impl App {
     ) -> Result<Option<String>> {
         match main_menu_option {
             MainMenuOptions::Scan => {
-                self.perform_network_scan().await?;
+                self.perform_network_scan(menu).await?;
             }
             MainMenuOptions::Settings => {
                 if let Some(option) = menu
@@ -228,7 +228,7 @@ impl App {
                         self.perform_ap_start(menu, menu_command, icon_type).await?;
                     }
                 }
-                ApMenuOptions::StopAp => self.perform_ap_stop().await?,
+                ApMenuOptions::StopAp => self.perform_ap_stop(menu).await?,
                 ApMenuOptions::SetSsid => {
                     if let Some(ssid) = menu.prompt_ap_ssid(menu_command, icon_type) {
                         ap.set_ssid(ssid.clone());
@@ -368,7 +368,7 @@ impl App {
                     self.notification_manager.send_notification(
                         None,
                         Some(t!("notifications.app.adapter_enabled").to_string()),
-                        None,
+                        Some(menu.icons.get_xdg_icon("network_wireless")),
                         None,
                     );
                     self.adapter.refresh().await?;
@@ -381,7 +381,7 @@ impl App {
             self.notification_manager.send_notification(
                 None,
                 Some(t!("notifications.app.adapter_disabled").to_string()),
-                None,
+                Some(menu.icons.get_xdg_icon("disable_adapter")),
                 None,
             );
         }
@@ -506,7 +506,7 @@ impl App {
         Ok(())
     }
 
-    async fn perform_network_scan(&mut self) -> Result<()> {
+    async fn perform_network_scan(&mut self, menu: &Menu) -> Result<()> {
         if let Some(station) = self.adapter.device.station.as_mut() {
             if station.is_scanning {
                 let msg = t!("notifications.station.scan_already_in_progress");
@@ -516,7 +516,7 @@ impl App {
                 self.notification_manager.send_notification(
                     None,
                     Some(msg.to_string()),
-                    None,
+                    Some(menu.icons.get_xdg_icon("scan")),
                     None,
                 );
                 return Ok(());
@@ -528,7 +528,7 @@ impl App {
                 self.notification_manager.send_notification(
                     None,
                     Some(t!("notifications.station.scan_failed").to_string()),
-                    None,
+                    Some(menu.icons.get_xdg_icon("error")),
                     None,
                 );
                 return Err(e.into());
@@ -537,7 +537,7 @@ impl App {
             let handle = self.notification_manager.send_notification(
                 None,
                 Some(t!("notifications.station.scan_in_progress").to_string()),
-                None,
+                Some(menu.icons.get_xdg_icon("scan")),
                 Some(Timeout::Never),
             );
 
@@ -557,7 +557,7 @@ impl App {
             self.notification_manager.send_notification(
                 None,
                 Some(msg.to_string()),
-                None,
+                Some(menu.icons.get_xdg_icon("ok")),
                 None,
             );
         }
@@ -601,7 +601,7 @@ impl App {
         self.notification_manager.send_notification(
             None,
             Some(t!("notifications.app.adapter_disabled").to_string()),
-            None,
+            Some(menu.icons.get_xdg_icon("disable_adapter")),
             None,
         );
 
@@ -650,7 +650,7 @@ impl App {
                     self.notification_manager.send_notification(
                         None,
                         Some(t!("notifications.device.access_point_started").to_string()),
-                        None,
+                        Some(menu.icons.get_xdg_icon("access_point")),
                         None,
                     );
                 }
@@ -660,8 +660,14 @@ impl App {
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     self.notification_manager.send_notification(
                         None,
-                        Some(t!("notifications.device.access_point_start_failed", error = e.to_string()).to_string()),
-                        None,
+                        Some(
+                            t!(
+                                "notifications.device.access_point_start_failed",
+                                error = e.to_string()
+                            )
+                            .to_string(),
+                        ),
+                        Some(menu.icons.get_xdg_icon("error")),
                         None,
                     );
                 }
@@ -675,7 +681,7 @@ impl App {
             self.notification_manager.send_notification(
                 None,
                 Some(t!("notifications.device.no_access_point_available").to_string()),
-                None,
+                Some(menu.icons.get_xdg_icon("error")),
                 None,
             );
         }
@@ -683,7 +689,7 @@ impl App {
         Ok(())
     }
 
-    async fn perform_ap_stop(&mut self) -> Result<()> {
+    async fn perform_ap_stop(&mut self, menu: &Menu) -> Result<()> {
         if let Some(ap) = &self.adapter.device.access_point {
             ap.stop().await?;
             self.adapter.refresh().await?;
@@ -693,7 +699,7 @@ impl App {
             self.notification_manager.send_notification(
                 None,
                 Some(t!("notifications.device.access_point_stopped").to_string()),
-                None,
+                Some(menu.icons.get_xdg_icon("access_point")),
                 None,
             );
         }
