@@ -141,6 +141,18 @@ notifications:
     switched_mode:
       en: "Switched to mode: %{mode}"
       fr: "Basculé en mode: %{mode}"
+    access_point_started:
+      en: "Access Point started successfully"
+      fr: "Point d'accès démarré avec succès"
+    no_access_point_available:
+      en: "No Access Point available to start"
+      fr: "Aucun point d'accès disponible pour démarrer"
+    access_point_stopped:
+      en: "Access Point stopped"
+      fr: "Point d'accès arrêté"
+    access_point_start_failed:
+      en: "Failed to start Access Point: %{error}"
+      fr: "Échec du démarrage du point d'accès : %{error}"
   app:
     no_network_selected:
       en: "No network selected"
