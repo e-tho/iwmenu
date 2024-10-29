@@ -641,7 +641,7 @@ impl App {
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     self.notification_manager.send_notification(
                         None,
-                        Some("Access Point started successfully".to_string()),
+                        Some(t!("notifications.device.access_point_started").to_string()),
                         None,
                         None,
                     );
@@ -652,7 +652,7 @@ impl App {
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
                     self.notification_manager.send_notification(
                         None,
-                        Some(format!("Failed to start Access Point: {}", e)),
+                        Some(t!("notifications.device.access_point_start_failed", error = e.to_string()).to_string()),
                         None,
                         None,
                     );
@@ -666,7 +666,7 @@ impl App {
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
             self.notification_manager.send_notification(
                 None,
-                Some("No Access Point available to start".to_string()),
+                Some(t!("notifications.device.no_access_point_available").to_string()),
                 None,
                 None,
             );
@@ -684,7 +684,7 @@ impl App {
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
             self.notification_manager.send_notification(
                 None,
-                Some("Access Point stopped".to_string()),
+                Some(t!("notifications.device.access_point_stopped").to_string()),
                 None,
                 None,
             );
