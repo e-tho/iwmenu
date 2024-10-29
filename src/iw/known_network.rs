@@ -1,7 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, FixedOffset};
 use iwdrs::known_netowk::KnownNetwork as IwdKnownNetwork;
-use notify_rust::Timeout;
 use rust_i18n::t;
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
@@ -58,7 +57,7 @@ impl KnownNetwork {
                     None,
                     Some(msg.to_string()),
                     None,
-                    Some(Timeout::Milliseconds(3000)),
+                    None,
                 );
             }
             Err(e) => {
@@ -71,7 +70,7 @@ impl KnownNetwork {
                     None,
                     Some(msg),
                     None,
-                    Some(Timeout::Milliseconds(3000)),
+                    None,
                 );
             }
         }
@@ -98,7 +97,7 @@ impl KnownNetwork {
                         None,
                         Some(msg.to_string()),
                         None,
-                        Some(Timeout::Milliseconds(3000)),
+                        None,
                     );
                 }
                 Err(e) => {
@@ -111,7 +110,7 @@ impl KnownNetwork {
                         None,
                         Some(msg),
                         None,
-                        Some(Timeout::Milliseconds(3000)),
+                        None,
                     );
                 }
             }
@@ -130,7 +129,7 @@ impl KnownNetwork {
                         None,
                         Some(msg.to_string()),
                         None,
-                        Some(Timeout::Milliseconds(3000)),
+                        None,
                     );
                 }
                 Err(e) => {
@@ -143,7 +142,7 @@ impl KnownNetwork {
                         None,
                         Some(msg),
                         None,
-                        Some(Timeout::Milliseconds(3000)),
+                        None,
                     );
                 }
             }

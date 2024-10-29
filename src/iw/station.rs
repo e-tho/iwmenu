@@ -1,7 +1,6 @@
 use anyhow::Result;
 use futures::future::join_all;
 use iwdrs::session::Session;
-use notify_rust::Timeout;
 use rust_i18n::t;
 use std::{collections::HashMap, sync::Arc};
 use tokio::{sync::mpsc::UnboundedSender, time::Duration};
@@ -173,7 +172,7 @@ impl Station {
                     None,
                     Some(msg.to_string()),
                     None,
-                    Some(Timeout::Milliseconds(3000)),
+                    None,
                 );
             }
             Err(e) => {
@@ -188,7 +187,7 @@ impl Station {
                     None,
                     Some(msg.to_string()),
                     None,
-                    Some(Timeout::Milliseconds(3000)),
+                    None,
                 );
             }
         }
