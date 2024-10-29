@@ -28,9 +28,9 @@ impl NotificationManager {
     ) -> NotificationHandle {
         let mut binding = Notification::new();
         let notification = binding
-            .summary(summary.as_deref().unwrap_or("iNet Wireless"))
+            .summary(summary.as_deref().unwrap_or("iNet Wireless Menu"))
             .body(body.as_deref().unwrap_or(""))
-            .icon(icon.as_deref().unwrap_or("network-wireless"))
+            .icon(icon.as_deref().unwrap_or("network-wireless-symbolic"))
             .timeout(timeout.unwrap_or(Timeout::Milliseconds(3000)));
 
         notification.show().unwrap()
@@ -50,7 +50,10 @@ impl NotificationManager {
                 notification.body(body);
             }
 
-            let icon_str = message.icon.as_deref().unwrap_or("network-wireless");
+            let icon_str = message
+                .icon
+                .as_deref()
+                .unwrap_or("network-wireless-symbolic");
             notification.icon(icon_str);
 
             notification.timeout(message.timeout.unwrap_or(Timeout::Milliseconds(3000)));
