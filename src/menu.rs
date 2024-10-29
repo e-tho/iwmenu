@@ -271,6 +271,10 @@ impl Icons {
         font_icons.insert("station", '\u{f059f}');
         font_icons.insert("access_point", '\u{f0003}');
 
+        font_icons.insert("ok", '\u{f05e1}');
+        font_icons.insert("error", '\u{f05d6}');
+        font_icons.insert("network_wireless", '\u{f05a9}');
+
         xdg_icons.insert("signal_weak_open", "network-wireless-signal-weak-symbolic");
         xdg_icons.insert("signal_ok_open", "network-wireless-signal-ok-symbolic");
         xdg_icons.insert("signal_good_open", "network-wireless-signal-good-symbolic");
@@ -316,6 +320,10 @@ impl Icons {
         xdg_icons.insert("station", "network-workgroup-symbolic");
         xdg_icons.insert("access_point", "network-cellular-symbolic");
 
+        xdg_icons.insert("ok", "emblem-default-symbolic");
+        xdg_icons.insert("error", "dialog-error-symbolic");
+        xdg_icons.insert("network_wireless", "network-wireless-symbolic");
+
         Icons {
             font_icons,
             xdg_icons,
@@ -339,6 +347,12 @@ impl Icons {
                 .map_or(String::new(), |&icon| icon.to_string()),
             _ => String::new(),
         }
+    }
+
+    pub fn get_xdg_icon(&self, key: &str) -> String {
+        self.xdg_icons
+            .get(key)
+            .map_or(String::new(), |&icon| icon.to_string())
     }
 
     pub fn get_icon_text<T>(&self, items: Vec<(&str, T)>, icon_type: &str, spaces: usize) -> String
