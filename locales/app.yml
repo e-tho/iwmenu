@@ -49,42 +49,34 @@ menus:
         name:
           en: "Disable Adapter"
           fr: "Désactiver l'adaptateur"
-      switch_mode_to_station:
-        name:
-          en: "Switch mode to Station"
-          fr: "Basculer en mode Station"
-      switch_mode_to_ap:
-        name:
-          en: "Switch mode to Access Point"
-          fr: "Basculer en mode Point d'accès"
       switch_mode:
         name:
-          en: "Switch mode"
-          fr: "Changer de mode"
+          en: "%{mode} Mode"
+          fr: "Mode %{mode}"
   ap:
     options:
       start_ap:
         name:
-          en: "Start AP"
-          fr: "Démarrer le point d'accès"
+          en: "Start Access Point"
+          fr: "Activer le point d'accès"
       stop_ap:
         name:
-          en: "Stop AP"
+          en: "Stop Access Point"
           fr: "Arrêter le point d'accès"
       set_ssid:
         name:
-          en: "Set SSID"
-          fr: "Définir le SSID"
+          en: "Set Network Name"
+          fr: "Définir le nom du réseau"
         prompt:
-          en: "Enter SSID for AP"
-          fr: "Entrez le SSID pour le point d'accès"
-      set_password:
+          en: "Enter Network Name"
+          fr: "Saisissez le nom du réseau"
+      set_passphrase:
         name:
-          en: "Set Password"
-          fr: "Définir le mot de passe"
+          en: "Set Network Passphrase"
+          fr: "Définir la phrase secrète du réseau"
         prompt:
-          en: "Entrez la passphrase pour %{ssid}"
-          fr: "Entrez le mot de passe pour le point d'accès"
+          en: "Enter Network Passphrase"
+          fr: "Saisissez la phrase secrète du réseau"
       settings:
         name:
           en: "Settings"
@@ -145,6 +137,10 @@ notifications:
     forget_network:
       en: "Network removed"
       fr: "Réseau supprimé"
+  device:
+    switched_mode:
+      en: "Switched to mode: %{mode}"
+      fr: "Basculé en mode: %{mode}"
   app:
     no_network_selected:
       en: "No network selected"
@@ -164,3 +160,14 @@ notifications:
     power_on_device:
       en: "Power On Device"
       fr: "Activer l'appareil"
+
+modes:
+  station:
+    en: "Station"
+    fr: "Station"
+  access_point:
+    en: "Access Point"
+    fr: "Point d'accès"
+  unknown:
+    en: "Unknown"
+    fr: "Inconnu"

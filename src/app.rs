@@ -146,7 +146,7 @@ impl App {
                         )
                         .await?;
                     } else {
-                        self.perform_mode_switch().await?;
+                        self.perform_mode_switch(menu).await?;
                     }
                 }
 
@@ -343,7 +343,7 @@ impl App {
                     .await?;
             }
             SettingsMenuOptions::SwitchMode => {
-                self.perform_mode_switch().await?;
+                self.perform_mode_switch(menu).await?;
                 self.reset_mode = true;
                 self.running = false;
             }
@@ -557,7 +557,7 @@ impl App {
         Ok(())
     }
 
-    async fn perform_mode_switch(&mut self) -> Result<()> {
+    async fn perform_mode_switch(&mut self, menu: &Menu) -> Result<()> {
         let new_mode = match self.current_mode {
             Mode::Station => Mode::Ap,
             Mode::Ap => Mode::Station,
@@ -566,16 +566,15 @@ impl App {
 
         self.reset(new_mode, self.log_sender.clone()).await?;
 
+        let mode_text = menu.get_mode_text(&self.current_mode);
+        let msg = t!("notifications.device.switched_mode", mode = mode_text).to_string();
+
         self.log_sender
-            .send(format!("Switched to mode: {:?}", self.current_mode))
+            .send(msg.clone())
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-        self.notification_manager.send_notification(
-            None,
-            Some(format!("Switched to mode: {:?}", self.current_mode)),
-            None,
-            None,
-        );
+        self.notification_manager
+            .send_notification(None, Some(msg), None, None);
 
         Ok(())
     }

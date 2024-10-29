@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::ArgEnum;
 use iwdrs::modes::Mode;
 use regex::Regex;
@@ -825,15 +825,23 @@ impl Menu {
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<SettingsMenuOptions>> {
-        let switch_mode_text = match current_mode {
-            Mode::Station => t!("menus.settings.options.switch_mode_to_ap.name"),
-            Mode::Ap => t!("menus.settings.options.switch_mode_to_station.name"),
-            _ => t!("menus.settings.options.switch_mode.name"),
+        let target_mode = match current_mode {
+            Mode::Station => Mode::Ap,
+            Mode::Ap => Mode::Station,
+            _ => {
+                return Err(anyhow!("Unhandled mode"));
+            }
         };
 
-        let switch_mode_icon = match current_mode {
-            Mode::Station => "access_point",
-            Mode::Ap => "station",
+        let target_mode_text = self.get_mode_text(&target_mode);
+        let switch_mode_text = t!(
+            "menus.settings.options.switch_mode.name",
+            mode = target_mode_text
+        );
+
+        let switch_mode_icon = match target_mode {
+            Mode::Station => "station",
+            Mode::Ap => "access_point",
             _ => "switch_mode",
         };
 
@@ -877,6 +885,14 @@ impl Menu {
         }
 
         Ok(None)
+    }
+
+    pub fn get_mode_text(&self, mode: &Mode) -> String {
+        match mode {
+            Mode::Station => t!("modes.station").to_string(),
+            Mode::Ap => t!("modes.access_point").to_string(),
+            _ => t!("modes.unknown").to_string(),
+        }
     }
 
     pub fn prompt_enable_adapter(
