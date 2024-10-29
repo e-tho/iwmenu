@@ -549,9 +549,17 @@ impl App {
 
             handle.close();
 
+            let msg = t!("notifications.station.scan_completed");
+
             self.log_sender
-                .send("Scan completed".to_string())
+                .send(msg.to_string())
                 .unwrap_or_else(|err| println!("Log error: {}", err));
+            self.notification_manager.send_notification(
+                None,
+                Some(msg.to_string()),
+                None,
+                None,
+            );
         }
 
         Ok(())
