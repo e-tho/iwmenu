@@ -154,9 +154,6 @@ notifications:
       en: "Failed to start Access Point: %{error}"
       fr: "Échec du démarrage du point d'accès : %{error}"
   app:
-    no_network_selected:
-      en: "No network selected"
-      fr: "Aucun réseau sélectionné"
     no_station_available:
       en: "No station available"
       fr: "Aucune station disponible"
@@ -172,6 +169,15 @@ notifications:
     power_on_device:
       en: "Power On Device"
       fr: "Activer l'appareil"
+    main_menu_exited:
+      en: "Exited main menu"
+      fr: "Sortie du menu principal"
+    ap_menu_exited:
+      en: "Exited Access Point menu"
+      fr: "Sortie du menu Point d'accès"
+    adapter_menu_exited:
+      en: "Exited adapter menu"
+      fr: "Sortie du menu de l'appareil"
 
 modes:
   station:

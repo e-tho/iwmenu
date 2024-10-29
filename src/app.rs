@@ -107,7 +107,7 @@ impl App {
                                 .await?
                             } else {
                                 self.log_sender
-                                    .send(t!("notifications.app.no_network_selected").to_string())
+                                    .send(t!("notifications.app.main_menu_exited").to_string())
                                     .unwrap_or_else(|err| {
                                         println!("Failed to send message: {}", err)
                                     });
@@ -146,6 +146,10 @@ impl App {
                         )
                         .await?;
                     } else {
+                        self.log_sender
+                            .send(t!("notifications.app.ap_menu_exited").to_string())
+                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
                         self.running = false;
                     }
                 }
@@ -379,7 +383,7 @@ impl App {
             }
         } else {
             self.log_sender
-                .send(t!("notifications.app.adapter_disabled").to_string())
+                .send(t!("notifications.app.adapter_menu_exited").to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
             self.running = false;
             return Ok(());
