@@ -146,7 +146,7 @@ impl App {
                         )
                         .await?;
                     } else {
-                        self.perform_mode_switch(menu).await?;
+                        self.running = false;
                     }
                 }
 
@@ -362,6 +362,10 @@ impl App {
             match option {
                 AdapterMenuOptions::PowerOnDevice => {
                     self.adapter.device.power_on().await?;
+
+                    self.reset(self.current_mode.clone(), self.log_sender.clone())
+                        .await?;
+
                     self.log_sender
                         .send(t!("notifications.app.adapter_enabled").to_string())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
@@ -371,19 +375,14 @@ impl App {
                         Some(menu.icons.get_xdg_icon("network_wireless")),
                         None,
                     );
-                    self.adapter.refresh().await?;
                 }
             }
         } else {
             self.log_sender
                 .send(t!("notifications.app.adapter_disabled").to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-            self.notification_manager.send_notification(
-                None,
-                Some(t!("notifications.app.adapter_disabled").to_string()),
-                Some(menu.icons.get_xdg_icon("disable_adapter")),
-                None,
-            );
+            self.running = false;
+            return Ok(());
         }
 
         Ok(())
@@ -569,12 +568,18 @@ impl App {
         let new_mode = match self.current_mode {
             Mode::Station => Mode::Ap,
             Mode::Ap => Mode::Station,
-            _ => Mode::Station,
+            _ => {
+                self.log_sender
+                    .send(t!("notifications.app.unknown_mode").to_string())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                return Err(anyhow::anyhow!("Unhandled mode"));
+            }
         };
 
-        self.reset(new_mode, self.log_sender.clone()).await?;
+        self.reset(new_mode.clone(), self.log_sender.clone())
+            .await?;
 
-        let mode_text = menu.get_mode_text(&self.current_mode);
+        let mode_text = menu.get_mode_text(&new_mode);
         let msg = t!("notifications.device.switched_mode", mode = mode_text).to_string();
 
         self.log_sender
