@@ -2,6 +2,10 @@
   <h1>iwmenu</h1>
 </div>
 
+## Demo
+
+![Demonstration of iwmenu: a menu-driven Wi-Fi management interface](assets/demo.gif)
+
 ## About
 
 `iwmenu` (**i**Net **W**ireless **Menu**) allows using your menu of choice to manage the wireless network.
