@@ -10,6 +10,9 @@
 
 `iwmenu` (**i**Net **W**ireless **Menu**) allows using your menu of choice to manage the wireless network.
 
+> [!IMPORTANT]
+> This project is under active development; features may change.
+
 ## Prerequisites
 
 [iwd](https://iwd.wiki.kernel.org/) must be installed, along with either a supported launcher or any `stdin` mode launcher.
