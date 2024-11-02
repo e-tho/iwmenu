@@ -25,15 +25,12 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new(
-        _menu: Menu,
-        log_sender: UnboundedSender<String>,
-        notification_manager: Arc<NotificationManager>,
-    ) -> Result<Self> {
+    pub async fn new(_menu: Menu, log_sender: UnboundedSender<String>) -> Result<Self> {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
         let adapter = Adapter::new(session.clone(), log_sender.clone()).await?;
         let current_mode = adapter.device.mode.clone();
+        let notification_manager = Arc::new(NotificationManager::new());
 
         if !adapter.device.is_powered {
             adapter.device.power_on().await?;
@@ -373,11 +370,12 @@ impl App {
                     self.log_sender
                         .send(t!("notifications.app.adapter_enabled").to_string())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    self.notification_manager.send_notification(
+                    try_send_notification!(
+                        self.notification_manager,
                         None,
                         Some(t!("notifications.app.adapter_enabled").to_string()),
                         Some(menu.icons.get_xdg_icon("network_wireless")),
-                        None,
+                        None
                     );
                 }
             }
@@ -516,11 +514,12 @@ impl App {
                 self.log_sender
                     .send(msg.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                self.notification_manager.send_notification(
+                try_send_notification!(
+                    self.notification_manager,
                     None,
                     Some(msg.to_string()),
                     Some(menu.icons.get_xdg_icon("scan")),
-                    None,
+                    None
                 );
                 return Ok(());
             }
@@ -528,20 +527,22 @@ impl App {
             if let Err(e) = station.scan().await {
                 let err_msg = format!("Failed to initiate network scan: {}", e);
                 self.log_sender.send(err_msg.clone()).ok();
-                self.notification_manager.send_notification(
+                try_send_notification!(
+                    self.notification_manager,
                     None,
                     Some(t!("notifications.station.scan_failed").to_string()),
                     Some(menu.icons.get_xdg_icon("error")),
-                    None,
+                    None
                 );
                 return Err(e.into());
             }
 
-            let handle = self.notification_manager.send_notification(
+            let notification_id = try_send_notification_with_id!(
+                self.notification_manager,
                 None,
                 Some(t!("notifications.station.scan_in_progress").to_string()),
                 Some(menu.icons.get_xdg_icon("scan")),
-                Some(Timeout::Never),
+                Some(Timeout::Never)
             );
 
             while station.is_scanning {
@@ -550,18 +551,21 @@ impl App {
 
             station.refresh().await?;
 
-            handle.close();
+            if let Some(id) = notification_id {
+                self.notification_manager.close_notification(id)?;
+            }
 
             let msg = t!("notifications.station.scan_completed");
 
             self.log_sender
                 .send(msg.to_string())
                 .unwrap_or_else(|err| println!("Log error: {}", err));
-            self.notification_manager.send_notification(
+            try_send_notification!(
+                self.notification_manager,
                 None,
                 Some(msg.to_string()),
                 Some(menu.icons.get_xdg_icon("ok")),
-                None,
+                None
             );
         }
 
@@ -590,8 +594,7 @@ impl App {
             .send(msg.clone())
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-        self.notification_manager
-            .send_notification(None, Some(msg), None, None);
+        try_send_notification!(self.notification_manager, None, Some(msg), None, None);
 
         Ok(())
     }
@@ -607,11 +610,12 @@ impl App {
         self.log_sender
             .send(t!("notifications.app.adapter_disabled").to_string())
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-        self.notification_manager.send_notification(
+        try_send_notification!(
+            self.notification_manager,
             None,
             Some(t!("notifications.app.adapter_disabled").to_string()),
             Some(menu.icons.get_xdg_icon("disable_adapter")),
-            None,
+            None
         );
 
         self.handle_adapter_options(menu, menu_command, icon_type, spaces)
@@ -656,18 +660,20 @@ impl App {
                     self.log_sender
                         .send("Access Point started successfully".to_string())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    self.notification_manager.send_notification(
+                    try_send_notification!(
+                        self.notification_manager,
                         None,
                         Some(t!("notifications.device.access_point_started").to_string()),
                         Some(menu.icons.get_xdg_icon("access_point")),
-                        None,
+                        None
                     );
                 }
                 Err(e) => {
                     self.log_sender
                         .send(format!("Failed to start Access Point: {}", e))
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                    self.notification_manager.send_notification(
+                    try_send_notification!(
+                        self.notification_manager,
                         None,
                         Some(
                             t!(
@@ -677,7 +683,7 @@ impl App {
                             .to_string(),
                         ),
                         Some(menu.icons.get_xdg_icon("error")),
-                        None,
+                        None
                     );
                 }
             }
@@ -687,11 +693,12 @@ impl App {
             self.log_sender
                 .send("No Access Point available to start".to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-            self.notification_manager.send_notification(
+            try_send_notification!(
+                self.notification_manager,
                 None,
                 Some(t!("notifications.device.no_access_point_available").to_string()),
                 Some(menu.icons.get_xdg_icon("error")),
-                None,
+                None
             );
         }
 
@@ -705,11 +712,12 @@ impl App {
             self.log_sender
                 .send("Access Point stopped".to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-            self.notification_manager.send_notification(
+            try_send_notification!(
+                self.notification_manager,
                 None,
                 Some(t!("notifications.device.access_point_stopped").to_string()),
                 Some(menu.icons.get_xdg_icon("access_point")),
-                None,
+                None
             );
         }
         Ok(())
