@@ -48,3 +48,9 @@ impl NotificationManager {
         }
     }
 }
+
+impl Default for NotificationManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}

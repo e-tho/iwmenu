@@ -448,6 +448,12 @@ impl Icons {
     }
 }
 
+impl Default for Icons {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Menu {
     pub fn new(menu_type: MenuType) -> Self {
         Self {
