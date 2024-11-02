@@ -44,7 +44,7 @@ impl AgentManager {
                         let mut rx_key = passkey_receiver.lock().await;
                         let mut rx_cancel = cancel_signal_receiver.lock().await;
 
-                        request_confirmation(authentication_required, &mut *rx_key, &mut *rx_cancel)
+                        request_confirmation(authentication_required, &mut rx_key, &mut rx_cancel)
                             .await
                     }
                     .boxed()
