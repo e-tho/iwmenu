@@ -30,7 +30,7 @@ pub enum MainMenuOptions {
 }
 
 impl MainMenuOptions {
-    pub fn from_str(option: &str) -> Option<Self> {
+    pub fn from_string(option: &str) -> Option<Self> {
         match option {
             s if s == t!("menus.main.options.scan.name") => Some(MainMenuOptions::Scan),
             s if s == t!("menus.main.options.settings.name") => Some(MainMenuOptions::Settings),
@@ -57,7 +57,7 @@ pub enum KnownNetworkOptions {
 }
 
 impl KnownNetworkOptions {
-    pub fn from_str(option: &str) -> Option<Self> {
+    pub fn from_string(option: &str) -> Option<Self> {
         match option {
             s if s == t!("menus.main.options.known_network.options.disable_autoconnect.name") => {
                 Some(KnownNetworkOptions::DisableAutoconnect)
@@ -152,7 +152,7 @@ impl ApMenuOptions {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn from_string(s: &str) -> Option<Self> {
         if s == t!("menus.ap.options.start_ap.name") {
             Some(ApMenuOptions::StartAp)
         } else if s == t!("menus.ap.options.stop_ap.name") {
@@ -208,7 +208,7 @@ impl AdapterMenuOptions {
         }
     }
 
-    pub fn from_str(option: &str) -> Option<Self> {
+    pub fn from_string(option: &str) -> Option<Self> {
         if option == t!("menus.adapter.options.power_on_device.name") {
             Some(AdapterMenuOptions::PowerOnDevice)
         } else {
@@ -765,7 +765,7 @@ impl Menu {
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
-            if let Some(option) = MainMenuOptions::from_str(&cleaned_output) {
+            if let Some(option) = MainMenuOptions::from_string(&cleaned_output) {
                 return Ok(Some(option));
             }
         }
@@ -832,7 +832,7 @@ impl Menu {
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
-            return Ok(KnownNetworkOptions::from_str(&cleaned_output));
+            return Ok(KnownNetworkOptions::from_string(&cleaned_output));
         }
 
         Ok(None)
@@ -933,7 +933,7 @@ impl Menu {
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
-            if let Some(option) = AdapterMenuOptions::from_str(&cleaned_output) {
+            if let Some(option) = AdapterMenuOptions::from_string(&cleaned_output) {
                 return Some(option);
             }
         }
@@ -966,7 +966,7 @@ impl Menu {
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
-            if let Some(option) = ApMenuOptions::from_str(&cleaned_output) {
+            if let Some(option) = ApMenuOptions::from_string(&cleaned_output) {
                 return Ok(Some(option));
             }
         }
