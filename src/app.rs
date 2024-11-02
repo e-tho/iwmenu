@@ -547,6 +547,7 @@ impl App {
 
             while station.is_scanning {
                 sleep(Duration::from_millis(500)).await;
+                station.refresh().await?;
             }
 
             station.refresh().await?;
