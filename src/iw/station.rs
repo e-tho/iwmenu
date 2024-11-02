@@ -168,11 +168,12 @@ impl Station {
                 sender
                     .send(msg.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                notification_manager.send_notification(
+                try_send_notification!(
+                    notification_manager,
                     None,
                     Some(msg.to_string()),
                     None,
-                    None,
+                    None
                 );
             }
             Err(e) => {
@@ -183,11 +184,12 @@ impl Station {
                 sender
                     .send(msg.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                notification_manager.send_notification(
+                try_send_notification!(
+                    notification_manager,
                     None,
                     Some(msg.to_string()),
                     None,
-                    None,
+                    None
                 );
             }
         }

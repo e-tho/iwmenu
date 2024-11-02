@@ -46,18 +46,16 @@ impl Network {
     ) -> Result<()> {
         match self.n.connect().await {
             Ok(_) => {
-                let msg = t!(
-                    "notifications.network.connected", 
-                    network_name = self.name
-                );
+                let msg = t!("notifications.network.connected", network_name = self.name);
                 sender.send(msg.to_string()).unwrap_or_else(|err| {
                     println!("Failed to send log message: {}", err);
                 });
-                notification_manager.send_notification(
+                try_send_notification!(
+                    notification_manager,
                     None,
                     Some(msg.to_string()),
                     None,
-                    None,
+                    None
                 );
             }
             Err(e) => {
@@ -69,12 +67,7 @@ impl Network {
                 sender.send(msg.clone()).unwrap_or_else(|err| {
                     println!("Failed to send log message: {}", err);
                 });
-                notification_manager.send_notification(
-                    None,
-                    Some(msg.clone()),
-                    None,
-                    None,
-                );
+                try_send_notification!(notification_manager, None, Some(msg.clone()), None, None);
             }
         }
         Ok(())

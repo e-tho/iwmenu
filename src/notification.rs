@@ -1,22 +1,17 @@
-use notify_rust::{Notification, NotificationHandle, Timeout};
+use anyhow::{anyhow, Result};
+use notify_rust::{error::Error as NotifyError, Notification, NotificationHandle, Timeout};
+use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use tokio::sync::mpsc::{unbounded_channel, UnboundedReceiver, UnboundedSender};
 
 pub struct NotificationManager {
-    sender: UnboundedSender<NotificationMessage>,
-}
-
-pub struct NotificationMessage {
-    summary: Option<String>,
-    body: Option<String>,
-    icon: Option<String>,
-    timeout: Option<Timeout>,
+    handles: Arc<Mutex<HashMap<u32, NotificationHandle>>>,
 }
 
 impl NotificationManager {
-    pub fn new() -> (Self, UnboundedReceiver<NotificationMessage>) {
-        let (sender, receiver) = unbounded_channel();
-        (Self { sender }, receiver)
+    pub fn new() -> Self {
+        Self {
+            handles: Arc::new(Mutex::new(HashMap::new())),
+        }
     }
 
     pub fn send_notification(
@@ -25,49 +20,31 @@ impl NotificationManager {
         body: Option<String>,
         icon: Option<String>,
         timeout: Option<Timeout>,
-    ) -> NotificationHandle {
-        let mut binding = Notification::new();
-        let notification = binding
+    ) -> Result<u32, NotifyError> {
+        let mut notification = Notification::new();
+
+        notification
             .summary(summary.as_deref().unwrap_or("iNet Wireless Menu"))
             .body(body.as_deref().unwrap_or(""))
             .icon(icon.as_deref().unwrap_or("network-wireless-symbolic"))
             .timeout(timeout.unwrap_or(Timeout::Milliseconds(3000)));
 
-        notification.show().unwrap()
+        let handle = notification.show()?;
+
+        let id = handle.id();
+        self.handles.lock().unwrap().insert(id, handle);
+
+        Ok(id)
     }
 
-    pub async fn handle_notifications(
-        mut receiver: UnboundedReceiver<NotificationMessage>,
-        notification_handle: Arc<Mutex<Option<NotificationHandle>>>,
-    ) {
-        while let Some(message) = receiver.recv().await {
-            let mut notification = Notification::new();
+    pub fn close_notification(&self, id: u32) -> Result<()> {
+        let mut handles = self.handles.lock().unwrap();
 
-            let summary_str = message.summary.as_deref().unwrap_or("iNet Wireless");
-            notification.summary(summary_str);
-
-            if let Some(ref body) = message.body {
-                notification.body(body);
-            }
-
-            let icon_str = message
-                .icon
-                .as_deref()
-                .unwrap_or("network-wireless-symbolic");
-            notification.icon(icon_str);
-
-            notification.timeout(message.timeout.unwrap_or(Timeout::Milliseconds(3000)));
-
-            match notification.show() {
-                Ok(handle) => {
-                    let mut handle_lock = notification_handle.lock().unwrap();
-                    if let Some(existing_handle) = handle_lock.take() {
-                        existing_handle.close();
-                    }
-                    *handle_lock = Some(handle);
-                }
-                Err(err) => eprintln!("Failed to send notification: {}", err),
-            }
+        if let Some(handle) = handles.remove(&id) {
+            handle.close();
+            Ok(())
+        } else {
+            Err(anyhow!("Notification ID {} not found", id))
         }
     }
 }

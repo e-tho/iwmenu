@@ -3,13 +3,8 @@ use clap::{builder::EnumValueParser, Arg, Command};
 use iwmenu::{
     app::App,
     menu::{Menu, MenuType},
-    notification::NotificationManager,
 };
-use notify_rust::NotificationHandle;
-use std::{
-    env,
-    sync::{Arc, Mutex},
-};
+use std::env;
 use sys_locale::get_locale;
 use tokio::sync::mpsc::unbounded_channel;
 
@@ -77,31 +72,13 @@ async fn main() -> Result<()> {
         }
     });
 
-    let (notification_manager, notification_receiver) = NotificationManager::new();
-    let notification_manager = Arc::new(notification_manager);
-    let notification_handle: Arc<Mutex<Option<NotificationHandle>>> = Arc::new(Mutex::new(None));
-    tokio::spawn(NotificationManager::handle_notifications(
-        notification_receiver,
-        Arc::clone(&notification_handle),
-    ));
-
-    let mut app = App::new(
-        menu.clone(),
-        log_sender.clone(),
-        Arc::clone(&notification_manager),
-    )
-    .await?;
+    let mut app = App::new(menu.clone(), log_sender.clone()).await?;
 
     loop {
         app.run(&menu, &menu_command, &icon_type, spaces).await?;
 
         if app.reset_mode {
-            app = App::new(
-                menu.clone(),
-                log_sender.clone(),
-                Arc::clone(&notification_manager),
-            )
-            .await?;
+            app = App::new(menu.clone(), log_sender.clone()).await?;
             app.reset_mode = false;
         } else {
             break;

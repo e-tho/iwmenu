@@ -53,11 +53,12 @@ impl KnownNetwork {
                     .send(msg.to_string())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-                notification_manager.send_notification(
+                try_send_notification!(
+                    notification_manager,
                     None,
                     Some(msg.to_string()),
                     None,
-                    None,
+                    None
                 );
             }
             Err(e) => {
@@ -66,12 +67,7 @@ impl KnownNetwork {
                     .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-                notification_manager.send_notification(
-                    None,
-                    Some(msg),
-                    None,
-                    None,
-                );
+                try_send_notification!(notification_manager, None, Some(msg), None, None);
             }
         }
         Ok(())
@@ -93,11 +89,12 @@ impl KnownNetwork {
                         .send(msg.to_string())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-                    notification_manager.send_notification(
+                    try_send_notification!(
+                        notification_manager,
                         None,
                         Some(msg.to_string()),
                         None,
-                        None,
+                        None
                     );
                 }
                 Err(e) => {
@@ -106,12 +103,7 @@ impl KnownNetwork {
                         .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-                    notification_manager.send_notification(
-                        None,
-                        Some(msg),
-                        None,
-                        None,
-                    );
+                    try_send_notification!(notification_manager, None, Some(msg), None, None);
                 }
             }
         } else {
@@ -125,11 +117,12 @@ impl KnownNetwork {
                         .send(msg.to_string())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-                    notification_manager.send_notification(
+                    try_send_notification!(
+                        notification_manager,
                         None,
                         Some(msg.to_string()),
                         None,
-                        None,
+                        None
                     );
                 }
                 Err(e) => {
@@ -138,12 +131,7 @@ impl KnownNetwork {
                         .send(msg.clone())
                         .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-                    notification_manager.send_notification(
-                        None,
-                        Some(msg),
-                        None,
-                        None,
-                    );
+                    try_send_notification!(notification_manager, None, Some(msg), None, None);
                 }
             }
         }
