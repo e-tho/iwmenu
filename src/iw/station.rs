@@ -122,7 +122,7 @@ impl Station {
                     networks.push((network, signal));
                 }
                 Err(e) => {
-                    return Err(e.into());
+                    return Err(e);
                 }
             }
         }
@@ -150,7 +150,7 @@ impl Station {
 
     pub async fn scan(&self) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
-        iwd_station.scan().await.map_err(|e| e.into())
+        iwd_station.scan().await
     }
 
     pub async fn disconnect(

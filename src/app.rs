@@ -534,7 +534,7 @@ impl App {
                     Some(menu.icons.get_xdg_icon("error")),
                     None
                 );
-                return Err(e.into());
+                return Err(e);
             }
 
             let notification_id = try_send_notification_with_id!(
