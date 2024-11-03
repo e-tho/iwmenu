@@ -470,6 +470,12 @@ impl Menu {
         prompt: Option<&str>,
         obfuscate: bool,
     ) -> Option<String> {
+        let (prompt_text, placeholder_text) = if let Some(p) = prompt {
+            (format!("{}: ", p), p.to_string())
+        } else {
+            (String::new(), String::new())
+        };
+
         let output = match self.menu_type {
             MenuType::Fuzzel => {
                 let mut command = Command::new("fuzzel");
@@ -479,8 +485,8 @@ impl Menu {
                     command.arg("-I");
                 }
 
-                if let Some(prompt_text) = prompt {
-                    command.arg("-p").arg(prompt_text);
+                if !prompt_text.is_empty() {
+                    command.arg("-p").arg(&prompt_text);
                 }
 
                 if obfuscate {
@@ -513,8 +519,8 @@ impl Menu {
                     command.arg("-I").arg("-m").arg("-q");
                 }
 
-                if let Some(prompt_text) = prompt {
-                    command.arg("--prompt").arg(prompt_text);
+                if !prompt_text.is_empty() {
+                    command.arg("--prompt").arg(&prompt_text);
                 }
 
                 if obfuscate {
@@ -547,8 +553,8 @@ impl Menu {
                     command.arg("-show-icons");
                 }
 
-                if let Some(prompt_text) = prompt {
-                    command.arg("-p").arg(prompt_text);
+                if !prompt_text.is_empty() {
+                    command.arg("-p").arg(&prompt_text);
                 }
 
                 if obfuscate {
@@ -576,8 +582,8 @@ impl Menu {
             MenuType::Dmenu => {
                 let mut command = Command::new("dmenu");
 
-                if let Some(prompt_text) = prompt {
-                    command.arg("-p").arg(prompt_text);
+                if !prompt_text.is_empty() {
+                    command.arg("-p").arg(&prompt_text);
                 }
 
                 let mut child = command
@@ -602,17 +608,10 @@ impl Menu {
                 if let Some(cmd) = menu_command {
                     let mut cmd_processed = cmd.clone();
 
-                    if let Some(prompt_text) = prompt {
-                        cmd_processed =
-                            cmd_processed.replace("{prompt}", &format!("{}: ", prompt_text));
-                        cmd_processed = cmd_processed.replace("{placeholder}", prompt_text);
-                    } else {
-                        cmd_processed = cmd_processed.replace("{prompt}", "");
-                        cmd_processed = cmd_processed.replace("{placeholder}", "");
-                    }
+                    cmd_processed = cmd_processed.replace("{prompt}", &prompt_text);
+                    cmd_processed = cmd_processed.replace("{placeholder}", &placeholder_text);
 
                     let re = Regex::new(r"\{(\w+):([^\}]+)\}").unwrap();
-
                     cmd_processed = re
                         .replace_all(&cmd_processed, |caps: &regex::Captures| {
                             let placeholder_name = &caps[1];
@@ -632,7 +631,6 @@ impl Menu {
                         .to_string();
 
                     let parts: Vec<String> = Shlex::new(&cmd_processed).collect();
-
                     let (cmd_program, args) = parts.split_first().unwrap();
                     let mut command = Command::new(cmd_program);
                     command.args(args);
