@@ -485,8 +485,8 @@ impl Menu {
                     command.arg("-I");
                 }
 
-                if !prompt_text.is_empty() {
-                    command.arg("-p").arg(&prompt_text);
+                if !placeholder_text.is_empty() {
+                    command.arg("--placeholder").arg(&placeholder_text);
                 }
 
                 if obfuscate {
@@ -553,8 +553,11 @@ impl Menu {
                     command.arg("-show-icons");
                 }
 
-                if !prompt_text.is_empty() {
-                    command.arg("-p").arg(&prompt_text);
+                if !placeholder_text.is_empty() {
+                    command.arg("-theme-str").arg(format!(
+                        "entry {{ placeholder: \"{}\"; }}",
+                        placeholder_text
+                    ));
                 }
 
                 if obfuscate {
