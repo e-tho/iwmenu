@@ -107,7 +107,7 @@ iwmenu -m custom --menu-command "my_custom_launcher {password_flag:--my-password
 This example demonstrates enabling all available features in custom mode with `fuzzel`.
 
 ```shell
-iwmenu -m custom --menu-command "fuzzel -d -p '{prompt}' {password_flag:--password}"
+iwmenu -m custom --menu-command "fuzzel -d -p '{prompt}' '{password_flag:--password}'"
 ```
 
 ### Available Options
