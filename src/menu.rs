@@ -443,6 +443,59 @@ impl Menu {
         }
     }
 
+    pub fn get_signal_icon(
+        &self,
+        signal_strength: i16,
+        network_type: &str,
+        icon_type: &str,
+    ) -> String {
+        let icon_key = match signal_strength {
+            -10000..=-7500 => match network_type {
+                "open" => "signal_weak_open",
+                "wep" | "psk" | "8021x" => "signal_weak_secure",
+                _ => "signal_weak_open",
+            },
+            -7499..=-5000 => match network_type {
+                "open" => "signal_ok_open",
+                "wep" | "psk" | "8021x" => "signal_ok_secure",
+                _ => "signal_ok_open",
+            },
+            -4999..=-2500 => match network_type {
+                "open" => "signal_good_open",
+                "wep" | "psk" | "8021x" => "signal_good_secure",
+                _ => "signal_good_open",
+            },
+            _ => match network_type {
+                "open" => "signal_excellent_open",
+                "wep" | "psk" | "8021x" => "signal_excellent_secure",
+                _ => "signal_excellent_open",
+            },
+        };
+
+        self.icons.get_icon(icon_key, icon_type)
+    }
+
+    pub fn format_network_display(
+        &self,
+        network: &Network,
+        signal_strength: i16,
+        icon_type: &str,
+        spaces: usize,
+    ) -> String {
+        let signal_icon = self.get_signal_icon(signal_strength, &network.network_type, icon_type);
+        let mut display = network.name.clone();
+
+        if network.is_connected {
+            if let Some(connected_icon) = self.icons.get_icon("connected", "generic").chars().next()
+            {
+                display.push_str(&Icons::format_with_spacing(connected_icon, spaces, true));
+            }
+        }
+
+        self.icons
+            .format_display_with_icon(&display, &signal_icon, icon_type, spaces)
+    }
+
     pub fn clean_menu_output(&self, output: &str, icon_type: &str) -> String {
         let output_trimmed = output.trim();
 
@@ -480,8 +533,7 @@ impl Menu {
         networks
             .find(|(network, signal_strength)| {
                 let formatted_network =
-                    self.icons
-                        .format_network_display(network, *signal_strength, icon_type, spaces);
+                    self.format_network_display(network, *signal_strength, icon_type, spaces);
 
                 let formatted_name = if icon_type == "font" {
                     self.clean_menu_output(&formatted_network, icon_type)
@@ -516,15 +568,13 @@ impl Menu {
 
         for (network, signal_strength) in &station.known_networks {
             let network_info =
-                self.icons
-                    .format_network_display(network, *signal_strength, icon_type, spaces);
+                self.format_network_display(network, *signal_strength, icon_type, spaces);
             input.push_str(&format!("\n{}", network_info));
         }
 
         for (network, signal_strength) in &station.new_networks {
             let network_info =
-                self.icons
-                    .format_network_display(network, *signal_strength, icon_type, spaces);
+                self.format_network_display(network, *signal_strength, icon_type, spaces);
             input.push_str(&format!("\n{}", network_info));
         }
 

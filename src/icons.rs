@@ -1,7 +1,5 @@
 use std::collections::HashMap;
 
-use crate::iw::network::Network;
-
 #[derive(Clone)]
 pub struct Icons {
     generic_icons: HashMap<&'static str, char>,
@@ -147,38 +145,6 @@ impl Icons {
             .join("\n")
     }
 
-    pub fn get_signal_icon(
-        &self,
-        signal_strength: i16,
-        network_type: &str,
-        icon_type: &str,
-    ) -> String {
-        let icon_key = match signal_strength {
-            -10000..=-7500 => match network_type {
-                "open" => "signal_weak_open",
-                "wep" | "psk" | "8021x" => "signal_weak_secure",
-                _ => "signal_weak_open",
-            },
-            -7499..=-5000 => match network_type {
-                "open" => "signal_ok_open",
-                "wep" | "psk" | "8021x" => "signal_ok_secure",
-                _ => "signal_ok_open",
-            },
-            -4999..=-2500 => match network_type {
-                "open" => "signal_good_open",
-                "wep" | "psk" | "8021x" => "signal_good_secure",
-                _ => "signal_good_open",
-            },
-            _ => match network_type {
-                "open" => "signal_excellent_open",
-                "wep" | "psk" | "8021x" => "signal_excellent_secure",
-                _ => "signal_excellent_open",
-            },
-        };
-
-        self.get_icon(icon_key, icon_type)
-    }
-
     pub fn format_with_spacing(icon: char, spaces: usize, before: bool) -> String {
         if before {
             format!("{}{}", " ".repeat(spaces), icon)
@@ -199,25 +165,6 @@ impl Icons {
         } else {
             format!("{}{}{}", icon, " ".repeat(spaces), name)
         }
-    }
-
-    pub fn format_network_display(
-        &self,
-        network: &Network,
-        signal_strength: i16,
-        icon_type: &str,
-        spaces: usize,
-    ) -> String {
-        let signal_icon = self.get_signal_icon(signal_strength, &network.network_type, icon_type);
-        let mut display = network.name.clone();
-
-        if network.is_connected {
-            if let Some(connected_icon) = self.generic_icons.get("connected").copied() {
-                display.push_str(&Icons::format_with_spacing(connected_icon, spaces, true));
-            }
-        }
-
-        self.format_display_with_icon(&display, &signal_icon, icon_type, spaces)
     }
 }
 
