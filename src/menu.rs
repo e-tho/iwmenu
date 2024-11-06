@@ -6,6 +6,7 @@ use iwdrs::modes::Mode;
 use regex::Regex;
 use rust_i18n::t;
 use shlex::Shlex;
+use std::sync::Arc;
 use std::{
     borrow::Cow,
     io::Write,
@@ -225,15 +226,12 @@ impl AdapterMenuOptions {
 #[derive(Clone)]
 pub struct Menu {
     pub menu_type: MenuType,
-    pub icons: Icons,
+    pub icons: Arc<Icons>,
 }
 
 impl Menu {
-    pub fn new(menu_type: MenuType) -> Self {
-        Self {
-            menu_type,
-            icons: Icons::new(),
-        }
+    pub fn new(menu_type: MenuType, icons: Arc<Icons>) -> Self {
+        Self { menu_type, icons }
     }
 
     pub fn run_menu_command(

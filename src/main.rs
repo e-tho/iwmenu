@@ -2,9 +2,10 @@ use anyhow::Result;
 use clap::{builder::EnumValueParser, Arg, Command};
 use iwmenu::{
     app::App,
+    icons::Icons,
     menu::{Menu, MenuType},
 };
-use std::env;
+use std::{env, sync::Arc};
 use sys_locale::get_locale;
 use tokio::sync::mpsc::unbounded_channel;
 
@@ -57,28 +58,32 @@ async fn main() -> Result<()> {
         .get_matches();
 
     let menu_type: MenuType = matches.get_one::<MenuType>("menu").cloned().unwrap();
-    let menu = Menu::new(menu_type);
+    let menu_command = matches.get_one::<String>("menu_command").cloned();
     let icon_type = matches.get_one::<String>("icon").cloned().unwrap();
+
+    let icons = Arc::new(Icons::new());
+    let menu = Menu::new(menu_type, icons.clone());
+
     let spaces = matches
         .get_one::<String>("spaces")
         .and_then(|s| s.parse::<usize>().ok())
         .unwrap_or(1);
-    let menu_command = matches.get_one::<String>("menu_command").cloned();
 
     let (log_sender, mut log_receiver) = unbounded_channel::<String>();
+
     tokio::spawn(async move {
         while let Some(log) = log_receiver.recv().await {
             println!("LOG: {}", log);
         }
     });
 
-    let mut app = App::new(menu.clone(), log_sender.clone()).await?;
+    let mut app = App::new(menu.clone(), log_sender.clone(), icons.clone()).await?;
 
     loop {
         app.run(&menu, &menu_command, &icon_type, spaces).await?;
 
         if app.reset_mode {
-            app = App::new(menu.clone(), log_sender.clone()).await?;
+            app = App::new(menu.clone(), log_sender.clone(), icons.clone()).await?;
             app.reset_mode = false;
         } else {
             break;
