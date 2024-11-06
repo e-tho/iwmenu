@@ -26,12 +26,16 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new(_menu: Menu, log_sender: UnboundedSender<String>) -> Result<Self> {
+    pub async fn new(
+        _menu: Menu,
+        log_sender: UnboundedSender<String>,
+        icons: Arc<Icons>,
+    ) -> Result<Self> {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
         let adapter = Adapter::new(session.clone(), log_sender.clone()).await?;
         let current_mode = adapter.device.mode.clone();
-        let icons = Arc::new(Icons::new());
+
         let notification_manager = Arc::new(NotificationManager::new(icons.clone()));
 
         if !adapter.device.is_powered {
