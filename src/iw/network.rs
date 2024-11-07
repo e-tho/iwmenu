@@ -1,10 +1,6 @@
-use anyhow::Result;
+use crate::iw::known_network::KnownNetwork;
+use anyhow::{anyhow, Result};
 use iwdrs::netowrk::Network as IwdNetwork;
-use rust_i18n::t;
-use std::sync::Arc;
-use tokio::sync::mpsc::UnboundedSender;
-
-use crate::{iw::known_network::KnownNetwork, notification::NotificationManager};
 
 #[derive(Debug, Clone)]
 pub struct Network {
@@ -39,37 +35,13 @@ impl Network {
         })
     }
 
-    pub async fn connect(
-        &self,
-        sender: UnboundedSender<String>,
-        notification_manager: Arc<NotificationManager>,
-    ) -> Result<()> {
-        match self.n.connect().await {
-            Ok(_) => {
-                let msg = t!("notifications.network.connected", network_name = self.name);
-                sender.send(msg.to_string()).unwrap_or_else(|err| {
-                    println!("Failed to send log message: {}", err);
-                });
-                try_send_notification!(
-                    notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    None,
-                    None
-                );
+    pub async fn connect(&self) -> Result<()> {
+        self.n.connect().await.map_err(|e| {
+            if e.to_string().contains("net.connman.iwd.Aborted") {
+                anyhow!(t!("notifications.network.connection_canceled"))
+            } else {
+                e
             }
-            Err(e) => {
-                let msg = if e.to_string().contains("net.connman.iwd.Aborted") {
-                    t!("notifications.network.connection_canceled").to_string()
-                } else {
-                    e.to_string()
-                };
-                sender.send(msg.clone()).unwrap_or_else(|err| {
-                    println!("Failed to send log message: {}", err);
-                });
-                try_send_notification!(notification_manager, None, Some(msg.clone()), None, None);
-            }
-        }
-        Ok(())
+        })
     }
 }
