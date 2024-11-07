@@ -458,7 +458,7 @@ impl App {
                     self.notification_manager,
                     None,
                     Some(msg.to_string()),
-                    None,
+                    Some("connected"),
                     None
                 );
             }
@@ -467,7 +467,13 @@ impl App {
                 self.log_sender
                     .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                try_send_notification!(self.notification_manager, None, Some(msg), None, None);
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg),
+                    Some("error"),
+                    None
+                );
             }
         }
 
@@ -510,7 +516,7 @@ impl App {
                     self.notification_manager,
                     None,
                     Some(msg.to_string()),
-                    None,
+                    Some("connected"),
                     None
                 );
             }
@@ -519,7 +525,13 @@ impl App {
                 self.log_sender
                     .send(msg.clone())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                try_send_notification!(self.notification_manager, None, Some(msg), None, None);
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg),
+                    Some("error"),
+                    None
+                );
             }
         }
 
@@ -557,7 +569,7 @@ impl App {
                     self.notification_manager,
                     None,
                     Some(msg.to_string()),
-                    None,
+                    Some("disconnected"),
                     None
                 );
             }
@@ -573,7 +585,7 @@ impl App {
                     self.notification_manager,
                     None,
                     Some(msg.to_string()),
-                    None,
+                    Some("error"),
                     None
                 );
             }
@@ -664,7 +676,7 @@ impl App {
                     self.notification_manager,
                     None,
                     Some(msg.to_string()),
-                    None,
+                    Some("forget_network"),
                     None
                 );
             }
@@ -677,7 +689,7 @@ impl App {
                     self.notification_manager,
                     None,
                     Some(error_msg),
-                    None,
+                    Some("error"),
                     None
                 );
             }
@@ -692,17 +704,24 @@ impl App {
     ) -> Result<()> {
         match known_network.toggle_autoconnect(enable).await {
             Ok(_) => {
-                let msg = if enable {
-                    t!(
-                        "notifications.known_networks.enable_autoconnect",
-                        network_name = known_network.name
+                let (msg, icon) = if enable {
+                    (
+                        t!(
+                            "notifications.known_networks.enable_autoconnect",
+                            network_name = known_network.name
+                        ),
+                        "enable_autoconnect",
                     )
                 } else {
-                    t!(
-                        "notifications.known_networks.disable_autoconnect",
-                        network_name = known_network.name
+                    (
+                        t!(
+                            "notifications.known_networks.disable_autoconnect",
+                            network_name = known_network.name
+                        ),
+                        "disable_autoconnect",
                     )
                 };
+
                 self.log_sender
                     .send(msg.clone().into_owned())
                     .unwrap_or_else(|err| println!("Failed to send message: {}", err));
@@ -711,7 +730,7 @@ impl App {
                     self.notification_manager,
                     None,
                     Some(msg.to_string()),
-                    None,
+                    Some(icon),
                     None
                 );
             }
@@ -724,7 +743,7 @@ impl App {
                     self.notification_manager,
                     None,
                     Some(error_msg),
-                    None,
+                    Some("error"),
                     None
                 );
             }
@@ -754,7 +773,13 @@ impl App {
             .send(msg.clone())
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-        try_send_notification!(self.notification_manager, None, Some(msg), None, None);
+        let icon = match new_mode {
+            Mode::Ap => "access_point",
+            Mode::Station => "station",
+            _ => "unknown",
+        };
+
+        try_send_notification!(self.notification_manager, None, Some(msg), Some(icon), None);
 
         Ok(())
     }
