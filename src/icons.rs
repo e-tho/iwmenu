@@ -25,8 +25,8 @@ impl Icons {
         font_icons.insert("signal_excellent_secure", '\u{f092a}');
         font_icons.insert("connected", '\u{f05a9}');
         font_icons.insert("disconnected", '\u{f16bc}');
-        font_icons.insert("connect", '\u{f16bd}');
-        font_icons.insert("disconnect", '\u{f073a}');
+        font_icons.insert("connect", '\u{f0337}');
+        font_icons.insert("disconnect", '\u{f0338}');
         font_icons.insert("scan", '\u{f46a}');
         font_icons.insert("settings", '\u{f0493}');
         font_icons.insert("disable_adapter", '\u{f092d}');
@@ -36,9 +36,9 @@ impl Icons {
         font_icons.insert("stop_ap", '\u{f0667}');
         font_icons.insert("set_ssid", '\u{f08d5}');
         font_icons.insert("set_passphrase", '\u{f0bc5}');
-        font_icons.insert("enable_autoconnect", '\u{f0547}');
-        font_icons.insert("disable_autoconnect", '\u{f0547}');
-        font_icons.insert("forget_network", '\u{f01b4}');
+        font_icons.insert("enable_autoconnect", '\u{f006a}');
+        font_icons.insert("disable_autoconnect", '\u{f19e7}');
+        font_icons.insert("forget_network", '\u{f0377}');
         font_icons.insert("station", '\u{f059f}');
         font_icons.insert("access_point", '\u{f0003}');
 
