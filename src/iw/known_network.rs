@@ -1,11 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, FixedOffset};
 use iwdrs::known_netowk::KnownNetwork as IwdKnownNetwork;
-use rust_i18n::t;
-use std::sync::Arc;
-use tokio::sync::mpsc::UnboundedSender;
-
-use crate::notification::NotificationManager;
 
 #[derive(Debug, Clone)]
 pub struct KnownNetwork {
@@ -38,103 +33,13 @@ impl KnownNetwork {
         })
     }
 
-    pub async fn forget(
-        &self,
-        sender: UnboundedSender<String>,
-        notification_manager: Arc<NotificationManager>,
-    ) -> Result<()> {
-        match self.n.forget().await {
-            Ok(_) => {
-                let msg = t!(
-                    "notifications.known_networks.forget_network",
-                    network_name = self.name
-                );
-                sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                try_send_notification!(
-                    notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    None,
-                    None
-                );
-            }
-            Err(e) => {
-                let msg = e.to_string();
-                sender
-                    .send(msg.clone())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                try_send_notification!(notification_manager, None, Some(msg), None, None);
-            }
-        }
+    pub async fn forget(&self) -> Result<()> {
+        self.n.forget().await?;
         Ok(())
     }
 
-    pub async fn toggle_autoconnect(
-        &self,
-        sender: UnboundedSender<String>,
-        notification_manager: Arc<NotificationManager>,
-    ) -> Result<()> {
-        if self.is_autoconnect {
-            match self.n.set_autoconnect(false).await {
-                Ok(_) => {
-                    let msg = t!(
-                        "notifications.known_networks.disable_autoconnect",
-                        network_name = self.name
-                    );
-                    sender
-                        .send(msg.to_string())
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                    try_send_notification!(
-                        notification_manager,
-                        None,
-                        Some(msg.to_string()),
-                        None,
-                        None
-                    );
-                }
-                Err(e) => {
-                    let msg = e.to_string();
-                    sender
-                        .send(msg.clone())
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                    try_send_notification!(notification_manager, None, Some(msg), None, None);
-                }
-            }
-        } else {
-            match self.n.set_autoconnect(true).await {
-                Ok(_) => {
-                    let msg = t!(
-                        "notifications.known_networks.enable_autoconnect",
-                        network_name = self.name
-                    );
-                    sender
-                        .send(msg.to_string())
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                    try_send_notification!(
-                        notification_manager,
-                        None,
-                        Some(msg.to_string()),
-                        None,
-                        None
-                    );
-                }
-                Err(e) => {
-                    let msg = e.to_string();
-                    sender
-                        .send(msg.clone())
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
-                    try_send_notification!(notification_manager, None, Some(msg), None, None);
-                }
-            }
-        }
+    pub async fn toggle_autoconnect(&self, enable: bool) -> Result<()> {
+        self.n.set_autoconnect(enable).await?;
         Ok(())
     }
 }

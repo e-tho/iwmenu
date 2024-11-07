@@ -295,19 +295,15 @@ impl App {
             .await?
         {
             match option {
-                KnownNetworkOptions::DisableAutoconnect
-                | KnownNetworkOptions::EnableAutoconnect => {
-                    known_network
-                        .toggle_autoconnect(
-                            self.log_sender.clone(),
-                            self.notification_manager.clone(),
-                        )
+                KnownNetworkOptions::DisableAutoconnect => {
+                    self.perform_toggle_autoconnect(known_network, false)
                         .await?;
                 }
+                KnownNetworkOptions::EnableAutoconnect => {
+                    self.perform_toggle_autoconnect(known_network, true).await?;
+                }
                 KnownNetworkOptions::ForgetNetwork => {
-                    known_network
-                        .forget(self.log_sender.clone(), self.notification_manager.clone())
-                        .await?;
+                    self.perform_forget_network(known_network).await?;
                 }
                 KnownNetworkOptions::Disconnect => {
                     if is_connected {
@@ -449,12 +445,33 @@ impl App {
             .send(format!("Connecting to known network: {}", network.name))
             .unwrap_or_else(|err| println!("Failed to send message: {}", err));
 
-        network
-            .connect(self.log_sender.clone(), self.notification_manager.clone())
-            .await?;
+        match network.connect().await {
+            Ok(_) => {
+                let msg = t!(
+                    "notifications.network.connected",
+                    network_name = network.name
+                );
+                self.log_sender
+                    .send(msg.to_string())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg.to_string()),
+                    None,
+                    None
+                );
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                self.log_sender
+                    .send(msg.clone())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_notification!(self.notification_manager, None, Some(msg), None, None);
+            }
+        }
 
         station.refresh().await?;
-
         Ok(Some(network.name.clone()))
     }
 
@@ -480,12 +497,33 @@ impl App {
             return Ok(None);
         }
 
-        network
-            .connect(self.log_sender.clone(), self.notification_manager.clone())
-            .await?;
+        match network.connect().await {
+            Ok(_) => {
+                let msg = t!(
+                    "notifications.network.connected",
+                    network_name = network.name
+                );
+                self.log_sender
+                    .send(msg.to_string())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg.to_string()),
+                    None,
+                    None
+                );
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                self.log_sender
+                    .send(msg.clone())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_notification!(self.notification_manager, None, Some(msg), None, None);
+            }
+        }
 
         station.refresh().await?;
-
         Ok(Some(network.name.clone()))
     }
 
@@ -503,13 +541,45 @@ impl App {
             self.log_sender
                 .send("No network is currently connected.".to_string())
                 .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            return Ok(());
         }
 
-        station
-            .disconnect(self.log_sender.clone(), self.notification_manager.clone())
-            .await?;
-        station.refresh().await?;
+        match station.disconnect().await {
+            Ok(_) => {
+                let msg = t!(
+                    "notifications.station.disconnected_from_network",
+                    network_name = station.connected_network.as_ref().unwrap().name
+                );
+                self.log_sender
+                    .send(msg.to_string())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg.to_string()),
+                    None,
+                    None
+                );
+            }
+            Err(e) => {
+                let msg = t!(
+                    "notifications.station.error_disconnecting",
+                    error_message = e.to_string()
+                );
+                self.log_sender
+                    .send(msg.to_string())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg.to_string()),
+                    None,
+                    None
+                );
+            }
+        }
 
+        station.refresh().await?;
         Ok(())
     }
 
@@ -576,6 +646,89 @@ impl App {
             );
         }
 
+        Ok(())
+    }
+
+    async fn perform_forget_network(&self, known_network: &KnownNetwork) -> Result<()> {
+        match known_network.forget().await {
+            Ok(_) => {
+                let msg = t!(
+                    "notifications.known_networks.forget_network",
+                    network_name = known_network.name
+                );
+                self.log_sender
+                    .send(msg.clone().into_owned())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg.to_string()),
+                    None,
+                    None
+                );
+            }
+            Err(e) => {
+                let error_msg = e.to_string();
+                self.log_sender
+                    .send(error_msg.clone())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(error_msg),
+                    None,
+                    None
+                );
+            }
+        }
+        Ok(())
+    }
+
+    async fn perform_toggle_autoconnect(
+        &self,
+        known_network: &KnownNetwork,
+        enable: bool,
+    ) -> Result<()> {
+        match known_network.toggle_autoconnect(enable).await {
+            Ok(_) => {
+                let msg = if enable {
+                    t!(
+                        "notifications.known_networks.enable_autoconnect",
+                        network_name = known_network.name
+                    )
+                } else {
+                    t!(
+                        "notifications.known_networks.disable_autoconnect",
+                        network_name = known_network.name
+                    )
+                };
+                self.log_sender
+                    .send(msg.clone().into_owned())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg.to_string()),
+                    None,
+                    None
+                );
+            }
+            Err(e) => {
+                let error_msg = e.to_string();
+                self.log_sender
+                    .send(error_msg.clone())
+                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(error_msg),
+                    None,
+                    None
+                );
+            }
+        }
         Ok(())
     }
 

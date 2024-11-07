@@ -1,11 +1,10 @@
 use anyhow::Result;
 use futures::future::join_all;
 use iwdrs::session::Session;
-use rust_i18n::t;
 use std::{collections::HashMap, sync::Arc};
-use tokio::{sync::mpsc::UnboundedSender, time::Duration};
+use tokio::time::Duration;
 
-use crate::{iw::network::Network, notification::NotificationManager};
+use crate::iw::network::Network;
 
 #[derive(Debug, Clone)]
 pub struct Station {
@@ -153,46 +152,9 @@ impl Station {
         iwd_station.scan().await
     }
 
-    pub async fn disconnect(
-        &mut self,
-        sender: UnboundedSender<String>,
-        notification_manager: Arc<NotificationManager>,
-    ) -> Result<()> {
+    pub async fn disconnect(&mut self) -> Result<()> {
         let iwd_station = self.session.station().unwrap();
-        match iwd_station.disconnect().await {
-            Ok(_) => {
-                let msg = t!(
-                    "notifications.station.disconnected_from_network",
-                    network_name = self.connected_network.as_ref().unwrap().name
-                );
-                sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                try_send_notification!(
-                    notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    None,
-                    None
-                );
-            }
-            Err(e) => {
-                let msg = t!(
-                    "notifications.station.error_disconnecting",
-                    error_message = e.to_string()
-                );
-                sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-                try_send_notification!(
-                    notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    None,
-                    None
-                );
-            }
-        }
+        iwd_station.disconnect().await?;
         Ok(())
     }
 }
