@@ -96,6 +96,15 @@ impl App {
                 Mode::Station => {
                     let ssid = {
                         if let Some(station) = self.adapter.device.station.as_mut() {
+                            if station.is_scanning {
+                                while station.is_scanning {
+                                    sleep(Duration::from_millis(250)).await;
+                                    station.refresh().await?;
+                                }
+
+                                station.refresh().await?;
+                            }
+
                             if let Some(main_menu_option) = menu
                                 .show_main_menu(menu_command, station, icon_type, spaces)
                                 .await?
