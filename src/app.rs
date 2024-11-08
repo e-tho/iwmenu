@@ -63,12 +63,10 @@ impl App {
         self.session = session;
         self.current_mode = mode;
 
-        self.log_sender
-            .send(format!(
-                "App state reset with mode: {:?}",
-                self.current_mode
-            ))
-            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+        try_send_log!(
+            self.log_sender,
+            format!("App state reset with mode: {:?}", self.current_mode)
+        );
 
         Ok(())
     }
@@ -118,18 +116,18 @@ impl App {
                                 )
                                 .await?
                             } else {
-                                self.log_sender
-                                    .send(t!("notifications.app.main_menu_exited").to_string())
-                                    .unwrap_or_else(|err| {
-                                        println!("Failed to send message: {}", err)
-                                    });
+                                try_send_log!(
+                                    self.log_sender,
+                                    t!("notifications.app.main_menu_exited").to_string()
+                                );
                                 self.running = false;
                                 return Ok(None);
                             }
                         } else {
-                            self.log_sender
-                                .send(t!("notifications.app.no_station_available").to_string())
-                                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                            try_send_log!(
+                                self.log_sender,
+                                t!("notifications.app.no_station_available").to_string()
+                            );
                             self.running = false;
                             return Ok(None);
                         }
@@ -158,18 +156,19 @@ impl App {
                         )
                         .await?;
                     } else {
-                        self.log_sender
-                            .send(t!("notifications.app.ap_menu_exited").to_string())
-                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
+                        try_send_log!(
+                            self.log_sender,
+                            t!("notifications.app.ap_menu_exited").to_string()
+                        );
                         self.running = false;
                     }
                 }
 
                 _ => {
-                    self.log_sender
-                        .send(t!("notifications.app.unknown_mode").to_string())
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    try_send_log!(
+                        self.log_sender,
+                        t!("notifications.app.unknown_mode").to_string()
+                    );
                     self.running = false;
                     return Ok(None);
                 }
@@ -224,9 +223,7 @@ impl App {
             match ap_menu_option {
                 ApMenuOptions::StartAp => {
                     if ap.ssid.is_empty() || ap.psk.is_empty() {
-                        self.log_sender
-                            .send("SSID or Password not set".to_string())
-                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                        try_send_log!(self.log_sender, "SSID or Password not set".to_string());
                         if ap.ssid.is_empty() {
                             if let Some(ssid) = menu.prompt_ap_ssid(menu_command, icon_type) {
                                 ap.set_ssid(ssid);
@@ -248,17 +245,13 @@ impl App {
                 ApMenuOptions::SetSsid => {
                     if let Some(ssid) = menu.prompt_ap_ssid(menu_command, icon_type) {
                         ap.set_ssid(ssid.clone());
-                        self.log_sender
-                            .send(format!("SSID set to {}", ssid))
-                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                        try_send_log!(self.log_sender, format!("SSID set to {}", ssid));
                     }
                 }
                 ApMenuOptions::SetPassword => {
                     if let Some(password) = menu.prompt_ap_passphrase(menu_command, icon_type) {
                         ap.set_psk(password.clone());
-                        self.log_sender
-                            .send("Password set".to_string())
-                            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                        try_send_log!(self.log_sender, "Password set".to_string());
                     }
                 }
                 ApMenuOptions::Settings => {
@@ -378,9 +371,10 @@ impl App {
                     self.reset(self.current_mode.clone(), self.log_sender.clone())
                         .await?;
 
-                    self.log_sender
-                        .send(t!("notifications.app.adapter_enabled").to_string())
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    try_send_log!(
+                        self.log_sender,
+                        t!("notifications.app.adapter_enabled").to_string()
+                    );
                     try_send_notification!(
                         self.notification_manager,
                         None,
@@ -391,9 +385,10 @@ impl App {
                 }
             }
         } else {
-            self.log_sender
-                .send(t!("notifications.app.adapter_menu_exited").to_string())
-                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            try_send_log!(
+                self.log_sender,
+                t!("notifications.app.adapter_menu_exited").to_string()
+            );
             self.running = false;
             return Ok(());
         }
@@ -450,9 +445,10 @@ impl App {
     ) -> Result<Option<String>> {
         let station = self.adapter.device.station.as_mut().unwrap();
 
-        self.log_sender
-            .send(format!("Connecting to known network: {}", network.name))
-            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+        try_send_log!(
+            self.log_sender,
+            format!("Connecting to known network: {}", network.name)
+        );
 
         match network.connect().await {
             Ok(_) => {
@@ -460,9 +456,7 @@ impl App {
                     "notifications.network.connected",
                     network_name = network.name
                 );
-                self.log_sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(self.log_sender, msg.to_string());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -473,9 +467,7 @@ impl App {
             }
             Err(e) => {
                 let msg = e.to_string();
-                self.log_sender
-                    .send(msg.clone())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(self.log_sender, msg.clone());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -498,10 +490,10 @@ impl App {
         icon_type: &str,
     ) -> Result<Option<String>> {
         let station = self.adapter.device.station.as_mut().unwrap();
-
-        self.log_sender
-            .send(format!("Connecting to new network: {}", network.name))
-            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+        try_send_log!(
+            self.log_sender,
+            format!("Connecting to new network: {}", network.name)
+        );
 
         if let Some(passphrase) =
             menu.prompt_station_passphrase(menu_command, &network.name, icon_type)
@@ -518,9 +510,7 @@ impl App {
                     "notifications.network.connected",
                     network_name = network.name
                 );
-                self.log_sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(self.log_sender, msg.to_string());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -531,9 +521,7 @@ impl App {
             }
             Err(e) => {
                 let msg = e.to_string();
-                self.log_sender
-                    .send(msg.clone())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(self.log_sender, msg.to_string());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -552,16 +540,15 @@ impl App {
         let station = self.adapter.device.station.as_mut().unwrap();
 
         if let Some(connected_network) = &station.connected_network {
-            self.log_sender
-                .send(format!(
-                    "Disconnecting from network: {}",
-                    connected_network.name
-                ))
-                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            try_send_log!(
+                self.log_sender,
+                format!("Disconnecting from network: {}", connected_network.name)
+            );
         } else {
-            self.log_sender
-                .send("No network is currently connected.".to_string())
-                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            try_send_log!(
+                self.log_sender,
+                "No network is currently connected.".to_string()
+            );
             return Ok(());
         }
 
@@ -571,9 +558,7 @@ impl App {
                     "notifications.station.disconnected_from_network",
                     network_name = station.connected_network.as_ref().unwrap().name
                 );
-                self.log_sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(self.log_sender, msg.to_string());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -587,9 +572,7 @@ impl App {
                     "notifications.station.error_disconnecting",
                     error_message = e.to_string()
                 );
-                self.log_sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(self.log_sender, msg.to_string());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -608,9 +591,7 @@ impl App {
         if let Some(station) = self.adapter.device.station.as_mut() {
             if station.is_scanning {
                 let msg = t!("notifications.station.scan_already_in_progress");
-                self.log_sender
-                    .send(msg.to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(self.log_sender, msg.to_string());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -623,7 +604,7 @@ impl App {
 
             if let Err(e) = station.scan().await {
                 let err_msg = format!("Failed to initiate network scan: {}", e);
-                self.log_sender.send(err_msg.clone()).ok();
+                try_send_log!(self.log_sender, err_msg.to_string());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -655,9 +636,7 @@ impl App {
 
             let msg = t!("notifications.station.scan_completed");
 
-            self.log_sender
-                .send(msg.to_string())
-                .unwrap_or_else(|err| println!("Log error: {}", err));
+            try_send_log!(self.log_sender, msg.to_string());
             try_send_notification!(
                 self.notification_manager,
                 None,
@@ -677,10 +656,7 @@ impl App {
                     "notifications.known_networks.forget_network",
                     network_name = known_network.name
                 );
-                self.log_sender
-                    .send(msg.clone().into_owned())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
+                try_send_log!(self.log_sender, msg.clone().into_owned());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -691,9 +667,7 @@ impl App {
             }
             Err(e) => {
                 let error_msg = e.to_string();
-                self.log_sender
-                    .send(error_msg.clone())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(self.log_sender, error_msg.clone());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -731,10 +705,7 @@ impl App {
                     )
                 };
 
-                self.log_sender
-                    .send(msg.clone().into_owned())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
-
+                try_send_log!(self.log_sender, msg.clone().into_owned());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -745,9 +716,7 @@ impl App {
             }
             Err(e) => {
                 let error_msg = e.to_string();
-                self.log_sender
-                    .send(error_msg.clone())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(self.log_sender, error_msg.clone());
                 try_send_notification!(
                     self.notification_manager,
                     None,
@@ -759,15 +728,15 @@ impl App {
         }
         Ok(())
     }
-
     async fn perform_mode_switch(&mut self, menu: &Menu) -> Result<()> {
         let new_mode = match self.current_mode {
             Mode::Station => Mode::Ap,
             Mode::Ap => Mode::Station,
             _ => {
-                self.log_sender
-                    .send(t!("notifications.app.unknown_mode").to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(
+                    self.log_sender,
+                    t!("notifications.app.unknown_mode").to_string()
+                );
                 return Err(anyhow::anyhow!("Unhandled mode"));
             }
         };
@@ -778,9 +747,7 @@ impl App {
         let mode_text = menu.get_mode_text(&new_mode);
         let msg = t!("notifications.device.switched_mode", mode = mode_text).to_string();
 
-        self.log_sender
-            .send(msg.clone())
-            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+        try_send_log!(self.log_sender, msg.clone());
 
         let icon = match new_mode {
             Mode::Ap => "access_point",
@@ -801,9 +768,10 @@ impl App {
         spaces: usize,
     ) -> Result<()> {
         self.adapter.device.power_off().await?;
-        self.log_sender
-            .send(t!("notifications.app.adapter_disabled").to_string())
-            .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+        try_send_log!(
+            self.log_sender,
+            t!("notifications.app.adapter_disabled").to_string()
+        );
         try_send_notification!(
             self.notification_manager,
             None,
@@ -826,9 +794,10 @@ impl App {
     ) -> Result<()> {
         if let Some(ap) = self.adapter.device.access_point.as_mut() {
             if ap.has_started {
-                self.log_sender
-                    .send("Access Point is already started".to_string())
-                    .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                try_send_log!(
+                    self.log_sender,
+                    "Access Point is already started".to_string()
+                );
                 return Ok(());
             }
 
@@ -851,9 +820,10 @@ impl App {
 
             match ap.start().await {
                 Ok(_) => {
-                    self.log_sender
-                        .send("Access Point started successfully".to_string())
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    try_send_log!(
+                        self.log_sender,
+                        "Access Point started successfully".to_string()
+                    );
                     try_send_notification!(
                         self.notification_manager,
                         None,
@@ -863,9 +833,10 @@ impl App {
                     );
                 }
                 Err(e) => {
-                    self.log_sender
-                        .send(format!("Failed to start Access Point: {}", e))
-                        .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+                    try_send_log!(
+                        self.log_sender,
+                        format!("Failed to start Access Point: {}", e)
+                    );
                     try_send_notification!(
                         self.notification_manager,
                         None,
@@ -884,9 +855,10 @@ impl App {
 
             self.adapter.refresh().await?;
         } else {
-            self.log_sender
-                .send("No Access Point available to start".to_string())
-                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            try_send_log!(
+                self.log_sender,
+                "No Access Point available to start".to_string()
+            );
             try_send_notification!(
                 self.notification_manager,
                 None,
@@ -903,9 +875,7 @@ impl App {
         if let Some(ap) = &self.adapter.device.access_point {
             ap.stop().await?;
             self.adapter.refresh().await?;
-            self.log_sender
-                .send("Access Point stopped".to_string())
-                .unwrap_or_else(|err| println!("Failed to send message: {}", err));
+            try_send_log!(self.log_sender, "Access Point stopped".to_string());
             try_send_notification!(
                 self.notification_manager,
                 None,
