@@ -1,5 +1,5 @@
 {
-  description = "An interactive menu for managing wifi through iwd.";
+  description = "Menu-driven Wi-Fi management interface for Linux";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -45,7 +45,7 @@
           copyLibs = true;
 
           meta = {
-            description = "An interactive menu for managing wifi on Linux.";
+            description = "Menu-driven Wi-Fi management interface for Linux";
             homepage = "https://github.com/e-tho/iwmenu";
             license = pkgs.lib.licenses.gpl3;
             maintainers = [
