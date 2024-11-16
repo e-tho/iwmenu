@@ -107,15 +107,18 @@ impl Icons {
             "font" => self
                 .font_icons
                 .get(key)
-                .map_or(String::new(), |&icon| icon.to_string()),
+                .map(|&icon| icon.to_string())
+                .unwrap_or_default(),
             "xdg" => self
                 .xdg_icons
                 .get(key)
-                .map_or(String::new(), |&icon| icon.to_string()),
+                .map(|&icon| icon.to_string())
+                .unwrap_or_default(),
             "generic" => self
                 .generic_icons
                 .get(key)
-                .map_or(String::new(), |&icon| icon.to_string()),
+                .map(|&icon| icon.to_string())
+                .unwrap_or_default(),
             _ => String::new(),
         }
     }
@@ -123,7 +126,8 @@ impl Icons {
     pub fn get_xdg_icon(&self, key: &str) -> String {
         self.xdg_icons
             .get(key)
-            .map_or(String::new(), |&icon| icon.to_string())
+            .map(|&icon| icon.to_string())
+            .unwrap_or_default()
     }
 
     pub fn get_icon_text<T>(&self, items: Vec<(&str, T)>, icon_type: &str, spaces: usize) -> String
@@ -160,10 +164,10 @@ impl Icons {
         icon_type: &str,
         spaces: usize,
     ) -> String {
-        if icon_type == "xdg" {
-            format!("{}\0icon\x1f{}", name, icon)
-        } else {
-            format!("{}{}{}", icon, " ".repeat(spaces), name)
+        match icon_type {
+            "xdg" => format!("{}\0icon\x1f{}", name, icon),
+            "font" | "generic" => format!("{}{}{}", icon, " ".repeat(spaces), name),
+            _ => name.to_string(),
         }
     }
 }
