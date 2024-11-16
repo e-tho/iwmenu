@@ -19,50 +19,54 @@ pub struct Station {
 
 impl Station {
     pub async fn new(session: Arc<Session>) -> Result<Self> {
-        let iwd_station = session.station().unwrap();
+        let iwd_station = session
+            .station()
+            .ok_or_else(|| anyhow::anyhow!("Failed to retrieve station from session"))?;
+
         let iwd_station_diagnostic = session.station_diagnostic();
 
         let state = iwd_station.state().await?;
-        let connected_network = {
-            if let Some(n) = iwd_station.connected_network().await? {
-                let network = Network::new(n.clone()).await?;
-                Some(network)
-            } else {
-                None
-            }
+
+        let connected_network = if let Some(n) = iwd_station.connected_network().await? {
+            Some(Network::new(n.clone()).await?)
+        } else {
+            None
         };
 
         let is_scanning = iwd_station.is_scanning().await?;
+
         let discovered_networks = iwd_station.discovered_networks().await?;
+
         let networks = {
             let collected_futures = discovered_networks
                 .iter()
                 .map(|(n, signal)| async move {
-                    match Network::new(n.clone()).await {
-                        Ok(network) => Ok((network, signal.to_owned())),
-                        Err(e) => Err(e),
-                    }
+                    Network::new(n.clone())
+                        .await
+                        .map(|network| (network, *signal))
+                        .map_err(|e| anyhow::anyhow!("Failed to create network: {:?}", e))
                 })
                 .collect::<Vec<_>>();
-            let results = join_all(collected_futures).await;
-            results
+
+            join_all(collected_futures)
+                .await
                 .into_iter()
                 .filter_map(Result::ok)
                 .collect::<Vec<(Network, i16)>>()
         };
 
         let new_networks: Vec<(Network, i16)> = networks
-            .clone()
-            .into_iter()
-            .filter(|(net, _signal)| net.known_network.is_none())
+            .iter()
+            .filter(|(net, _)| net.known_network.is_none())
+            .cloned()
             .collect();
 
         let known_networks: Vec<(Network, i16)> = networks
             .into_iter()
-            .filter(|(net, _signal)| net.known_network.is_some())
+            .filter(|(net, _)| net.known_network.is_some())
             .collect();
 
-        let mut diagnostic: HashMap<String, String> = HashMap::new();
+        let mut diagnostic = HashMap::new();
         if let Some(station_diagnostic) = iwd_station_diagnostic {
             if let Ok(d) = station_diagnostic.get().await {
                 diagnostic = d;
@@ -81,50 +85,43 @@ impl Station {
     }
 
     pub async fn refresh(&mut self) -> Result<()> {
-        self.state = self.session.station().unwrap().state().await?;
-        self.is_scanning = self.session.station().unwrap().is_scanning().await?;
+        let station = self
+            .session
+            .station()
+            .ok_or_else(|| anyhow::anyhow!("Failed to retrieve station from session"))?;
+
+        self.state = station.state().await?;
+        self.is_scanning = station.is_scanning().await?;
 
         if self.is_scanning {
-            while self.session.station().unwrap().is_scanning().await? {
+            while station.is_scanning().await? {
                 tokio::time::sleep(Duration::from_millis(500)).await;
             }
         }
 
-        self.connected_network =
-            if let Some(n) = self.session.station().unwrap().connected_network().await? {
-                Some(Network::new(n.clone()).await?)
-            } else {
-                None
-            };
+        self.connected_network = if let Some(n) = station.connected_network().await? {
+            Some(Network::new(n.clone()).await?)
+        } else {
+            None
+        };
 
-        let discovered_networks = self
-            .session
-            .station()
-            .unwrap()
-            .discovered_networks()
-            .await?;
+        let discovered_networks = station.discovered_networks().await?;
 
         let network_futures = discovered_networks
             .into_iter()
             .map(|(n, signal)| async move {
-                let network = Network::new(n.clone()).await?;
-                Ok::<(Network, i16), anyhow::Error>((network, signal))
+                Network::new(n.clone())
+                    .await
+                    .map(|network| (network, signal))
+                    .map_err(|e| anyhow::anyhow!("Failed to process network: {:?}", e))
             })
             .collect::<Vec<_>>();
 
-        let networks_results = join_all(network_futures).await;
-
-        let mut networks = Vec::new();
-        for result in networks_results {
-            match result {
-                Ok((network, signal)) => {
-                    networks.push((network, signal));
-                }
-                Err(e) => {
-                    return Err(e);
-                }
-            }
-        }
+        let networks = join_all(network_futures)
+            .await
+            .into_iter()
+            .filter_map(Result::ok)
+            .collect::<Vec<(Network, i16)>>();
 
         self.new_networks = networks
             .iter()
@@ -138,9 +135,9 @@ impl Station {
             .cloned()
             .collect();
 
-        if let Some(station_diagnostic) = self.session.station_diagnostic() {
-            if let Ok(diagnostic) = station_diagnostic.get().await {
-                self.diagnostic = diagnostic;
+        if let Some(diagnostic) = self.session.station_diagnostic() {
+            if let Ok(d) = diagnostic.get().await {
+                self.diagnostic = d;
             }
         }
 
@@ -148,13 +145,24 @@ impl Station {
     }
 
     pub async fn scan(&self) -> Result<()> {
-        let iwd_station = self.session.station().unwrap();
-        iwd_station.scan().await
+        let station = self
+            .session
+            .station()
+            .ok_or_else(|| anyhow::anyhow!("Failed to retrieve station from session"))?;
+        station
+            .scan()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to start scan: {:?}", e))
     }
 
     pub async fn disconnect(&mut self) -> Result<()> {
-        let iwd_station = self.session.station().unwrap();
-        iwd_station.disconnect().await?;
-        Ok(())
+        let station = self
+            .session
+            .station()
+            .ok_or_else(|| anyhow::anyhow!("Failed to retrieve station from session"))?;
+        station
+            .disconnect()
+            .await
+            .map_err(|e| anyhow::anyhow!("Failed to disconnect: {:?}", e))
     }
 }

@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use notify_rust::{error::Error as NotifyError, Notification, NotificationHandle, Timeout};
+use notify_rust::{Notification, NotificationHandle, Timeout};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
 
@@ -28,7 +28,7 @@ impl NotificationManager {
         body: Option<String>,
         icon: Option<&str>,
         timeout: Option<Timeout>,
-    ) -> Result<u32, NotifyError> {
+    ) -> Result<u32> {
         let icon_name = self.icons.get_xdg_icon(icon.unwrap_or("network_wireless"));
 
         let mut notification = Notification::new();
@@ -40,13 +40,21 @@ impl NotificationManager {
 
         let handle = notification.show()?;
         let id = handle.id();
-        self.handles.lock().unwrap().insert(id, handle);
+
+        let mut handles = self
+            .handles
+            .lock()
+            .map_err(|e| anyhow!("Failed to acquire lock on notification handles: {}", e))?;
+        handles.insert(id, handle);
 
         Ok(id)
     }
 
     pub fn close_notification(&self, id: u32) -> Result<()> {
-        let mut handles = self.handles.lock().unwrap();
+        let mut handles = self
+            .handles
+            .lock()
+            .map_err(|e| anyhow!("Failed to acquire lock on notification handles: {}", e))?;
 
         if let Some(handle) = handles.remove(&id) {
             handle.close();

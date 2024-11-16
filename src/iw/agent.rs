@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use futures::FutureExt;
 use iwdrs::{agent::Agent, session::Session};
 use std::sync::{
@@ -19,7 +19,11 @@ pub struct AgentManager {
 
 impl AgentManager {
     pub async fn new() -> Result<Self> {
-        let session = Arc::new(Session::new().await?);
+        let session = Arc::new(
+            Session::new()
+                .await
+                .context("Failed to initialize a new session")?,
+        );
 
         let (passkey_sender, passkey_receiver) = unbounded_channel::<String>();
         let (cancel_signal_sender, cancel_signal_receiver) = unbounded_channel::<()>();
@@ -46,13 +50,17 @@ impl AgentManager {
 
                         request_confirmation(authentication_required, &mut rx_key, &mut rx_cancel)
                             .await
+                            .map_err(Box::<dyn std::error::Error>::from)
                     }
                     .boxed()
                 }),
             }
         };
 
-        session.register_agent(agent).await?;
+        session
+            .register_agent(agent)
+            .await
+            .context("Failed to register agent")?;
 
         Ok(Self {
             session,
@@ -67,13 +75,17 @@ impl AgentManager {
     }
 
     pub fn send_passkey(&self, passkey: String) -> Result<()> {
-        self.passkey_sender.send(passkey)?;
+        self.passkey_sender
+            .send(passkey)
+            .context("Failed to send passkey")?;
         self.authentication_required.store(false, Relaxed);
         Ok(())
     }
 
     pub fn cancel_auth(&self) -> Result<()> {
-        self.cancel_signal_sender.send(())?;
+        self.cancel_signal_sender
+            .send(())
+            .context("Failed to send cancel signal")?;
         self.authentication_required.store(false, Relaxed);
         Ok(())
     }
@@ -83,21 +95,19 @@ pub async fn request_confirmation(
     authentication_required: Arc<AtomicBool>,
     rx_key: &mut UnboundedReceiver<String>,
     rx_cancel: &mut UnboundedReceiver<()>,
-) -> Result<String, Box<dyn std::error::Error>> {
+) -> Result<String> {
     authentication_required.store(true, Relaxed);
 
     let result = tokio::select! {
         received_key = rx_key.recv() => {
-            match received_key {
-                Some(key) => Ok(key),
-                None => Err(Box::<dyn std::error::Error>::from(anyhow!("Failed to receive the key"))),
-            }
+            received_key
+                .context("No key received")
+                .map_err(anyhow::Error::from)
         }
         received_cancel = rx_cancel.recv() => {
-            match received_cancel {
-                Some(_) => Err(Box::<dyn std::error::Error>::from(anyhow!("Operation Canceled"))),
-                None => Err(Box::<dyn std::error::Error>::from(anyhow!("Failed to receive cancel signal"))),
-            }
+            received_cancel
+                .context("Operation canceled by the user")
+                .and(Err(anyhow!("Operation canceled")))
         }
     };
 
