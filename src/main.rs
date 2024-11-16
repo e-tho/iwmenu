@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use clap::{builder::EnumValueParser, Arg, Command};
 use iwmenu::{
     app::App,
@@ -13,8 +13,10 @@ rust_i18n::i18n!("locales");
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let locale = get_locale().unwrap_or_else(|| String::from("en-US"));
-
+    let locale = get_locale().unwrap_or_else(|| {
+        eprintln!("Locale not detected, defaulting to 'en-US'.");
+        String::from("en-US")
+    });
     rust_i18n::set_locale(&locale);
 
     let matches = Command::new(env!("CARGO_PKG_NAME"))
@@ -67,7 +69,7 @@ async fn main() -> Result<()> {
     let spaces = matches
         .get_one::<String>("spaces")
         .and_then(|s| s.parse::<usize>().ok())
-        .unwrap_or(1);
+        .ok_or_else(|| anyhow!("Invalid value for --spaces. Must be a positive integer."))?;
 
     let (log_sender, mut log_receiver) = unbounded_channel::<String>();
 
@@ -77,13 +79,16 @@ async fn main() -> Result<()> {
         }
     });
 
-    let mut app = App::new(menu.clone(), log_sender.clone(), icons.clone()).await?;
+    let mut app = initialize_app(&menu, log_sender.clone(), icons.clone()).await?;
 
     loop {
-        app.run(&menu, &menu_command, &icon_type, spaces).await?;
+        if let Err(err) = app.run(&menu, &menu_command, &icon_type, spaces).await {
+            eprintln!("Error during app execution: {:?}", err);
+            break;
+        }
 
         if app.reset_mode {
-            app = App::new(menu.clone(), log_sender.clone(), icons.clone()).await?;
+            app = initialize_app(&menu, log_sender.clone(), icons.clone()).await?;
             app.reset_mode = false;
         } else {
             break;
@@ -91,4 +96,12 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+async fn initialize_app(
+    menu: &Menu,
+    log_sender: tokio::sync::mpsc::UnboundedSender<String>,
+    icons: Arc<Icons>,
+) -> Result<App> {
+    App::new(menu.clone(), log_sender, icons).await
 }

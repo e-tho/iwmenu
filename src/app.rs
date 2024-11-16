@@ -7,7 +7,7 @@ use crate::{
     },
     notification::NotificationManager,
 };
-use anyhow::Result;
+use anyhow::{Context, Result};
 use iwdrs::{modes::Mode, session::Session};
 use notify_rust::Timeout;
 use rust_i18n::t;
@@ -39,7 +39,11 @@ impl App {
         let notification_manager = Arc::new(NotificationManager::new(icons.clone()));
 
         if !adapter.device.is_powered {
-            adapter.device.power_on().await?;
+            adapter
+                .device
+                .power_on()
+                .await
+                .with_context(|| "Failed to power on the adapter during initialization")?;
         }
 
         Ok(Self {
@@ -56,8 +60,14 @@ impl App {
 
     pub async fn reset(&mut self, mode: Mode, log_sender: UnboundedSender<String>) -> Result<()> {
         let session = Arc::new(Session::new().await?);
-        let adapter = Adapter::new(session.clone(), log_sender.clone()).await?;
-        adapter.device.set_mode(mode.clone()).await?;
+        let adapter = Adapter::new(session.clone(), log_sender.clone())
+            .await
+            .with_context(|| "Failed to create a new adapter during reset")?;
+        adapter
+            .device
+            .set_mode(mode.clone())
+            .await
+            .with_context(|| format!("Failed to set mode to {:?} during reset", mode))?;
 
         self.adapter = adapter;
         self.session = session;
@@ -88,53 +98,59 @@ impl App {
         }
 
         while self.running {
-            self.adapter.refresh().await?;
+            self.adapter
+                .refresh()
+                .await
+                .with_context(|| "Failed to refresh adapter state during run loop")?;
 
             match self.adapter.device.mode {
                 Mode::Station => {
-                    let ssid = {
-                        if let Some(station) = self.adapter.device.station.as_mut() {
-                            if station.is_scanning {
-                                while station.is_scanning {
-                                    sleep(Duration::from_millis(250)).await;
-                                    station.refresh().await?;
-                                }
+                    if let Some(station) = self.adapter.device.station.as_mut() {
+                        if station.is_scanning {
+                            let scan_timeout =
+                                tokio::time::timeout(Duration::from_secs(30), async {
+                                    while station.is_scanning {
+                                        sleep(Duration::from_millis(250)).await;
+                                        station.refresh().await?;
+                                    }
+                                    Ok::<(), anyhow::Error>(())
+                                })
+                                .await;
 
-                                station.refresh().await?;
+                            if scan_timeout.is_err() {
+                                return Err(anyhow::anyhow!(
+                                    "Station scan timeout exceeded during run loop"
+                                ));
                             }
+                        }
 
-                            if let Some(main_menu_option) = menu
-                                .show_main_menu(menu_command, station, icon_type, spaces)
-                                .await?
-                            {
-                                self.handle_main_options(
-                                    menu,
-                                    menu_command,
-                                    icon_type,
-                                    spaces,
-                                    main_menu_option,
-                                )
-                                .await?
-                            } else {
-                                try_send_log!(
-                                    self.log_sender,
-                                    t!("notifications.app.main_menu_exited").to_string()
-                                );
-                                self.running = false;
-                                return Ok(None);
-                            }
+                        if let Some(main_menu_option) = menu
+                            .show_main_menu(menu_command, station, icon_type, spaces)
+                            .await?
+                        {
+                            self.handle_main_options(
+                                menu,
+                                menu_command,
+                                icon_type,
+                                spaces,
+                                main_menu_option,
+                            )
+                            .await?;
                         } else {
                             try_send_log!(
                                 self.log_sender,
-                                t!("notifications.app.no_station_available").to_string()
+                                t!("notifications.app.main_menu_exited").to_string()
                             );
                             self.running = false;
                             return Ok(None);
                         }
-                    };
-
-                    if let Some(ssid) = ssid {
-                        return Ok(Some(ssid));
+                    } else {
+                        try_send_log!(
+                            self.log_sender,
+                            t!("notifications.app.no_station_available").to_string()
+                        );
+                        self.running = false;
+                        return Ok(None);
                     }
                 }
                 Mode::Ap => {
@@ -163,7 +179,6 @@ impl App {
                         self.running = false;
                     }
                 }
-
                 _ => {
                     try_send_log!(
                         self.log_sender,
@@ -241,7 +256,9 @@ impl App {
                         self.perform_ap_start(menu, menu_command, icon_type).await?;
                     }
                 }
-                ApMenuOptions::StopAp => self.perform_ap_stop().await?,
+                ApMenuOptions::StopAp => {
+                    self.perform_ap_stop().await?;
+                }
                 ApMenuOptions::SetSsid => {
                     if let Some(ssid) = menu.prompt_ap_ssid(menu_command, icon_type) {
                         ap.set_ssid(ssid.clone());
@@ -367,10 +384,8 @@ impl App {
             match option {
                 AdapterMenuOptions::PowerOnDevice => {
                     self.adapter.device.power_on().await?;
-
                     self.reset(self.current_mode.clone(), self.log_sender.clone())
                         .await?;
-
                     try_send_log!(
                         self.log_sender,
                         t!("notifications.app.adapter_enabled").to_string()
@@ -390,7 +405,6 @@ impl App {
                 t!("notifications.app.adapter_menu_exited").to_string()
             );
             self.running = false;
-            return Ok(());
         }
 
         Ok(())
@@ -404,38 +418,44 @@ impl App {
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<String>> {
-        if let Some(station) = self.adapter.device.station.as_mut() {
-            let networks = station
-                .new_networks
-                .iter()
-                .chain(station.known_networks.iter());
+        let station = self
+            .adapter
+            .device
+            .station
+            .as_mut()
+            .ok_or_else(|| anyhow::anyhow!("No station available for network selection"))?;
 
-            if let Some((network, _)) =
-                menu.select_network(networks, output.to_string(), icon_type, spaces)
-            {
-                if let Some(ref known_network) = network.known_network {
-                    let is_connected = station
-                        .connected_network
-                        .as_ref()
-                        .map_or(false, |cn| cn.name == network.name);
+        let networks = station
+            .new_networks
+            .iter()
+            .chain(station.known_networks.iter());
 
-                    self.handle_known_network_options(
-                        menu,
-                        menu_command,
-                        known_network,
-                        icon_type,
-                        spaces,
-                        is_connected,
-                    )
-                    .await?;
-                    return Ok(None);
-                } else {
-                    return self
-                        .perform_new_network_connection(menu, menu_command, &network, icon_type)
-                        .await;
-                }
+        if let Some((network, _)) =
+            menu.select_network(networks, output.to_string(), icon_type, spaces)
+        {
+            if let Some(ref known_network) = network.known_network {
+                let is_connected = station
+                    .connected_network
+                    .as_ref()
+                    .map_or(false, |cn| cn.name == network.name);
+
+                self.handle_known_network_options(
+                    menu,
+                    menu_command,
+                    known_network,
+                    icon_type,
+                    spaces,
+                    is_connected,
+                )
+                .await?;
+                return Ok(None);
+            } else {
+                return self
+                    .perform_new_network_connection(menu, menu_command, &network, icon_type)
+                    .await;
             }
         }
+
         Ok(None)
     }
 
@@ -443,40 +463,33 @@ impl App {
         &mut self,
         network: &Network,
     ) -> Result<Option<String>> {
-        let station = self.adapter.device.station.as_mut().unwrap();
+        let station =
+            self.adapter.device.station.as_mut().ok_or_else(|| {
+                anyhow::anyhow!("No station available for known network connection")
+            })?;
 
         try_send_log!(
             self.log_sender,
             format!("Connecting to known network: {}", network.name)
         );
 
-        match network.connect().await {
-            Ok(_) => {
-                let msg = t!(
-                    "notifications.network.connected",
-                    network_name = network.name
-                );
-                try_send_log!(self.log_sender, msg.to_string());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    Some("connected"),
-                    None
-                );
-            }
-            Err(e) => {
-                let msg = e.to_string();
-                try_send_log!(self.log_sender, msg.clone());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(msg),
-                    Some("error"),
-                    None
-                );
-            }
-        }
+        network
+            .connect()
+            .await
+            .with_context(|| format!("Failed to connect to known network: {}", network.name))?;
+
+        let msg = t!(
+            "notifications.network.connected",
+            network_name = network.name
+        );
+        try_send_log!(self.log_sender, msg.to_string());
+        try_send_notification!(
+            self.notification_manager,
+            None,
+            Some(msg.to_string()),
+            Some("connected"),
+            None
+        );
 
         station.refresh().await?;
         Ok(Some(network.name.clone()))
@@ -489,7 +502,11 @@ impl App {
         network: &Network,
         icon_type: &str,
     ) -> Result<Option<String>> {
-        let station = self.adapter.device.station.as_mut().unwrap();
+        let station =
+            self.adapter.device.station.as_mut().ok_or_else(|| {
+                anyhow::anyhow!("No station available for new network connection")
+            })?;
+
         try_send_log!(
             self.log_sender,
             format!("Connecting to new network: {}", network.name)
@@ -498,90 +515,76 @@ impl App {
         if let Some(passphrase) =
             menu.prompt_station_passphrase(menu_command, &network.name, icon_type)
         {
-            self.agent_manager.send_passkey(passphrase)?;
+            self.agent_manager
+                .send_passkey(passphrase)
+                .with_context(|| "Failed to send passphrase to agent manager")?;
         } else {
-            self.agent_manager.cancel_auth()?;
+            self.agent_manager
+                .cancel_auth()
+                .with_context(|| "Failed to cancel authentication")?;
             return Ok(None);
         }
 
-        match network.connect().await {
-            Ok(_) => {
-                let msg = t!(
-                    "notifications.network.connected",
-                    network_name = network.name
-                );
-                try_send_log!(self.log_sender, msg.to_string());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    Some("connected"),
-                    None
-                );
-            }
-            Err(e) => {
-                let msg = e.to_string();
-                try_send_log!(self.log_sender, msg.to_string());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(msg),
-                    Some("error"),
-                    None
-                );
-            }
-        }
+        network
+            .connect()
+            .await
+            .with_context(|| format!("Failed to connect to new network: {}", network.name))?;
+
+        let msg = t!(
+            "notifications.network.connected",
+            network_name = network.name
+        );
+        try_send_log!(self.log_sender, msg.to_string());
+        try_send_notification!(
+            self.notification_manager,
+            None,
+            Some(msg.to_string()),
+            Some("connected"),
+            None
+        );
 
         station.refresh().await?;
         Ok(Some(network.name.clone()))
     }
 
-    async fn perform_network_disconnection(&mut self) -> Result<()> {
-        let station = self.adapter.device.station.as_mut().unwrap();
+    pub async fn perform_network_disconnection(&mut self) -> Result<()> {
+        let station = self
+            .adapter
+            .device
+            .station
+            .as_mut()
+            .ok_or_else(|| anyhow::anyhow!("No station available for disconnection"))?;
 
-        if let Some(connected_network) = &station.connected_network {
-            try_send_log!(
-                self.log_sender,
-                format!("Disconnecting from network: {}", connected_network.name)
-            );
-        } else {
-            try_send_log!(
-                self.log_sender,
-                "No network is currently connected.".to_string()
-            );
-            return Ok(());
-        }
+        let connected_network_name = station
+            .connected_network
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("No network is currently connected"))?
+            .name
+            .clone();
 
-        match station.disconnect().await {
-            Ok(_) => {
-                let msg = t!(
-                    "notifications.station.disconnected_from_network",
-                    network_name = station.connected_network.as_ref().unwrap().name
-                );
-                try_send_log!(self.log_sender, msg.to_string());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    Some("disconnected"),
-                    None
-                );
-            }
-            Err(e) => {
-                let msg = t!(
-                    "notifications.station.error_disconnecting",
-                    error_message = e.to_string()
-                );
-                try_send_log!(self.log_sender, msg.to_string());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    Some("error"),
-                    None
-                );
-            }
-        }
+        try_send_log!(
+            self.log_sender,
+            format!("Disconnecting from network: {}", connected_network_name)
+        );
+
+        station
+            .disconnect()
+            .await
+            .with_context(|| "Failed to disconnect from network")?;
+
+        let msg = t!(
+            "notifications.station.disconnected_from_network",
+            network_name = connected_network_name
+        );
+
+        try_send_log!(self.log_sender, msg.to_string());
+        try_send_notification!(
+            self.notification_manager,
+            None,
+            Some(msg.to_string()),
+            Some("disconnected"),
+            None
+        );
 
         station.refresh().await?;
         Ok(())
@@ -602,18 +605,7 @@ impl App {
                 return Ok(());
             }
 
-            if let Err(e) = station.scan().await {
-                let err_msg = format!("Failed to initiate network scan: {}", e);
-                try_send_log!(self.log_sender, err_msg.to_string());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(t!("notifications.station.scan_failed").to_string()),
-                    Some("error"),
-                    None
-                );
-                return Err(e);
-            }
+            station.scan().await?;
 
             let notification_id = try_send_notification_with_id!(
                 self.notification_manager,
@@ -635,8 +627,7 @@ impl App {
             }
 
             let msg = t!("notifications.station.scan_completed");
-
-            try_send_log!(self.log_sender, msg.to_string());
+            self.log_sender.send(msg.to_string()).unwrap_or_default();
             try_send_notification!(
                 self.notification_manager,
                 None,
@@ -644,39 +635,32 @@ impl App {
                 Some("ok"),
                 None
             );
+        } else {
+            return Err(anyhow::anyhow!("No station available for scanning"));
         }
 
         Ok(())
     }
 
     async fn perform_forget_network(&self, known_network: &KnownNetwork) -> Result<()> {
-        match known_network.forget().await {
-            Ok(_) => {
-                let msg = t!(
-                    "notifications.known_networks.forget_network",
-                    network_name = known_network.name
-                );
-                try_send_log!(self.log_sender, msg.clone().into_owned());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    Some("forget_network"),
-                    None
-                );
-            }
-            Err(e) => {
-                let error_msg = e.to_string();
-                try_send_log!(self.log_sender, error_msg.clone());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(error_msg),
-                    Some("error"),
-                    None
-                );
-            }
-        }
+        known_network
+            .forget()
+            .await
+            .with_context(|| format!("Failed to forget network {}", known_network.name))?;
+
+        let msg = t!(
+            "notifications.known_networks.forget_network",
+            network_name = known_network.name
+        );
+        try_send_log!(self.log_sender, msg.clone().into_owned());
+        try_send_notification!(
+            self.notification_manager,
+            None,
+            Some(msg.to_string()),
+            Some("forget_network"),
+            None
+        );
+
         Ok(())
     }
 
@@ -685,64 +669,61 @@ impl App {
         known_network: &KnownNetwork,
         enable: bool,
     ) -> Result<()> {
-        match known_network.toggle_autoconnect(enable).await {
-            Ok(_) => {
-                let (msg, icon) = if enable {
-                    (
-                        t!(
-                            "notifications.known_networks.enable_autoconnect",
-                            network_name = known_network.name
-                        ),
-                        "enable_autoconnect",
-                    )
-                } else {
-                    (
-                        t!(
-                            "notifications.known_networks.disable_autoconnect",
-                            network_name = known_network.name
-                        ),
-                        "disable_autoconnect",
-                    )
-                };
+        known_network
+            .toggle_autoconnect(enable)
+            .await
+            .with_context(|| {
+                format!(
+                    "Failed to {} auto-connect for network {}",
+                    if enable { "enable" } else { "disable" },
+                    known_network.name
+                )
+            })?;
 
-                try_send_log!(self.log_sender, msg.clone().into_owned());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(msg.to_string()),
-                    Some(icon),
-                    None
-                );
-            }
-            Err(e) => {
-                let error_msg = e.to_string();
-                try_send_log!(self.log_sender, error_msg.clone());
-                try_send_notification!(
-                    self.notification_manager,
-                    None,
-                    Some(error_msg),
-                    Some("error"),
-                    None
-                );
-            }
-        }
+        let (msg, icon) = if enable {
+            (
+                t!(
+                    "notifications.known_networks.enable_autoconnect",
+                    network_name = known_network.name
+                ),
+                "enable_autoconnect",
+            )
+        } else {
+            (
+                t!(
+                    "notifications.known_networks.disable_autoconnect",
+                    network_name = known_network.name
+                ),
+                "disable_autoconnect",
+            )
+        };
+
+        try_send_log!(self.log_sender, msg.clone().into_owned());
+        try_send_notification!(
+            self.notification_manager,
+            None,
+            Some(msg.to_string()),
+            Some(icon),
+            None
+        );
+
         Ok(())
     }
+
     async fn perform_mode_switch(&mut self, menu: &Menu) -> Result<()> {
         let new_mode = match self.current_mode {
             Mode::Station => Mode::Ap,
             Mode::Ap => Mode::Station,
             _ => {
-                try_send_log!(
-                    self.log_sender,
-                    t!("notifications.app.unknown_mode").to_string()
-                );
-                return Err(anyhow::anyhow!("Unhandled mode"));
+                let msg = t!("notifications.app.unknown_mode").to_string();
+                try_send_log!(self.log_sender, msg.clone());
+                return Err(anyhow::anyhow!("Unsupported mode"));
             }
         };
 
         self.reset(new_mode.clone(), self.log_sender.clone())
-            .await?;
+            .await
+            .context("Failed to reset application state during mode switch")?;
 
         let mode_text = menu.get_mode_text(&new_mode);
         let msg = t!("notifications.device.switched_mode", mode = mode_text).to_string();
@@ -767,21 +748,25 @@ impl App {
         icon_type: &str,
         spaces: usize,
     ) -> Result<()> {
-        self.adapter.device.power_off().await?;
-        try_send_log!(
-            self.log_sender,
-            t!("notifications.app.adapter_disabled").to_string()
-        );
+        self.adapter
+            .device
+            .power_off()
+            .await
+            .context("Failed to disable adapter")?;
+
+        let msg = t!("notifications.app.adapter_disabled").to_string();
+        try_send_log!(self.log_sender, msg.clone());
         try_send_notification!(
             self.notification_manager,
             None,
-            Some(t!("notifications.app.adapter_disabled").to_string()),
+            Some(msg),
             Some("disable_adapter"),
             None
         );
 
         self.handle_adapter_options(menu, menu_command, icon_type, spaces)
-            .await?;
+            .await
+            .context("Failed to handle adapter options after disabling")?;
 
         Ok(())
     }
@@ -794,10 +779,8 @@ impl App {
     ) -> Result<()> {
         if let Some(ap) = self.adapter.device.access_point.as_mut() {
             if ap.has_started {
-                try_send_log!(
-                    self.log_sender,
-                    "Access Point is already started".to_string()
-                );
+                let msg = "Access point is already started".to_string();
+                try_send_log!(self.log_sender, msg);
                 return Ok(());
             }
 
@@ -818,47 +801,28 @@ impl App {
             ap.set_ssid(ssid);
             ap.set_psk(psk);
 
-            match ap.start().await {
-                Ok(_) => {
-                    try_send_log!(
-                        self.log_sender,
-                        "Access Point started successfully".to_string()
-                    );
-                    try_send_notification!(
-                        self.notification_manager,
-                        None,
-                        Some(t!("notifications.device.access_point_started").to_string()),
-                        Some("access_point"),
-                        None
-                    );
-                }
-                Err(e) => {
-                    try_send_log!(
-                        self.log_sender,
-                        format!("Failed to start Access Point: {}", e)
-                    );
-                    try_send_notification!(
-                        self.notification_manager,
-                        None,
-                        Some(
-                            t!(
-                                "notifications.device.access_point_start_failed",
-                                error = e.to_string()
-                            )
-                            .to_string(),
-                        ),
-                        Some("error"),
-                        None
-                    );
-                }
-            }
+            ap.start().await.context("Failed to start access point")?;
 
-            self.adapter.refresh().await?;
-        } else {
+            let msg = t!("notifications.device.access_point_started").to_string();
             try_send_log!(
                 self.log_sender,
-                "No Access Point available to start".to_string()
+                "Access Point started successfully".to_string()
             );
+            try_send_notification!(
+                self.notification_manager,
+                None,
+                Some(msg),
+                Some("access_point"),
+                None
+            );
+
+            self.adapter
+                .refresh()
+                .await
+                .context("Failed to refresh adapter after starting access point")?;
+        } else {
+            let msg = "No access point available to start".to_string();
+            try_send_log!(self.log_sender, msg.clone());
             try_send_notification!(
                 self.notification_manager,
                 None,
@@ -873,9 +837,15 @@ impl App {
 
     async fn perform_ap_stop(&mut self) -> Result<()> {
         if let Some(ap) = &self.adapter.device.access_point {
-            ap.stop().await?;
-            self.adapter.refresh().await?;
-            try_send_log!(self.log_sender, "Access Point stopped".to_string());
+            ap.stop().await.context("Failed to stop access point")?;
+
+            self.adapter
+                .refresh()
+                .await
+                .context("Failed to refresh adapter after stopping access point")?;
+
+            let msg = "Access point stopped".to_string();
+            try_send_log!(self.log_sender, msg.clone());
             try_send_notification!(
                 self.notification_manager,
                 None,
@@ -883,7 +853,10 @@ impl App {
                 Some("access_point"),
                 None
             );
+        } else {
+            return Err(anyhow::anyhow!("No access point available to stop"));
         }
+
         Ok(())
     }
 }
