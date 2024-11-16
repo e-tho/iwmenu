@@ -33,9 +33,7 @@ impl Adapter {
             .await
             .map_err(|e| {
                 let msg = format!("Failed to get adapter model: {}", e);
-                sender
-                    .send(msg)
-                    .unwrap_or_else(|err| println!("Log error: {}", err));
+                try_send_log!(sender, msg);
             })
             .ok();
 
@@ -44,9 +42,7 @@ impl Adapter {
             .await
             .map_err(|e| {
                 let msg = format!("Failed to get adapter vendor: {}", e);
-                sender
-                    .send(msg)
-                    .unwrap_or_else(|err| println!("Log error: {}", err));
+                try_send_log!(sender, msg);
             })
             .ok();
 
