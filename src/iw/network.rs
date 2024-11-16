@@ -1,5 +1,5 @@
 use crate::iw::known_network::KnownNetwork;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use iwdrs::netowrk::Network as IwdNetwork;
 
 #[derive(Debug, Clone)]
@@ -56,7 +56,7 @@ impl Network {
     pub async fn connect(&self) -> Result<()> {
         self.n.connect().await.map_err(|e| {
             if e.to_string().contains("net.connman.iwd.Aborted") {
-                anyhow::anyhow!(t!("notifications.network.connection_canceled"))
+                anyhow!(t!("notifications.network.connection_canceled"))
             } else {
                 e
             }

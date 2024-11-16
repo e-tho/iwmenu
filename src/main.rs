@@ -5,11 +5,12 @@ use iwmenu::{
     icons::Icons,
     menu::{Menu, MenuType},
 };
+use rust_i18n::{i18n, set_locale};
 use std::{env, sync::Arc};
 use sys_locale::get_locale;
 use tokio::sync::mpsc::unbounded_channel;
 
-rust_i18n::i18n!("locales");
+i18n!("locales");
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -17,7 +18,7 @@ async fn main() -> Result<()> {
         eprintln!("Locale not detected, defaulting to 'en-US'.");
         String::from("en-US")
     });
-    rust_i18n::set_locale(&locale);
+    set_locale(&locale);
 
     let matches = Command::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
