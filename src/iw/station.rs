@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use futures::future::join_all;
 use iwdrs::session::Session;
 use std::{collections::HashMap, sync::Arc};
@@ -21,7 +21,7 @@ impl Station {
     pub async fn new(session: Arc<Session>) -> Result<Self> {
         let iwd_station = session
             .station()
-            .ok_or_else(|| anyhow::anyhow!("Failed to retrieve station from session"))?;
+            .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
 
         let iwd_station_diagnostic = session.station_diagnostic();
 
@@ -44,7 +44,7 @@ impl Station {
                     Network::new(n.clone())
                         .await
                         .map(|network| (network, *signal))
-                        .map_err(|e| anyhow::anyhow!("Failed to create network: {:?}", e))
+                        .map_err(|e| anyhow!("Failed to create network: {:?}", e))
                 })
                 .collect::<Vec<_>>();
 
@@ -88,7 +88,7 @@ impl Station {
         let station = self
             .session
             .station()
-            .ok_or_else(|| anyhow::anyhow!("Failed to retrieve station from session"))?;
+            .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
 
         self.state = station.state().await?;
         self.is_scanning = station.is_scanning().await?;
@@ -113,7 +113,7 @@ impl Station {
                 Network::new(n.clone())
                     .await
                     .map(|network| (network, signal))
-                    .map_err(|e| anyhow::anyhow!("Failed to process network: {:?}", e))
+                    .map_err(|e| anyhow!("Failed to process network: {:?}", e))
             })
             .collect::<Vec<_>>();
 
@@ -148,21 +148,21 @@ impl Station {
         let station = self
             .session
             .station()
-            .ok_or_else(|| anyhow::anyhow!("Failed to retrieve station from session"))?;
+            .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
         station
             .scan()
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to start scan: {:?}", e))
+            .map_err(|e| anyhow!("Failed to start scan: {:?}", e))
     }
 
     pub async fn disconnect(&mut self) -> Result<()> {
         let station = self
             .session
             .station()
-            .ok_or_else(|| anyhow::anyhow!("Failed to retrieve station from session"))?;
+            .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
         station
             .disconnect()
             .await
-            .map_err(|e| anyhow::anyhow!("Failed to disconnect: {:?}", e))
+            .map_err(|e| anyhow!("Failed to disconnect: {:?}", e))
     }
 }

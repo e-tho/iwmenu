@@ -7,7 +7,7 @@ use crate::{
     },
     notification::NotificationManager,
 };
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Error, Result};
 use iwdrs::{modes::Mode, session::Session};
 use notify_rust::Timeout;
 use rust_i18n::t;
@@ -113,12 +113,12 @@ impl App {
                                         sleep(Duration::from_millis(250)).await;
                                         station.refresh().await?;
                                     }
-                                    Ok::<(), anyhow::Error>(())
+                                    Ok::<(), Error>(())
                                 })
                                 .await;
 
                             if scan_timeout.is_err() {
-                                return Err(anyhow::anyhow!(
+                                return Err(anyhow!(
                                     "Station scan timeout exceeded during run loop"
                                 ));
                             }
@@ -423,7 +423,7 @@ impl App {
             .device
             .station
             .as_mut()
-            .ok_or_else(|| anyhow::anyhow!("No station available for network selection"))?;
+            .ok_or_else(|| anyhow!("No station available for network selection"))?;
 
         let networks = station
             .new_networks
@@ -463,10 +463,12 @@ impl App {
         &mut self,
         network: &Network,
     ) -> Result<Option<String>> {
-        let station =
-            self.adapter.device.station.as_mut().ok_or_else(|| {
-                anyhow::anyhow!("No station available for known network connection")
-            })?;
+        let station = self
+            .adapter
+            .device
+            .station
+            .as_mut()
+            .ok_or_else(|| anyhow!("No station available for known network connection"))?;
 
         try_send_log!(
             self.log_sender,
@@ -502,10 +504,12 @@ impl App {
         network: &Network,
         icon_type: &str,
     ) -> Result<Option<String>> {
-        let station =
-            self.adapter.device.station.as_mut().ok_or_else(|| {
-                anyhow::anyhow!("No station available for new network connection")
-            })?;
+        let station = self
+            .adapter
+            .device
+            .station
+            .as_mut()
+            .ok_or_else(|| anyhow!("No station available for new network connection"))?;
 
         try_send_log!(
             self.log_sender,
@@ -553,12 +557,12 @@ impl App {
             .device
             .station
             .as_mut()
-            .ok_or_else(|| anyhow::anyhow!("No station available for disconnection"))?;
+            .ok_or_else(|| anyhow!("No station available for disconnection"))?;
 
         let connected_network_name = station
             .connected_network
             .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("No network is currently connected"))?
+            .ok_or_else(|| anyhow!("No network is currently connected"))?
             .name
             .clone();
 
@@ -636,7 +640,7 @@ impl App {
                 None
             );
         } else {
-            return Err(anyhow::anyhow!("No station available for scanning"));
+            return Err(anyhow!("No station available for scanning"));
         }
 
         Ok(())
@@ -717,7 +721,7 @@ impl App {
             _ => {
                 let msg = t!("notifications.app.unknown_mode").to_string();
                 try_send_log!(self.log_sender, msg.clone());
-                return Err(anyhow::anyhow!("Unsupported mode"));
+                return Err(anyhow!("Unsupported mode"));
             }
         };
 
@@ -854,7 +858,7 @@ impl App {
                 None
             );
         } else {
-            return Err(anyhow::anyhow!("No access point available to stop"));
+            return Err(anyhow!("No access point available to stop"));
         }
 
         Ok(())
