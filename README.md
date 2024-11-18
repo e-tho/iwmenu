@@ -68,6 +68,16 @@ Install the package with your favorite AUR helper:
 paru -S iwmenu-git
 ```
 
+### Gentoo
+
+Install the package from [GURU overlay](https://wiki.gentoo.org/wiki/Project:GURU):
+
+```shell
+sudo eselect repository enable guru
+sudo emaint sync -r guru
+sudo emerge -a net-wireless/iwmenu
+```
+
 ## Usage
 
 ### Supported menus
