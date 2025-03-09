@@ -1,4 +1,4 @@
-use anyhow::{anyhow, Context, Error, Result};
+use anyhow::{anyhow, Context, Result};
 use futures::FutureExt;
 use iwdrs::{agent::Agent, session::Session};
 use std::sync::{
@@ -102,7 +102,6 @@ pub async fn request_confirmation(
         received_key = rx_key.recv() => {
             received_key
                 .context("No key received")
-                .map_err(Error::from)
         }
         received_cancel = rx_cancel.recv() => {
             received_cancel

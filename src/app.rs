@@ -437,7 +437,7 @@ impl App {
                 let is_connected = station
                     .connected_network
                     .as_ref()
-                    .map_or(false, |cn| cn.name == network.name);
+                    .is_some_and(|cn| cn.name == network.name);
 
                 self.handle_known_network_options(
                     menu,
