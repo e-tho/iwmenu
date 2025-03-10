@@ -3,10 +3,15 @@ use crate::iw::{access_point::AccessPoint, network::Network, station::Station};
 use anyhow::{anyhow, Context, Result};
 use clap::ArgEnum;
 use iwdrs::modes::Mode;
+use nix::sys::signal::{killpg, Signal};
+use nix::unistd::Pid;
+use process_wrap::std::{ProcessGroup, StdCommandWrap};
 use regex::Regex;
 use rust_i18n::t;
 use shlex::Shlex;
+use signal_hook::iterator::Signals;
 use std::sync::Arc;
+use std::thread;
 use std::{
     borrow::Cow,
     io::Write,
@@ -248,149 +253,48 @@ impl Menu {
             (String::new(), String::new())
         };
 
-        let output = match self.menu_type {
+        let mut command = match self.menu_type {
             MenuType::Fuzzel => {
-                let mut command = Command::new("fuzzel");
-                command.arg("-d");
-
+                let mut cmd = Command::new("fuzzel");
+                cmd.arg("-d");
                 if icon_type == "font" {
-                    command.arg("-I");
+                    cmd.arg("-I");
                 }
-
                 if !placeholder_text.is_empty() {
-                    command.arg("--placeholder").arg(&placeholder_text);
+                    cmd.arg("--placeholder").arg(&placeholder_text);
                 }
-
                 if obfuscate {
-                    command.arg("--password");
+                    cmd.arg("--password");
                 }
-
-                let mut child = command
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .context("Failed to spawn 'fuzzel' command")?;
-
-                if let Some(input_data) = input {
-                    child
-                        .stdin
-                        .as_mut()
-                        .ok_or_else(|| anyhow!("Failed to open stdin for 'fuzzel'"))?
-                        .write_all(input_data.as_bytes())
-                        .context("Failed to write to 'fuzzel' stdin")?;
-                }
-
-                let output = child
-                    .wait_with_output()
-                    .context("Failed to read output from 'fuzzel'")?;
-                String::from_utf8_lossy(&output.stdout).to_string()
-            }
-            MenuType::Wofi => {
-                let mut command = Command::new("wofi");
-                command.arg("-d").arg("-i");
-
-                if icon_type == "xdg" {
-                    command.arg("-I").arg("-m").arg("-q");
-                }
-
-                if !prompt_text.is_empty() {
-                    command.arg("--prompt").arg(&prompt_text);
-                }
-
-                if obfuscate {
-                    command.arg("--password");
-                }
-
-                let mut child = command
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .context("Failed to spawn 'wofi' command")?;
-
-                if let Some(input_data) = input {
-                    child
-                        .stdin
-                        .as_mut()
-                        .ok_or_else(|| anyhow!("Failed to open stdin for 'wofi'"))?
-                        .write_all(input_data.as_bytes())
-                        .context("Failed to write to 'wofi' stdin")?;
-                }
-
-                let output = child
-                    .wait_with_output()
-                    .context("Failed to read output from 'wofi'")?;
-                String::from_utf8_lossy(&output.stdout).to_string()
+                cmd
             }
             MenuType::Rofi => {
-                let mut command = Command::new("rofi");
-                command.arg("-m").arg("-1").arg("-dmenu");
-
+                let mut cmd = Command::new("rofi");
+                cmd.arg("-m").arg("-1").arg("-dmenu");
                 if icon_type == "xdg" {
-                    command.arg("-show-icons");
+                    cmd.arg("-show-icons");
                 }
-
                 if !placeholder_text.is_empty() {
-                    command.arg("-theme-str").arg(format!(
+                    cmd.arg("-theme-str").arg(format!(
                         "entry {{ placeholder: \"{}\"; }}",
                         placeholder_text
                     ));
                 }
-
                 if obfuscate {
-                    command.arg("-password");
+                    cmd.arg("-password");
                 }
-
-                let mut child = command
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .context("Failed to spawn 'rofi' command")?;
-
-                if let Some(input_data) = input {
-                    child
-                        .stdin
-                        .as_mut()
-                        .ok_or_else(|| anyhow!("Failed to open stdin for 'rofi'"))?
-                        .write_all(input_data.as_bytes())
-                        .context("Failed to write to 'rofi' stdin")?;
-                }
-
-                let output = child
-                    .wait_with_output()
-                    .context("Failed to read output from 'rofi'")?;
-                String::from_utf8_lossy(&output.stdout).to_string()
+                cmd
             }
             MenuType::Dmenu => {
-                let mut command = Command::new("dmenu");
-
+                let mut cmd = Command::new("dmenu");
                 if !prompt_text.is_empty() {
-                    command.arg("-p").arg(&prompt_text);
+                    cmd.arg("-p").arg(&prompt_text);
                 }
-
-                let mut child = command
-                    .stdin(Stdio::piped())
-                    .stdout(Stdio::piped())
-                    .spawn()
-                    .context("Failed to spawn 'dmenu' command")?;
-
-                if let Some(input_data) = input {
-                    child
-                        .stdin
-                        .as_mut()
-                        .ok_or_else(|| anyhow!("Failed to open stdin for 'dmenu'"))?
-                        .write_all(input_data.as_bytes())
-                        .context("Failed to write to 'dmenu' stdin")?;
-                }
-
-                let output = child
-                    .wait_with_output()
-                    .context("Failed to read output from 'dmenu'")?;
-                String::from_utf8_lossy(&output.stdout).to_string()
+                cmd
             }
             MenuType::Custom => {
-                if let Some(cmd) = menu_command {
-                    let mut cmd_processed = cmd.clone();
-
+                if let Some(cmd_str) = menu_command {
+                    let mut cmd_processed = cmd_str.clone();
                     cmd_processed = cmd_processed.replace("{prompt}", &prompt_text);
                     cmd_processed = cmd_processed.replace("{placeholder}", &placeholder_text);
 
@@ -399,7 +303,6 @@ impl Menu {
                         .replace_all(&cmd_processed, |caps: &regex::Captures| {
                             let placeholder_name = &caps[1];
                             let default_value = &caps[2];
-
                             match placeholder_name {
                                 "password_flag" => {
                                     if obfuscate {
@@ -418,35 +321,44 @@ impl Menu {
                         .split_first()
                         .ok_or_else(|| anyhow!("Failed to parse custom menu command"))?;
 
-                    let mut command = Command::new(cmd_program);
-                    command.args(args);
-
-                    let mut child = command
-                        .stdin(Stdio::piped())
-                        .stdout(Stdio::piped())
-                        .spawn()
-                        .context("Failed to spawn custom menu command")?;
-
-                    if let Some(input_data) = input {
-                        child
-                            .stdin
-                            .as_mut()
-                            .ok_or_else(|| anyhow!("Failed to open stdin for custom command"))?
-                            .write_all(input_data.as_bytes())
-                            .context("Failed to write to custom command stdin")?;
-                    }
-
-                    let output = child
-                        .wait_with_output()
-                        .context("Failed to read output from custom command")?;
-                    String::from_utf8_lossy(&output.stdout).to_string()
+                    let mut cmd = Command::new(cmd_program);
+                    cmd.args(args);
+                    cmd
                 } else {
-                    return Ok(None);
+                    return Err(anyhow!("No custom menu command provided"));
                 }
             }
+            _ => return Ok(None),
         };
 
-        let trimmed_output = output.trim().to_string();
+        command.stdin(Stdio::piped()).stdout(Stdio::piped());
+
+        let mut command_wrap = StdCommandWrap::from(command);
+        command_wrap.wrap(ProcessGroup::leader());
+
+        let mut child = command_wrap
+            .spawn()
+            .context("Failed to spawn menu command")?;
+
+        let pid = child.id() as i32;
+        thread::spawn(move || {
+            let mut signals = Signals::new([libc::SIGTERM, libc::SIGINT]).unwrap();
+            for _signal in signals.forever() {
+                let _ = killpg(Pid::from_raw(pid), Signal::SIGTERM);
+            }
+        });
+
+        if let Some(input_data) = input {
+            if let Some(stdin) = child.stdin().as_mut() {
+                stdin
+                    .write_all(input_data.as_bytes())
+                    .context("Failed to write stdin")?;
+            }
+        }
+
+        let output = child.wait_with_output().context("Failed to read output")?;
+        let trimmed_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
+
         if trimmed_output.is_empty() {
             Ok(None)
         } else {
