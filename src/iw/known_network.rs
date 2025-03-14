@@ -14,25 +14,15 @@ pub struct KnownNetwork {
 
 impl KnownNetwork {
     pub async fn new(n: IwdKnownNetwork) -> Result<Self> {
-        let name = n
-            .name()
-            .await
-            .context("Failed to retrieve the known network name")?;
-
-        let network_type = n
-            .network_type()
-            .await
-            .context("Failed to retrieve the known network type")?;
+        let name = n.name().await?;
+        let network_type = n.network_type().await?;
 
         let is_autoconnect = n
             .get_autoconnect()
             .await
             .context("Failed to check the autoconnect setting")?;
 
-        let is_hidden = n
-            .hidden()
-            .await
-            .context("Failed to check if the known network is hidden")?;
+        let is_hidden = n.hidden().await?;
 
         let last_connected = n
             .last_connected_time()

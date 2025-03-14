@@ -13,15 +13,8 @@ pub struct Network {
 
 impl Network {
     pub async fn new(n: IwdNetwork) -> Result<Self> {
-        let name = n
-            .name()
-            .await
-            .context("Failed to retrieve the network name")?;
-
-        let network_type = n
-            .network_type()
-            .await
-            .context("Failed to retrieve the network type")?;
+        let name = n.name().await?;
+        let network_type = n.network_type().await?;
 
         let is_connected = n
             .connected()
