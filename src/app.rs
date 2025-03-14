@@ -63,6 +63,7 @@ impl App {
         let adapter = Adapter::new(session.clone(), log_sender.clone())
             .await
             .with_context(|| "Failed to create a new adapter during reset")?;
+
         adapter
             .device
             .set_mode(mode.clone())
@@ -106,10 +107,7 @@ impl App {
         }
 
         while self.running {
-            self.adapter
-                .refresh()
-                .await
-                .with_context(|| "Failed to refresh adapter state during run loop")?;
+            self.adapter.refresh().await?;
 
             match self.adapter.device.mode {
                 Mode::Station => {
@@ -186,9 +184,7 @@ impl App {
         .await;
 
         match result {
-            Ok(inner_result) => {
-                inner_result.with_context(|| "Error while waiting for scan completion")
-            }
+            Ok(inner_result) => inner_result,
             Err(_) => Err(anyhow!("Station scan timeout exceeded during run loop")),
         }
     }
@@ -519,13 +515,9 @@ impl App {
         if let Some(passphrase) =
             menu.prompt_station_passphrase(menu_command, &network.name, icon_type)
         {
-            self.agent_manager
-                .send_passkey(passphrase)
-                .with_context(|| "Failed to send passphrase to agent manager")?;
+            self.agent_manager.send_passkey(passphrase)?;
         } else {
-            self.agent_manager
-                .cancel_auth()
-                .with_context(|| "Failed to cancel authentication")?;
+            self.agent_manager.cancel_auth()?;
             return Ok(None);
         }
 
@@ -571,10 +563,7 @@ impl App {
             format!("Disconnecting from network: {}", connected_network_name)
         );
 
-        station
-            .disconnect()
-            .await
-            .with_context(|| "Failed to disconnect from network")?;
+        station.disconnect().await?;
 
         let msg = t!(
             "notifications.station.disconnected_from_network",
@@ -752,11 +741,7 @@ impl App {
         icon_type: &str,
         spaces: usize,
     ) -> Result<()> {
-        self.adapter
-            .device
-            .power_off()
-            .await
-            .context("Failed to disable adapter")?;
+        self.adapter.device.power_off().await?;
 
         let msg = t!("notifications.app.adapter_disabled").to_string();
         try_send_log!(self.log_sender, msg.clone());
@@ -769,8 +754,7 @@ impl App {
         );
 
         self.handle_adapter_options(menu, menu_command, icon_type, spaces)
-            .await
-            .context("Failed to handle adapter options after disabling")?;
+            .await?;
 
         Ok(())
     }
@@ -805,7 +789,7 @@ impl App {
             ap.set_ssid(ssid);
             ap.set_psk(psk);
 
-            ap.start().await.context("Failed to start access point")?;
+            ap.start().await?;
 
             let msg = t!("notifications.device.access_point_started").to_string();
             try_send_log!(
@@ -820,10 +804,7 @@ impl App {
                 None
             );
 
-            self.adapter
-                .refresh()
-                .await
-                .context("Failed to refresh adapter after starting access point")?;
+            self.adapter.refresh().await?;
         } else {
             let msg = "No access point available to start".to_string();
             try_send_log!(self.log_sender, msg.clone());
@@ -841,12 +822,8 @@ impl App {
 
     async fn perform_ap_stop(&mut self) -> Result<()> {
         if let Some(ap) = &self.adapter.device.access_point {
-            ap.stop().await.context("Failed to stop access point")?;
-
-            self.adapter
-                .refresh()
-                .await
-                .context("Failed to refresh adapter after stopping access point")?;
+            ap.stop().await?;
+            self.adapter.refresh().await?;
 
             let msg = "Access point stopped".to_string();
             try_send_log!(self.log_sender, msg.clone());

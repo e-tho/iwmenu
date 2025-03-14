@@ -27,23 +27,11 @@ impl AccessPoint {
             .has_started()
             .await
             .context("Failed to retrieve access point status")?;
-        let name = iwd_access_point
-            .name()
-            .await
-            .context("Failed to retrieve access point name")?;
-        let frequency = iwd_access_point
-            .frequency()
-            .await
-            .context("Failed to retrieve access point frequency")?;
+        let name = iwd_access_point.name().await?;
+        let frequency = iwd_access_point.frequency().await?;
         let is_scanning = iwd_access_point.is_scanning().await.ok();
-        let supported_ciphers = iwd_access_point
-            .pairwise_ciphers()
-            .await
-            .context("Failed to retrieve supported ciphers")?;
-        let used_cipher = iwd_access_point
-            .group_cipher()
-            .await
-            .context("Failed to retrieve used cipher")?;
+        let supported_ciphers = iwd_access_point.pairwise_ciphers().await?;
+        let used_cipher = iwd_access_point.group_cipher().await?;
 
         let connected_devices = if let Some(diagnostic) = iwd_access_point_diagnostic {
             match diagnostic.get().await {
@@ -79,27 +67,12 @@ impl AccessPoint {
             .ok_or_else(|| anyhow!("No access point available for refresh"))?;
         let iwd_access_point_diagnostic = self.session.access_point_diagnostic();
 
-        self.has_started = iwd_access_point
-            .has_started()
-            .await
-            .context("Failed to refresh access point status")?;
-        self.name = iwd_access_point
-            .name()
-            .await
-            .context("Failed to refresh access point name")?;
-        self.frequency = iwd_access_point
-            .frequency()
-            .await
-            .context("Failed to refresh access point frequency")?;
+        self.has_started = iwd_access_point.has_started().await?;
+        self.name = iwd_access_point.name().await?;
+        self.frequency = iwd_access_point.frequency().await?;
         self.is_scanning = iwd_access_point.is_scanning().await.ok();
-        self.supported_ciphers = iwd_access_point
-            .pairwise_ciphers()
-            .await
-            .context("Failed to refresh supported ciphers")?;
-        self.used_cipher = iwd_access_point
-            .group_cipher()
-            .await
-            .context("Failed to refresh used cipher")?;
+        self.supported_ciphers = iwd_access_point.pairwise_ciphers().await?;
+        self.used_cipher = iwd_access_point.group_cipher().await?;
 
         if let Some(diagnostic) = iwd_access_point_diagnostic {
             if let Ok(data) = diagnostic.get().await {
@@ -119,6 +92,7 @@ impl AccessPoint {
             .session
             .access_point()
             .ok_or_else(|| anyhow!("No access point available for scanning"))?;
+
         iwd_access_point
             .scan()
             .await
@@ -130,6 +104,7 @@ impl AccessPoint {
             .session
             .access_point()
             .ok_or_else(|| anyhow!("No access point available to start"))?;
+
         iwd_access_point
             .start(&self.ssid, &self.psk)
             .await
@@ -141,6 +116,7 @@ impl AccessPoint {
             .session
             .access_point()
             .ok_or_else(|| anyhow!("No access point available to stop"))?;
+
         iwd_access_point
             .stop()
             .await

@@ -149,6 +149,7 @@ impl Station {
             .session
             .station()
             .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
+
         station
             .scan()
             .await
@@ -160,6 +161,7 @@ impl Station {
             .session
             .station()
             .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
+
         station
             .disconnect()
             .await

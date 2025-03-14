@@ -350,13 +350,11 @@ impl Menu {
 
         if let Some(input_data) = input {
             if let Some(stdin) = child.stdin().as_mut() {
-                stdin
-                    .write_all(input_data.as_bytes())
-                    .context("Failed to write stdin")?;
+                stdin.write_all(input_data.as_bytes())?;
             }
         }
 
-        let output = child.wait_with_output().context("Failed to read output")?;
+        let output = child.wait_with_output()?;
         let trimmed_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
         if trimmed_output.is_empty() {

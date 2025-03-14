@@ -1,9 +1,8 @@
+use crate::iw::device::Device;
 use anyhow::{anyhow, Context, Result};
 use iwdrs::{adapter::Adapter as IwdAdapter, session::Session};
 use std::sync::Arc;
 use tokio::sync::mpsc::UnboundedSender;
-
-use crate::iw::device::Device;
 
 #[derive(Debug, Clone)]
 pub struct Adapter {
@@ -26,7 +25,8 @@ impl Adapter {
             .is_powered()
             .await
             .context("Failed to get adapter power state")?;
-        let name = adapter.name().await.context("Failed to get adapter name")?;
+
+        let name = adapter.name().await?;
 
         let model = adapter
             .model()
@@ -46,10 +46,7 @@ impl Adapter {
             })
             .ok();
 
-        let supported_modes = adapter
-            .supported_modes()
-            .await
-            .context("Failed to get supported modes")?;
+        let supported_modes = adapter.supported_modes().await?;
 
         let device = Device::new(session.clone(), sender.clone())
             .await
@@ -67,11 +64,7 @@ impl Adapter {
     }
 
     pub async fn refresh(&mut self) -> Result<()> {
-        self.is_powered = self
-            .adapter
-            .is_powered()
-            .await
-            .context("Failed to refresh adapter power state")?;
+        self.is_powered = self.adapter.is_powered().await?;
 
         self.device
             .refresh()

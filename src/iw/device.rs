@@ -21,14 +21,9 @@ impl Device {
     pub async fn new(session: Arc<Session>, sender: UnboundedSender<String>) -> Result<Self> {
         let device = session.device().context("No device found")?;
 
-        let name = device
-            .name()
-            .await
-            .context("Failed to retrieve device name")?;
-        let address = device
-            .address()
-            .await
-            .context("Failed to retrieve device address")?;
+        let name = device.name().await?;
+        let address = device.address().await?;
+
         let mode = device
             .get_mode()
             .await
@@ -107,11 +102,7 @@ impl Device {
     }
 
     pub async fn refresh(&mut self) -> Result<()> {
-        self.is_powered = self
-            .device
-            .is_powered()
-            .await
-            .context("Failed to check if the device is powered")?;
+        self.is_powered = self.device.is_powered().await?;
 
         let current_mode = self
             .device

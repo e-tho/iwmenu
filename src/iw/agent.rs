@@ -30,7 +30,6 @@ impl AgentManager {
 
         let passkey_receiver = Arc::new(Mutex::new(passkey_receiver));
         let cancel_signal_receiver = Arc::new(Mutex::new(cancel_signal_receiver));
-
         let authentication_required = Arc::new(AtomicBool::new(false));
 
         let agent = {
@@ -47,7 +46,6 @@ impl AgentManager {
                     async move {
                         let mut rx_key = passkey_receiver.lock().await;
                         let mut rx_cancel = cancel_signal_receiver.lock().await;
-
                         request_confirmation(authentication_required, &mut rx_key, &mut rx_cancel)
                             .await
                             .map_err(Box::<dyn std::error::Error>::from)
@@ -78,6 +76,7 @@ impl AgentManager {
         self.passkey_sender
             .send(passkey)
             .context("Failed to send passkey")?;
+
         self.authentication_required.store(false, Relaxed);
         Ok(())
     }
@@ -86,6 +85,7 @@ impl AgentManager {
         self.cancel_signal_sender
             .send(())
             .context("Failed to send cancel signal")?;
+
         self.authentication_required.store(false, Relaxed);
         Ok(())
     }
