@@ -80,29 +80,42 @@ async fn main() -> Result<()> {
         }
     });
 
-    let mut app = initialize_app(&menu, log_sender.clone(), icons.clone()).await?;
-
-    loop {
-        if let Err(err) = app.run(&menu, &menu_command, &icon_type, spaces).await {
-            eprintln!("Error during app execution: {:?}", err);
-            break;
-        }
-
-        if app.reset_mode {
-            app = initialize_app(&menu, log_sender.clone(), icons.clone()).await?;
-            app.reset_mode = false;
-        } else {
-            break;
-        }
-    }
+    run_app_loop(&menu, &menu_command, &icon_type, spaces, log_sender, icons).await?;
 
     Ok(())
 }
 
-async fn initialize_app(
+async fn run_app_loop(
     menu: &Menu,
+    menu_command: &Option<String>,
+    icon_type: &str,
+    spaces: usize,
     log_sender: tokio::sync::mpsc::UnboundedSender<String>,
     icons: Arc<Icons>,
-) -> Result<App> {
-    App::new(menu.clone(), log_sender, icons).await
+) -> Result<()> {
+    let mut app = App::new(menu.clone(), log_sender.clone(), icons.clone()).await?;
+
+    loop {
+        match app.run(menu, menu_command, icon_type, spaces).await {
+            Ok(_) => {
+                if !app.reset_mode {
+                    break;
+                }
+            }
+            Err(err) => {
+                eprintln!("Error during app execution: {:?}", err);
+
+                if !app.reset_mode {
+                    return Err(anyhow!("Fatal error in application: {}", err));
+                }
+            }
+        }
+
+        if app.reset_mode {
+            app = App::new(menu.clone(), log_sender.clone(), icons.clone()).await?;
+            app.reset_mode = false;
+        }
+    }
+
+    Ok(())
 }
