@@ -95,6 +95,14 @@ impl App {
         if !self.adapter.device.is_powered {
             self.handle_adapter_options(menu, menu_command, icon_type, spaces)
                 .await?;
+            if self.running {
+                self.adapter
+                    .refresh()
+                    .await
+                    .with_context(|| "Failed to refresh adapter state after power-on")?;
+            } else {
+                return Ok(None);
+            }
         }
 
         while self.running {
@@ -105,79 +113,12 @@ impl App {
 
             match self.adapter.device.mode {
                 Mode::Station => {
-                    if let Some(station) = self.adapter.device.station.as_mut() {
-                        if station.is_scanning {
-                            let scan_timeout =
-                                tokio::time::timeout(Duration::from_secs(30), async {
-                                    while station.is_scanning {
-                                        sleep(Duration::from_millis(250)).await;
-                                        station.refresh().await?;
-                                    }
-                                    Ok::<(), Error>(())
-                                })
-                                .await;
-
-                            if scan_timeout.is_err() {
-                                return Err(anyhow!(
-                                    "Station scan timeout exceeded during run loop"
-                                ));
-                            }
-                        }
-
-                        if let Some(main_menu_option) = menu
-                            .show_main_menu(menu_command, station, icon_type, spaces)
-                            .await?
-                        {
-                            self.handle_main_options(
-                                menu,
-                                menu_command,
-                                icon_type,
-                                spaces,
-                                main_menu_option,
-                            )
-                            .await?;
-                        } else {
-                            try_send_log!(
-                                self.log_sender,
-                                t!("notifications.app.main_menu_exited").to_string()
-                            );
-                            self.running = false;
-                            return Ok(None);
-                        }
-                    } else {
-                        try_send_log!(
-                            self.log_sender,
-                            t!("notifications.app.no_station_available").to_string()
-                        );
-                        self.running = false;
-                        return Ok(None);
-                    }
+                    self.run_station_mode(menu, menu_command, icon_type, spaces)
+                        .await?;
                 }
                 Mode::Ap => {
-                    if let Some(ap_menu_option) = menu
-                        .show_ap_menu(
-                            menu_command,
-                            self.adapter.device.access_point.as_mut().unwrap(),
-                            icon_type,
-                            spaces,
-                        )
-                        .await?
-                    {
-                        self.handle_ap_options(
-                            ap_menu_option,
-                            menu,
-                            menu_command,
-                            icon_type,
-                            spaces,
-                        )
+                    self.run_ap_mode(menu, menu_command, icon_type, spaces)
                         .await?;
-                    } else {
-                        try_send_log!(
-                            self.log_sender,
-                            t!("notifications.app.ap_menu_exited").to_string()
-                        );
-                        self.running = false;
-                    }
                 }
                 _ => {
                     try_send_log!(
@@ -185,12 +126,71 @@ impl App {
                         t!("notifications.app.unknown_mode").to_string()
                     );
                     self.running = false;
-                    return Ok(None);
                 }
             }
         }
 
         Ok(None)
+    }
+
+    async fn run_ap_mode(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
+        let access_point = match self.adapter.device.access_point.as_mut() {
+            Some(ap) => ap,
+            None => {
+                try_send_log!(
+                    self.log_sender,
+                    t!("notifications.app.no_access_point_available").to_string()
+                );
+                self.running = false;
+                return Ok(());
+            }
+        };
+
+        match menu
+            .show_ap_menu(menu_command, access_point, icon_type, spaces)
+            .await?
+        {
+            Some(ap_menu_option) => {
+                self.handle_ap_options(ap_menu_option, menu, menu_command, icon_type, spaces)
+                    .await?;
+            }
+            None => {
+                try_send_log!(
+                    self.log_sender,
+                    t!("notifications.app.ap_menu_exited").to_string()
+                );
+                self.running = false;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn wait_for_scan_completion(station: &mut crate::iw::station::Station) -> Result<()> {
+        const SCAN_TIMEOUT_SECS: u64 = 30;
+        const SCAN_POLL_INTERVAL_MS: u64 = 250;
+
+        let result = tokio::time::timeout(Duration::from_secs(SCAN_TIMEOUT_SECS), async {
+            while station.is_scanning {
+                sleep(Duration::from_millis(SCAN_POLL_INTERVAL_MS)).await;
+                station.refresh().await?;
+            }
+            Ok::<(), Error>(())
+        })
+        .await;
+
+        match result {
+            Ok(inner_result) => {
+                inner_result.with_context(|| "Error while waiting for scan completion")
+            }
+            Err(_) => Err(anyhow!("Station scan timeout exceeded during run loop")),
+        }
     }
 
     async fn handle_main_options(
@@ -859,6 +859,49 @@ impl App {
             );
         } else {
             return Err(anyhow!("No access point available to stop"));
+        }
+
+        Ok(())
+    }
+
+    async fn run_station_mode(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
+        let station = match self.adapter.device.station.as_mut() {
+            Some(station) => station,
+            None => {
+                try_send_log!(
+                    self.log_sender,
+                    t!("notifications.app.no_station_available").to_string()
+                );
+                self.running = false;
+                return Ok(());
+            }
+        };
+
+        if station.is_scanning {
+            Self::wait_for_scan_completion(station).await?;
+        }
+
+        match menu
+            .show_main_menu(menu_command, station, icon_type, spaces)
+            .await?
+        {
+            Some(main_menu_option) => {
+                self.handle_main_options(menu, menu_command, icon_type, spaces, main_menu_option)
+                    .await?;
+            }
+            None => {
+                try_send_log!(
+                    self.log_sender,
+                    t!("notifications.app.main_menu_exited").to_string()
+                );
+                self.running = false;
+            }
         }
 
         Ok(())
