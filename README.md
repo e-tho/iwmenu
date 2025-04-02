@@ -1,5 +1,9 @@
 <div align="center">
   <h1>iwmenu</h1>
+  <p>
+    <a href="https://ko-fi.com/e_tho"><img src="https://img.shields.io/badge/Ko--fi-F16061?style=flat&logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
+    <a href="https://liberapay.com/e-tho"><img src="https://img.shields.io/badge/Liberapay-F6C915?style=flat&logo=liberapay&logoColor=333333" alt="Liberapay"></a>
+  </p>
 </div>
 
 ## Demo
@@ -129,3 +133,10 @@ iwmenu -m custom --menu-command "fuzzel -d -p '{prompt}' {password_flag:--passwo
 ## License
 
 GPLv3
+
+## Support this project
+
+If you find this project useful and would like to help me dedicate more time to its development, consider supporting my work.
+
+[![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/e_tho)
+[![Liberapay](https://img.shields.io/badge/Liberapay-F6C915?style=for-the-badge&logo=liberapay&logoColor=black)](https://liberapay.com/e-tho)
