@@ -42,15 +42,9 @@
             lockFile = ./Cargo.lock;
           };
 
-          buildInputs = with pkgs; [
-            pkg-config
-            openssl
-          ];
-
           doCheck = true;
           CARGO_BUILD_INCREMENTAL = "false";
           RUST_BACKTRACE = "full";
-          copyLibs = true;
 
           meta = {
             description = "Menu-driven Wi-Fi management interface for Linux";
@@ -68,11 +62,13 @@
         devShells.default =
           with pkgs;
           mkShell {
-            buildInputs = [
+            nativeBuildInputs = [
               (rust-bin.stable.latest.default.override {
                 extensions = [ "rust-src" ];
               })
             ];
+
+            inherit (self.packages.${system}.default) CARGO_BUILD_INCREMENTAL RUST_BACKTRACE;
           };
       }
     );
