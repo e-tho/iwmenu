@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
                 .required(true)
                 .value_parser(EnumValueParser::<MenuType>::new())
                 .default_value("dmenu")
-                .help("Menu application to use (dmenu, rofi, fuzzel, walker)"),
+                .help("Menu application to use"),
         )
         .arg(
             Arg::new("menu_command")
@@ -48,7 +48,7 @@ async fn main() -> Result<()> {
                 .takes_value(true)
                 .possible_values(["font", "xdg"])
                 .default_value("font")
-                .help("Choose the type of icons to use (font or xdg)"),
+                .help("Choose the type of icons to use"),
         )
         .arg(
             Arg::new("spaces")
