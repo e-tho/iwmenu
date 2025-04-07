@@ -32,7 +32,7 @@ async fn main() -> Result<()> {
                 .required(true)
                 .value_parser(EnumValueParser::<MenuType>::new())
                 .default_value("dmenu")
-                .help("Menu application to use (dmenu, rofi, fuzzel)"),
+                .help("Menu application to use (dmenu, rofi, fuzzel, walker)"),
         )
         .arg(
             Arg::new("menu_command")

@@ -23,6 +23,7 @@
 - [Fuzzel](https://codeberg.org/dnkl/fuzzel)
 - [Rofi](https://github.com/davatorium/rofi)
 - [dmenu](https://tools.suckless.org/dmenu)
+- [Walker](https://github.com/abenz1267/walker)
 
 Use `custom` mode if your launcher is not supported.
 
@@ -119,12 +120,12 @@ iwmenu -m custom --menu-command "fuzzel -d -p '{prompt}' {password_flag:--passwo
 
 ### Available Options
 
-| Flag             | Description                                           | Supported Values                            | Default Value |
-| ---------------- | ----------------------------------------------------- | ------------------------------------------- | ------------- |
-| `-m`, `--menu`   | Specify the menu application to use.                  | `dmenu`, `rofi`, `fuzzel`, `custom` | `dmenu`       |
-| `--menu-command` | Specify the command to use when `custom` menu is set. | Any valid shell command                     | `None`        |
-| `-i`, `--icon`   | Specify the icon type to use.                         | `font`, `xdg`                               | `font`        |
-| `-s`, `--spaces` | Specify icon to text space count (font icons only).   | Any positive integer                        | `1`           |
+| Flag             | Description                                           | Supported Values                              | Default Value |
+| ---------------- | ----------------------------------------------------- | --------------------------------------------- | ------------- |
+| `-m`, `--menu`   | Specify the menu application to use.                  | `dmenu`, `rofi`, `fuzzel`, `walker`, `custom` | `dmenu`       |
+| `--menu-command` | Specify the command to use when `custom` menu is set. | Any valid shell command                       | `None`        |
+| `-i`, `--icon`   | Specify the icon type to use.                         | `font`, `xdg`                                 | `font`        |
+| `-s`, `--spaces` | Specify icon to text space count (font icons only).   | Any positive integer                          | `1`           |
 
 ## License
 

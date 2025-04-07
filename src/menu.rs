@@ -23,6 +23,7 @@ pub enum MenuType {
     Fuzzel,
     Rofi,
     Dmenu,
+    Walker,
     Custom,
 }
 
@@ -288,6 +289,17 @@ impl Menu {
                 let mut cmd = Command::new("dmenu");
                 if !prompt_text.is_empty() {
                     cmd.arg("-p").arg(&prompt_text);
+                }
+                cmd
+            }
+            MenuType::Walker => {
+                let mut cmd = Command::new("walker");
+                cmd.arg("-d").arg("-k");
+                if !placeholder_text.is_empty() {
+                    cmd.arg("-p").arg(&placeholder_text);
+                }
+                if obfuscate {
+                    cmd.arg("-y");
                 }
                 cmd
             }
