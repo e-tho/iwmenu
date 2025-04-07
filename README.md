@@ -13,16 +13,16 @@
 
 ## Prerequisites
 
-[iwd](https://iwd.wiki.kernel.org/) must be installed, along with either a supported launcher or any `stdin` mode launcher.
+[iwd](https://iwd.wiki.kernel.org) must be installed, along with either a supported launcher or any `stdin` mode launcher.
 
 > [!NOTE]
-> To ensure proper icon display, you can either install [nerdfonts](https://www.nerdfonts.com/) for font-based icons (usage is optional) or use the `--icon xdg` flag for image-based icons from your XDG theme.
+> To ensure proper icon display, you can either install [nerdfonts](https://www.nerdfonts.com) for font-based icons (usage is optional) or use the `--icon xdg` flag for image-based icons from your XDG theme.
 
 ### Compatibility
 
-- [Fuzzel](https://codeberg.org/dnkl/fuzzel/)
-- [Rofi](https://github.com/davatorium/rofi/)
-- [dmenu](https://tools.suckless.org/dmenu/)
+- [Fuzzel](https://codeberg.org/dnkl/fuzzel)
+- [Rofi](https://github.com/davatorium/rofi)
+- [dmenu](https://tools.suckless.org/dmenu)
 
 Use `custom` mode if your launcher is not supported.
 
