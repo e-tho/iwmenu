@@ -306,7 +306,13 @@ impl App {
         });
 
         if let Some(option) = menu
-            .show_known_network_options(menu_command, icon_type, spaces, available_options, &known_network.name)
+            .show_known_network_options(
+                menu_command,
+                icon_type,
+                spaces,
+                available_options,
+                &known_network.name,
+            )
             .await?
         {
             match option {
