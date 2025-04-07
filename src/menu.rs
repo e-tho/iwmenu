@@ -526,6 +526,7 @@ impl Menu {
         icon_type: &str,
         spaces: usize,
         available_options: Vec<KnownNetworkOptions>,
+        network_ssid: &str,
     ) -> Result<Option<KnownNetworkOptions>> {
         let mut input = String::new();
 
@@ -575,8 +576,10 @@ impl Menu {
             input.push_str(&format!("{}\n", option_text));
         }
 
+        let prompt = t!("menus.main.options.known_network.prompt", ssid = network_ssid);
+
         let menu_output =
-            self.run_menu_command(menu_command, Some(&input), icon_type, None, false)?;
+            self.run_menu_command(menu_command, Some(&input), icon_type,  Some(&prompt), false)?;
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);

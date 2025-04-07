@@ -19,6 +19,9 @@ menus:
           en: "Enter passphrase for %{ssid}"
           fr: "Entrez la passphrase pour %{ssid}"
       known_network:
+        prompt:
+          en: "Manage %{ssid}"
+          fr: "Gérer %{ssid}"
         name:
           en: "Known Network"
           fr: "Réseaux Connu"
