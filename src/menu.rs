@@ -21,7 +21,6 @@ use std::{
 #[derive(Debug, Clone, ArgEnum)]
 pub enum MenuType {
     Fuzzel,
-    Wofi,
     Rofi,
     Dmenu,
     Custom,
