@@ -18,34 +18,31 @@ menus:
         prompt:
           en: "Enter passphrase for %{ssid}"
           fr: "Entrez la passphrase pour %{ssid}"
-      known_network:
-        prompt:
-          en: "Manage %{ssid}"
-          fr: "Gérer %{ssid}"
+  known_network:
+    prompt:
+      en: "Manage %{ssid}"
+      fr: "Gérer %{ssid}"
+    options:
+      disable_autoconnect:
         name:
-          en: "Known Network"
-          fr: "Réseaux Connu"
-        options:
-          disable_autoconnect:
-            name:
-              en: "Disable Autoconnect"
-              fr: "Désactiver la connexion automatique"
-          enable_autoconnect:
-            name:
-              en: "Enable Autoconnect"
-              fr: "Activer la connexion automatique"
-          forget_network:
-            name:
-              en: "Forget Network"
-              fr: "Oublier le réseau"
-          connect:
-            name:
-              en: "Connect"
-              fr: "Connexion"
-          disconnect:
-            name:
-              en: "Disconnect"
-              fr: "Déconnexion"
+          en: "Disable Autoconnect"
+          fr: "Désactiver la connexion automatique"
+      enable_autoconnect:
+        name:
+          en: "Enable Autoconnect"
+          fr: "Activer la connexion automatique"
+      forget_network:
+        name:
+          en: "Forget Network"
+          fr: "Oublier le réseau"
+      connect:
+        name:
+          en: "Connect"
+          fr: "Connexion"
+      disconnect:
+        name:
+          en: "Disconnect"
+          fr: "Déconnexion"
   settings:
     options:
       disable_adapter:
