@@ -41,6 +41,9 @@
 > [!TIP]
 > If your preferred launcher isn't directly supported, use `custom` mode with appropriate command flags.
 
+> [!NOTE]
+> For proper XDG icon display launchers must support fallback icons in `stdin` mode with comma-separated values. This ensures compatibility with various themes and desktop environments.
+
 ## Installation
 
 ### Build from source
