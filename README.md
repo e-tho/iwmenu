@@ -28,14 +28,18 @@
 - [XDG icon theme](https://specifications.freedesktop.org/icon-theme-spec/latest) – For image-based icons (used with `-i xdg`, included with DEs or can be installed manually)
 - [Notification daemon](https://specifications.freedesktop.org/notification-spec/latest/) – For system notifications (e.g. `dunst` or `fnott`, included with DEs or can be installed manually)
 
-### Compatibility
+## Compatibility
 
-- [Fuzzel](https://codeberg.org/dnkl/fuzzel)
-- [Rofi](https://github.com/davatorium/rofi)
-- [dmenu](https://tools.suckless.org/dmenu)
-- [Walker](https://github.com/abenz1267/walker)
+| Launcher                                      | Font Icons | XDG Icons | Notes                                                                                 |
+| --------------------------------------------- | :--------: | :-------: | ------------------------------------------------------------------------------------- |
+| [Fuzzel](https://codeberg.org/dnkl/fuzzel)    |     ✅     |    ✅     | XDG icons supported in main branch                                                    |
+| [Rofi](https://github.com/davatorium/rofi)    |     ✅     |    🔄     | XDG icon support pending via [PR #2122](https://github.com/davatorium/rofi/pull/2122) |
+| [Walker](https://github.com/abenz1267/walker) |     ✅     |    ✅     | XDG icons supported since v0.12.21                                                    |
+| [dmenu](https://tools.suckless.org/dmenu)     |     ✅     |    ❌     | No XDG icon support                                                                   |
+| Custom (stdin)                                |     ✅     |    ❔     | Depends on launcher implementation                                                    |
 
-Use `custom` mode if your launcher is not supported.
+> [!TIP]
+> If your preferred launcher isn't directly supported, use `custom` mode with appropriate command flags.
 
 ## Installation
 
