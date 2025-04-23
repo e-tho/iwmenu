@@ -20,6 +20,7 @@
 ### Runtime
 
 - [`iwd`](https://iwd.wiki.kernel.org) – iNet Wireless Daemon
+- [`dbus`](https://www.freedesktop.org/wiki/Software/dbus) – For communicating with `iwd`
 - A launcher with `stdin` mode support
 
 #### Optional
