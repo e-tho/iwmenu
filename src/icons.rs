@@ -131,7 +131,7 @@ impl Icons {
             "scan",
             IconDefinition::with_fallbacks(
                 Some("view-refresh-symbolic"),
-                "sync-synchronizing-symbolic,emblem-synchronizing,view-refresh-symbolic",
+                "sync-synchronizing-symbolic,emblem-synchronizing-symbolic,view-refresh-symbolic",
             ),
         );
         xdg_icons.insert("disable_adapter", 
