@@ -610,7 +610,7 @@ impl App {
                 self.notification_manager,
                 None,
                 Some(t!("notifications.station.scan_in_progress").to_string()),
-                Some("scan"),
+                Some("scan_in_progress"),
                 Some(Timeout::Never)
             );
 
