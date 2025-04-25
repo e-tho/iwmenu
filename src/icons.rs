@@ -130,9 +130,13 @@ impl Icons {
         xdg_icons.insert(
             "scan",
             IconDefinition::with_fallbacks(
-                Some("view-refresh-symbolic"),
+                None,
                 "sync-synchronizing-symbolic,emblem-synchronizing-symbolic,view-refresh-symbolic",
             ),
+        );
+        xdg_icons.insert(
+            "scan_in_progress",
+            IconDefinition::simple("network-wireless-acquiring-symbolic"),
         );
         xdg_icons.insert("disable_adapter", 
             IconDefinition::with_fallbacks(
@@ -195,7 +199,7 @@ impl Icons {
         );
         xdg_icons.insert(
             "power_on_device",
-            IconDefinition::simple("system-shutdown-symbolic"),
+            IconDefinition::simple("network-wireless-symbolic"),
         );
         xdg_icons.insert(
             "switch_mode",
