@@ -4,7 +4,7 @@
     <a href="https://ko-fi.com/e_tho"><img src="https://img.shields.io/badge/Ko--fi-F16061?style=flat&logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
     <a href="https://liberapay.com/e-tho"><img src="https://img.shields.io/badge/Liberapay-F6C915?style=flat&logo=liberapay&logoColor=333333" alt="Liberapay"></a>
   </p>
-  <img src="./assets/demo.gif" alt="Demonstration of iwmenu: a menu-driven Wi-Fi management interface" width="800">
+  <img src="./assets/demo.gif" alt="Demonstration of iwmenu: a launcher-driven Wi-Fi manager for Linux" width="800">
 </div>
 
 ## About
