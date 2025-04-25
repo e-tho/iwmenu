@@ -1,5 +1,5 @@
 {
-  description = "Menu-driven Wi-Fi management interface for Linux";
+  description = "Launcher-driven Wi-Fi manager for Linux";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
@@ -47,7 +47,7 @@
           RUST_BACKTRACE = "full";
 
           meta = {
-            description = "Menu-driven Wi-Fi management interface for Linux";
+            description = "Launcher-driven Wi-Fi manager for Linux";
             homepage = "https://github.com/e-tho/iwmenu";
             license = pkgs.lib.licenses.gpl3;
             maintainers = [

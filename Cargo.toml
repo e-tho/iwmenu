@@ -2,7 +2,7 @@
 name = "iwmenu"
 version = "0.1.1"
 edition = "2018"
-description = "Menu-driven Wi-Fi management interface for Linux"
+description = "Launcher-driven Wi-Fi manager for Linux"
 authors = ["e-tho"]
 license = "GPL-3.0"
 readme = "README.md"
