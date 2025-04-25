@@ -102,25 +102,25 @@ impl Icons {
             ),
         );
 
-        xdg_icons.insert("signal_weak_secure", 
+        xdg_icons.insert("signal_weak_secure",
         IconDefinition::with_fallbacks(
                 Some("network-wireless-signal-weak-symbolic"),
                 "network-wireless-signal-weak-secure-symbolic,network-wireless-signal-weak-symbolic,network-wireless-symbolic"
             )
         );
-        xdg_icons.insert("signal_ok_secure", 
+        xdg_icons.insert("signal_ok_secure",
             IconDefinition::with_fallbacks(
                 Some("network-wireless-signal-ok-symbolic"),
                 "network-wireless-signal-ok-secure-symbolic,network-wireless-signal-ok-symbolic,network-wireless-symbolic"
             )
         );
-        xdg_icons.insert("signal_good_secure", 
+        xdg_icons.insert("signal_good_secure",
             IconDefinition::with_fallbacks(
                 Some("network-wireless-signal-good-symbolic"),
                 "network-wireless-signal-good-secure-symbolic,network-wireless-signal-good-symbolic,network-wireless-symbolic"
             )
         );
-        xdg_icons.insert("signal_excellent_secure", 
+        xdg_icons.insert("signal_excellent_secure",
             IconDefinition::with_fallbacks(
                 Some("network-wireless-signal-excellent-symbolic"),
                 "network-wireless-signal-excellent-secure-symbolic,network-wireless-signal-excellent-symbolic,network-wireless-symbolic"
@@ -138,7 +138,7 @@ impl Icons {
             "scan_in_progress",
             IconDefinition::simple("network-wireless-acquiring-symbolic"),
         );
-        xdg_icons.insert("disable_adapter", 
+        xdg_icons.insert("disable_adapter",
             IconDefinition::with_fallbacks(
                 Some("network-wireless-disabled-symbolic"),
                 "network-wireless-hardware-disabled-symbolic,network-wireless-disabled-symbolic,network-wireless-off"
@@ -158,7 +158,7 @@ impl Icons {
                 "media-playlist-repeat-symbolic,media-repeat-symbolic",
             ),
         );
-        xdg_icons.insert("disable_autoconnect", 
+        xdg_icons.insert("disable_autoconnect",
             IconDefinition::with_fallbacks(
                 Some("media-playlist-repeat-song-symbolic"),
                 "media-playlist-no-repeat-symbolic,media-repeat-none-symbolic,media-playlist-repeat-song-symbolic"
