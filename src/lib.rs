@@ -8,6 +8,7 @@ i18n!("locales");
 
 pub mod app;
 pub mod icons;
+pub mod launcher;
 pub mod menu;
 pub mod notification;
 pub mod iw {

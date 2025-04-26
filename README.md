@@ -9,7 +9,7 @@
 
 ## About
 
-`iwmenu` (**i**Net **W**ireless **Menu**) allows using your menu of choice to manage the wireless network.
+`iwmenu` (**i**Net **W**ireless **Menu**) allows using your launcher of choice to manage the wireless network.
 
 ## Dependencies
 
@@ -96,20 +96,20 @@ sudo emerge -a net-wireless/iwmenu
 
 ## Usage
 
-### Supported menus
+### Supported launchers
 
-Specify an application using `-m` or `--menu` flag.
+Specify an application using `-l` or `--launcher` flag.
 
 ```shell
-iwmenu -m fuzzel
+iwmenu -l fuzzel
 ```
 
-### Custom menus
+### Custom launchers
 
-Specify `custom` as the menu and set your command using the `--menu-command` flag. Ensure your launcher supports `stdin` mode, and that it is properly configured in the command.
+Specify `custom` as the launcher and set your command using the `--launcher-command` flag. Ensure your launcher supports `stdin` mode, and that it is properly configured in the command.
 
 ```shell
-iwmenu -m custom --menu-command "my_custom_launcher --flag"
+iwmenu -l custom --launcher-command "my_custom_launcher --flag"
 ```
 
 #### Prompt and Placeholder support
@@ -117,7 +117,7 @@ iwmenu -m custom --menu-command "my_custom_launcher --flag"
 Use either `{prompt}` or `{placeholder}` as the value for the relevant flag in your command; each will be replaced with the appropriate text as needed. They return the same string, with `{prompt}` adding a colon at the end.
 
 ```shell
-iwmenu -m custom --menu-command "my_custom_launcher --prompt-flag '{prompt}'" # or --placeholder-flag '{placeholder}'
+iwmenu -l custom --launcher-command "my_custom_launcher --prompt-flag '{prompt}'" # or --placeholder-flag '{placeholder}'
 ```
 
 #### Password obfuscation support
@@ -125,7 +125,7 @@ iwmenu -m custom --menu-command "my_custom_launcher --prompt-flag '{prompt}'" # 
 To enable support for password obfuscation, set the appropriate flag via `{password_flag:--my-password-flag}`.
 
 ```shell
-iwmenu -m custom --menu-command "my_custom_launcher {password_flag:--my-password-flag}"
+iwmenu -l custom --launcher-command "my_custom_launcher {password_flag:--my-password-flag}"
 ```
 
 #### Example to enable all features
@@ -133,17 +133,17 @@ iwmenu -m custom --menu-command "my_custom_launcher {password_flag:--my-password
 This example demonstrates enabling all available features in custom mode with `fuzzel`.
 
 ```shell
-iwmenu -m custom --menu-command "fuzzel -d -p '{prompt}' {password_flag:--password}"
+iwmenu -l custom --launcher-command "fuzzel -d -p '{prompt}' {password_flag:--password}"
 ```
 
 ### Available Options
 
-| Flag             | Description                                           | Supported Values                              | Default Value |
-| ---------------- | ----------------------------------------------------- | --------------------------------------------- | ------------- |
-| `-m`, `--menu`   | Specify the menu application to use.                  | `dmenu`, `rofi`, `fuzzel`, `walker`, `custom` | `dmenu`       |
-| `--menu-command` | Specify the command to use when `custom` menu is set. | Any valid shell command                       | `None`        |
-| `-i`, `--icon`   | Specify the icon type to use.                         | `font`, `xdg`                                 | `font`        |
-| `-s`, `--spaces` | Specify icon to text space count (font icons only).   | Any positive integer                          | `1`           |
+| Flag                 | Description                                               | Supported Values                              | Default Value |
+| -------------------- | --------------------------------------------------------- | --------------------------------------------- | ------------- |
+| `-l`, `--launcher`   | Specify the launcher to use.                              | `dmenu`, `rofi`, `fuzzel`, `walker`, `custom` | `dmenu`       |
+| `--launcher-command` | Specify the command to use when `custom` launcher is set. | Any valid shell command                       | `None`        |
+| `-i`, `--icon`       | Specify the icon type to use.                             | `font`, `xdg`                                 | `font`        |
+| `-s`, `--spaces`     | Specify icon to text space count (font icons only).       | Any positive integer                          | `1`           |
 
 ## License
 
