@@ -9,7 +9,7 @@
 
 ## About
 
-`iwmenu` (**i**Net **W**ireless **Menu**) allows using your launcher of choice to manage the wireless network.
+`iwmenu` (**i**Net **W**ireless **Menu**) manages Wi-Fi through your launcher of choice.
 
 ## Dependencies
 
