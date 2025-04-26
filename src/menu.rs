@@ -1,31 +1,11 @@
 use crate::icons::Icons;
 use crate::iw::{access_point::AccessPoint, network::Network, station::Station};
-use anyhow::{anyhow, Context, Result};
-use clap::ArgEnum;
+use crate::launcher::{Launcher, LauncherType};
+use anyhow::{anyhow, Result};
 use iwdrs::modes::Mode;
-use nix::sys::signal::{killpg, Signal};
-use nix::unistd::Pid;
-use process_wrap::std::{ProcessGroup, StdCommandWrap};
-use regex::Regex;
 use rust_i18n::t;
-use shlex::Shlex;
-use signal_hook::iterator::Signals;
+use std::borrow::Cow;
 use std::sync::Arc;
-use std::thread;
-use std::{
-    borrow::Cow,
-    io::Write,
-    process::{Command, Stdio},
-};
-
-#[derive(Debug, Clone, ArgEnum)]
-pub enum MenuType {
-    Fuzzel,
-    Rofi,
-    Dmenu,
-    Walker,
-    Custom,
-}
 
 #[derive(Debug, Clone)]
 pub enum MainMenuOptions {
@@ -230,16 +210,16 @@ impl AdapterMenuOptions {
 
 #[derive(Clone)]
 pub struct Menu {
-    pub menu_type: MenuType,
+    pub menu_type: LauncherType,
     pub icons: Arc<Icons>,
 }
 
 impl Menu {
-    pub fn new(menu_type: MenuType, icons: Arc<Icons>) -> Self {
+    pub fn new(menu_type: LauncherType, icons: Arc<Icons>) -> Self {
         Self { menu_type, icons }
     }
 
-    pub fn run_menu_command(
+    pub fn run_launcher(
         &self,
         menu_command: &Option<String>,
         input: Option<&str>,
@@ -247,131 +227,16 @@ impl Menu {
         prompt: Option<&str>,
         obfuscate: bool,
     ) -> Result<Option<String>> {
-        let (prompt_text, placeholder_text) = if let Some(p) = prompt {
-            (format!("{}: ", p), p.to_string())
-        } else {
-            (String::new(), String::new())
-        };
+        let cmd = Launcher::create_command(
+            &self.menu_type,
+            menu_command,
+            icon_type,
+            prompt,
+            prompt,
+            obfuscate,
+        )?;
 
-        let mut command = match self.menu_type {
-            MenuType::Fuzzel => {
-                let mut cmd = Command::new("fuzzel");
-                cmd.arg("-d");
-                if icon_type == "font" {
-                    cmd.arg("-I");
-                }
-                if !placeholder_text.is_empty() {
-                    cmd.arg("--placeholder").arg(&placeholder_text);
-                }
-                if obfuscate {
-                    cmd.arg("--password");
-                }
-                cmd
-            }
-            MenuType::Rofi => {
-                let mut cmd = Command::new("rofi");
-                cmd.arg("-m").arg("-1").arg("-dmenu");
-                if icon_type == "xdg" {
-                    cmd.arg("-show-icons");
-                }
-                if !placeholder_text.is_empty() {
-                    cmd.arg("-theme-str").arg(format!(
-                        "entry {{ placeholder: \"{}\"; }}",
-                        placeholder_text
-                    ));
-                }
-                if obfuscate {
-                    cmd.arg("-password");
-                }
-                cmd
-            }
-            MenuType::Dmenu => {
-                let mut cmd = Command::new("dmenu");
-                if !prompt_text.is_empty() {
-                    cmd.arg("-p").arg(&prompt_text);
-                }
-                cmd
-            }
-            MenuType::Walker => {
-                let mut cmd = Command::new("walker");
-                cmd.arg("-d").arg("-k");
-                if !placeholder_text.is_empty() {
-                    cmd.arg("-p").arg(&placeholder_text);
-                }
-                if obfuscate {
-                    cmd.arg("-y");
-                }
-                cmd
-            }
-            MenuType::Custom => {
-                if let Some(cmd_str) = menu_command {
-                    let mut cmd_processed = cmd_str.clone();
-                    cmd_processed = cmd_processed.replace("{prompt}", &prompt_text);
-                    cmd_processed = cmd_processed.replace("{placeholder}", &placeholder_text);
-
-                    let re = Regex::new(r"\{(\w+):([^\}]+)\}").unwrap();
-                    cmd_processed = re
-                        .replace_all(&cmd_processed, |caps: &regex::Captures| {
-                            let placeholder_name = &caps[1];
-                            let default_value = &caps[2];
-                            match placeholder_name {
-                                "password_flag" => {
-                                    if obfuscate {
-                                        default_value.to_string()
-                                    } else {
-                                        "".to_string()
-                                    }
-                                }
-                                _ => caps[0].to_string(),
-                            }
-                        })
-                        .to_string();
-
-                    let parts: Vec<String> = Shlex::new(&cmd_processed).collect();
-                    let (cmd_program, args) = parts
-                        .split_first()
-                        .ok_or_else(|| anyhow!("Failed to parse custom menu command"))?;
-
-                    let mut cmd = Command::new(cmd_program);
-                    cmd.args(args);
-                    cmd
-                } else {
-                    return Err(anyhow!("No custom menu command provided"));
-                }
-            }
-        };
-
-        command.stdin(Stdio::piped()).stdout(Stdio::piped());
-
-        let mut command_wrap = StdCommandWrap::from(command);
-        command_wrap.wrap(ProcessGroup::leader());
-
-        let mut child = command_wrap
-            .spawn()
-            .context("Failed to spawn menu command")?;
-
-        let pid = child.id() as i32;
-        thread::spawn(move || {
-            let mut signals = Signals::new([libc::SIGTERM, libc::SIGINT]).unwrap();
-            for _signal in signals.forever() {
-                let _ = killpg(Pid::from_raw(pid), Signal::SIGTERM);
-            }
-        });
-
-        if let Some(input_data) = input {
-            if let Some(stdin) = child.stdin().as_mut() {
-                stdin.write_all(input_data.as_bytes())?;
-            }
-        }
-
-        let output = child.wait_with_output()?;
-        let trimmed_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
-
-        if trimmed_output.is_empty() {
-            Ok(None)
-        } else {
-            Ok(Some(trimmed_output))
-        }
+        Launcher::run(cmd, input)
     }
 
     pub fn get_signal_icon(
@@ -517,8 +382,7 @@ impl Menu {
             .get_icon_text(options_after_networks, icon_type, spaces);
         input.push_str(&format!("\n{}", settings_input));
 
-        let menu_output =
-            self.run_menu_command(menu_command, Some(&input), icon_type, None, false)?;
+        let menu_output = self.run_launcher(menu_command, Some(&input), icon_type, None, false)?;
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -586,7 +450,7 @@ impl Menu {
         let prompt = t!("menus.known_network.prompt", ssid = network_ssid);
 
         let menu_output =
-            self.run_menu_command(menu_command, Some(&input), icon_type, Some(&prompt), false)?;
+            self.run_launcher(menu_command, Some(&input), icon_type, Some(&prompt), false)?;
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -650,8 +514,7 @@ impl Menu {
             .collect::<Vec<String>>()
             .join("\n");
 
-        let menu_output =
-            self.run_menu_command(menu_command, Some(&input), icon_type, None, false)?;
+        let menu_output = self.run_launcher(menu_command, Some(&input), icon_type, None, false)?;
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -688,7 +551,7 @@ impl Menu {
         let input = self.icons.get_icon_text(options, icon_type, spaces);
 
         if let Ok(Some(output)) =
-            self.run_menu_command(menu_command, Some(&input), icon_type, None, false)
+            self.run_launcher(menu_command, Some(&input), icon_type, None, false)
         {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
@@ -720,8 +583,7 @@ impl Menu {
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
 
-        let menu_output =
-            self.run_menu_command(menu_command, Some(&input), icon_type, None, false)?;
+        let menu_output = self.run_launcher(menu_command, Some(&input), icon_type, None, false)?;
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -741,14 +603,14 @@ impl Menu {
         icon_type: &str,
     ) -> Option<String> {
         let prompt_text = t!("menus.main.options.network.prompt", ssid = ssid);
-        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
+        self.run_launcher(menu_command, None, icon_type, Some(&prompt_text), true)
             .ok()
             .flatten()
     }
 
     pub fn prompt_ap_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
         let prompt_text = t!("menus.ap.options.set_ssid.prompt");
-        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), false)
+        self.run_launcher(menu_command, None, icon_type, Some(&prompt_text), false)
             .ok()
             .flatten()
     }
@@ -759,7 +621,7 @@ impl Menu {
         icon_type: &str,
     ) -> Option<String> {
         let prompt_text = t!("menus.ap.options.set_passphrase.prompt");
-        self.run_menu_command(menu_command, None, icon_type, Some(&prompt_text), true)
+        self.run_launcher(menu_command, None, icon_type, Some(&prompt_text), true)
             .ok()
             .flatten()
     }

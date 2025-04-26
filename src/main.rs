@@ -1,10 +1,6 @@
 use anyhow::{anyhow, Result};
 use clap::{builder::EnumValueParser, Arg, Command};
-use iwmenu::{
-    app::App,
-    icons::Icons,
-    menu::{Menu, MenuType},
-};
+use iwmenu::{app::App, icons::Icons, launcher::LauncherType, menu::Menu};
 use rust_i18n::{i18n, set_locale};
 use std::{env, sync::Arc};
 use sys_locale::get_locale;
@@ -25,21 +21,37 @@ async fn main() -> Result<()> {
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .arg(
-            Arg::new("menu")
+            Arg::new("launcher")
+                .long("launcher")
+                .takes_value(true)
+                .value_parser(EnumValueParser::<LauncherType>::new())
+                .conflicts_with("menu")
+                .help("Launcher to use (replaces deprecated --menu)"),
+        )
+        .arg(
+            Arg::new("menu") // deprecated
                 .short('m')
                 .long("menu")
                 .takes_value(true)
-                .required(true)
-                .value_parser(EnumValueParser::<MenuType>::new())
+                .value_parser(EnumValueParser::<LauncherType>::new())
                 .default_value("dmenu")
-                .help("Menu application to use"),
+                .hide(true)
+                .help("DEPRECATED: use --launcher instead"),
         )
         .arg(
-            Arg::new("menu_command")
+            Arg::new("launcher_command")
+                .long("launcher-command")
+                .takes_value(true)
+                .conflicts_with("menu_command")
+                .help("Launcher command to use when --launcher is set to custom"),
+        )
+        .arg(
+            Arg::new("menu_command") // deprecated
                 .long("menu-command")
                 .takes_value(true)
                 .required_if_eq("menu", "custom")
-                .help("Menu command to use when --menu is set to custom"),
+                .hide(true)
+                .help("DEPRECATED: use --launcher-command instead"),
         )
         .arg(
             Arg::new("icon")
@@ -60,12 +72,33 @@ async fn main() -> Result<()> {
         )
         .get_matches();
 
-    let menu_type: MenuType = matches.get_one::<MenuType>("menu").cloned().unwrap();
-    let menu_command = matches.get_one::<String>("menu_command").cloned();
+    let launcher_type: LauncherType = if matches.contains_id("launcher") {
+        matches
+            .get_one::<LauncherType>("launcher")
+            .cloned()
+            .unwrap()
+    } else if matches.contains_id("menu") {
+        eprintln!("WARNING: --menu flag is deprecated. Please use --launcher instead.");
+        matches.get_one::<LauncherType>("menu").cloned().unwrap()
+    } else {
+        LauncherType::Dmenu
+    };
+
+    let command_str = if matches.contains_id("launcher_command") {
+        matches.get_one::<String>("launcher_command").cloned()
+    } else if matches.contains_id("menu_command") {
+        eprintln!(
+            "WARNING: --menu-command flag is deprecated. Please use --launcher-command instead."
+        );
+        matches.get_one::<String>("menu_command").cloned()
+    } else {
+        None
+    };
+
     let icon_type = matches.get_one::<String>("icon").cloned().unwrap();
 
     let icons = Arc::new(Icons::new());
-    let menu = Menu::new(menu_type, icons.clone());
+    let menu = Menu::new(launcher_type, icons.clone());
 
     let spaces = matches
         .get_one::<String>("spaces")
@@ -80,14 +113,14 @@ async fn main() -> Result<()> {
         }
     });
 
-    run_app_loop(&menu, &menu_command, &icon_type, spaces, log_sender, icons).await?;
+    run_app_loop(&menu, &command_str, &icon_type, spaces, log_sender, icons).await?;
 
     Ok(())
 }
 
 async fn run_app_loop(
     menu: &Menu,
-    menu_command: &Option<String>,
+    command_str: &Option<String>,
     icon_type: &str,
     spaces: usize,
     log_sender: tokio::sync::mpsc::UnboundedSender<String>,
@@ -96,7 +129,7 @@ async fn run_app_loop(
     let mut app = App::new(menu.clone(), log_sender.clone(), icons.clone()).await?;
 
     loop {
-        match app.run(menu, menu_command, icon_type, spaces).await {
+        match app.run(menu, command_str, icon_type, spaces).await {
             Ok(_) => {
                 if !app.reset_mode {
                     break;
