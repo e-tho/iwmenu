@@ -22,6 +22,7 @@ async fn main() -> Result<()> {
         .about(env!("CARGO_PKG_DESCRIPTION"))
         .arg(
             Arg::new("launcher")
+                .short('l')
                 .long("launcher")
                 .takes_value(true)
                 .value_parser(EnumValueParser::<LauncherType>::new())
