@@ -24,6 +24,7 @@ async fn main() -> Result<()> {
             Arg::new("launcher")
                 .short('l')
                 .long("launcher")
+                .required(true)
                 .takes_value(true)
                 .value_parser(EnumValueParser::<LauncherType>::new())
                 .conflicts_with("menu")
@@ -43,6 +44,7 @@ async fn main() -> Result<()> {
             Arg::new("launcher_command")
                 .long("launcher-command")
                 .takes_value(true)
+                .required_if_eq("launcher", "custom")
                 .conflicts_with("menu_command")
                 .help("Launcher command to use when --launcher is set to custom"),
         )
