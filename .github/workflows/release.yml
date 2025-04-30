@@ -24,8 +24,8 @@ jobs:
 
       - name: Build for x86_64 linux gnu
         run: |
-          CROSS_CONTAINER_ENGINE=podman cross build --target x86_64-unknown-linux-gnu --release
-          cp target/x86_64-unknown-linux-gnu/release/iwmenu iwmenu-x86_64-linux-gnu
+          cargo build --release
+          cp target/release/iwmenu iwmenu-x86_64-linux-gnu
           strip iwmenu-x86_64-linux-gnu
 
       - name: Build for aarch64 linux gnu
