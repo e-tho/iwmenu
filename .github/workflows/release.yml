@@ -22,17 +22,17 @@ jobs:
           sudo apt-get install -y musl-tools podman binutils-aarch64-linux-gnu
           cargo install cross --locked
 
-      - name: Build for x86_64
+      - name: Build for x86_64 linux gnu
         run: |
           CROSS_CONTAINER_ENGINE=podman cross build --target x86_64-unknown-linux-gnu --release
-          cp target/x86_64-unknown-linux-gnu/release/iwmenu iwmenu-x86_64-unknown-linux-gnu
-          strip iwmenu-x86_64-unknown-linux-gnu
+          cp target/x86_64-unknown-linux-gnu/release/iwmenu iwmenu-x86_64-linux-gnu
+          strip iwmenu-x86_64-linux-gnu
 
-      - name: Build for arm64
+      - name: Build for aarch64 linux gnu
         run: |
           CROSS_CONTAINER_ENGINE=podman cross build --target aarch64-unknown-linux-gnu --release
-          cp target/aarch64-unknown-linux-gnu/release/iwmenu iwmenu-aarch64-unknown-linux-gnu
-          aarch64-linux-gnu-strip iwmenu-aarch64-unknown-linux-gnu
+          cp target/aarch64-unknown-linux-gnu/release/iwmenu iwmenu-aarch64-linux-gnu
+          aarch64-linux-gnu-strip iwmenu-aarch64-linux-gnu
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
