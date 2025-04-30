@@ -202,13 +202,8 @@ impl App {
                 self.perform_network_scan().await?;
             }
             MainMenuOptions::Settings => {
-                if let Some(option) = menu
-                    .show_settings_menu(menu_command, &self.current_mode, icon_type, spaces)
-                    .await?
-                {
-                    self.handle_settings_options(option, menu, menu_command, icon_type, spaces)
-                        .await?;
-                }
+                self.handle_settings_menu(menu, menu_command, icon_type, spaces)
+                    .await?;
             }
             MainMenuOptions::Network(output) => {
                 if let Some(ssid) = self
@@ -358,6 +353,38 @@ impl App {
         }
     }
 
+    async fn handle_settings_menu(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
+        let mut stay_in_settings_menu = true;
+
+        while stay_in_settings_menu {
+            self.adapter.refresh().await?;
+
+            if let Some(option) = menu
+                .show_settings_menu(menu_command, &self.current_mode, icon_type, spaces)
+                .await?
+            {
+                let should_stay = self
+                    .handle_settings_options(option, menu, menu_command, icon_type, spaces)
+                    .await?;
+
+                if !should_stay {
+                    stay_in_settings_menu = false;
+                }
+            } else {
+                try_send_log!(self.log_sender, "Exited settings menu".to_string());
+                stay_in_settings_menu = false;
+            }
+        }
+
+        Ok(())
+    }
+
     async fn handle_settings_options(
         &mut self,
         option: SettingsMenuOptions,
@@ -365,19 +392,20 @@ impl App {
         menu_command: &Option<String>,
         icon_type: &str,
         spaces: usize,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         match option {
             SettingsMenuOptions::DisableAdapter => {
                 self.perform_adapter_disable(menu, menu_command, icon_type, spaces)
                     .await?;
+                Ok(false)
             }
             SettingsMenuOptions::SwitchMode => {
                 self.perform_mode_switch(menu).await?;
                 self.reset_mode = true;
                 self.running = false;
+                Ok(false)
             }
         }
-        Ok(())
     }
 
     async fn handle_adapter_options(
