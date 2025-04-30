@@ -289,7 +289,7 @@ impl App {
         icon_type: &str,
         spaces: usize,
         is_connected: bool,
-    ) -> Result<()> {
+    ) -> Result<bool> {
         let mut available_options = vec![];
 
         if is_connected {
@@ -319,17 +319,21 @@ impl App {
                 KnownNetworkOptions::DisableAutoconnect => {
                     self.perform_toggle_autoconnect(known_network, false)
                         .await?;
+                    Ok(true)
                 }
                 KnownNetworkOptions::EnableAutoconnect => {
                     self.perform_toggle_autoconnect(known_network, true).await?;
+                    Ok(true)
                 }
                 KnownNetworkOptions::ForgetNetwork => {
                     self.perform_forget_network(known_network).await?;
+                    Ok(false)
                 }
                 KnownNetworkOptions::Disconnect => {
                     if is_connected {
                         self.perform_network_disconnection().await?;
                     }
+                    Ok(true)
                 }
                 KnownNetworkOptions::Connect => {
                     if let Some(station) = self.adapter.device.station.as_mut() {
@@ -342,15 +346,16 @@ impl App {
                             self.perform_known_network_connection(&network).await?;
                         }
                     }
+                    Ok(true)
                 }
             }
+        } else {
+            try_send_log!(
+                self.log_sender,
+                format!("Exited network menu for {}", known_network.name)
+            );
+            Ok(false)
         }
-
-        if let Some(station) = self.adapter.device.station.as_mut() {
-            station.refresh().await?;
-        }
-
-        Ok(())
     }
 
     async fn handle_settings_options(
@@ -441,7 +446,7 @@ impl App {
                     .as_ref()
                     .is_some_and(|cn| cn.name == network.name);
 
-                self.handle_known_network_options(
+                self.handle_network_menu(
                     menu,
                     menu_command,
                     known_network,
@@ -459,6 +464,74 @@ impl App {
         }
 
         Ok(None)
+    }
+
+    async fn handle_network_menu(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        known_network: &KnownNetwork,
+        icon_type: &str,
+        spaces: usize,
+        is_connected: bool,
+    ) -> Result<()> {
+        let mut stay_in_network_menu = true;
+        let mut network_clone = known_network.clone();
+        let mut current_is_connected = is_connected;
+
+        while stay_in_network_menu {
+            if let Some(station) = self.adapter.device.station.as_mut() {
+                station.refresh().await?;
+
+                current_is_connected = station
+                    .connected_network
+                    .as_ref()
+                    .is_some_and(|cn| cn.name == network_clone.name);
+
+                if let Some((updated_network, _)) = station
+                    .known_networks
+                    .iter()
+                    .find(|(net, _)| net.name == network_clone.name)
+                {
+                    if let Some(ref updated_known_network) = updated_network.known_network {
+                        network_clone = updated_known_network.clone();
+                    } else {
+                        try_send_log!(
+                            self.log_sender,
+                            format!("Network {} is no longer available", network_clone.name)
+                        );
+                        break;
+                    }
+                } else {
+                    try_send_log!(
+                        self.log_sender,
+                        format!("Network {} is no longer available", network_clone.name)
+                    );
+                    break;
+                }
+            }
+
+            let should_stay = self
+                .handle_known_network_options(
+                    menu,
+                    menu_command,
+                    &network_clone,
+                    icon_type,
+                    spaces,
+                    current_is_connected,
+                )
+                .await?;
+
+            if !should_stay {
+                stay_in_network_menu = false;
+            }
+
+            if let Some(station) = self.adapter.device.station.as_mut() {
+                station.refresh().await?;
+            }
+        }
+
+        Ok(())
     }
 
     async fn perform_known_network_connection(
