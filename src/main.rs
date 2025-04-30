@@ -36,7 +36,6 @@ async fn main() -> Result<()> {
                 .long("menu")
                 .takes_value(true)
                 .value_parser(EnumValueParser::<LauncherType>::new())
-                .default_value("dmenu")
                 .hide(true)
                 .help("DEPRECATED: use --launcher instead"),
         )
