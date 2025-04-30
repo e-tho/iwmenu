@@ -181,15 +181,15 @@ impl Icons {
         xdg_icons.insert(
             "connect",
             IconDefinition::with_fallbacks(
-                None,
-                "network-connect-symbolic,entries-linked-symbolic,link-symbolic",
+                Some("network-connect-symbolic"),
+                "entries-linked-symbolic,network-connect-symbolic,link-symbolic",
             ),
         );
         xdg_icons.insert(
             "disconnect",
             IconDefinition::with_fallbacks(
-                None,
-                "network-disconnect-symbolic,entries-unlinked-symbolic,media-eject-symbolic",
+                Some("network-disconnect-symbolic"),
+                "entries-unlinked-symbolic,network-disconnect-symbolic,media-eject-symbolic",
             ),
         );
 
