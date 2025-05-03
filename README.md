@@ -4,7 +4,14 @@
     <a href="https://ko-fi.com/e_tho"><img src="https://img.shields.io/badge/Ko--fi-F16061?style=flat&logo=ko-fi&logoColor=white" alt="Ko-fi"></a>
     <a href="https://liberapay.com/e-tho"><img src="https://img.shields.io/badge/Liberapay-F6C915?style=flat&logo=liberapay&logoColor=333333" alt="Liberapay"></a>
   </p>
-  <img src="./assets/demo.gif" alt="Demonstration of iwmenu: a launcher-driven Wi-Fi manager for Linux" width="800">
+  <p>
+    <img src="./assets/demo.gif" alt="Demonstration of iwmenu: a launcher-driven Wi-Fi manager for Linux" width="800">
+  </p>
+  <p>
+    <a href="https://github.com/e-tho/bzmenu" title="Try bzmenu: a launcher-driven Bluetooth manager for Linux">
+      <img src="https://custom-icon-badges.demolab.com/badge/Try-bzmenu-1565C0?style=for-the-badge&logo=bluetooth&logoSource=feather&logoColor=white" alt="bzmenu: a launcher-driver Bluetooth manager for Linux" />
+    </a>
+  </p>
 </div>
 
 ## About
