@@ -152,6 +152,10 @@ iwmenu -l custom --launcher-command "fuzzel -d -p '{prompt}' {password_flag:--pa
 | `-i`, `--icon`       | Specify the icon type to use.                             | `font`, `xdg`                                 | `font`        |
 | `-s`, `--spaces`     | Specify icon to text space count (font icons only).       | Any positive integer                          | `1`           |
 
+## Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
+
 ## License
 
 GPLv3
