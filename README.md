@@ -83,6 +83,14 @@ Install the package:
 }
 ```
 
+### Alpine Linux
+
+Install the package from the testing repository:
+
+```shell
+apk add iwmenu
+```
+
 ### Arch Linux
 
 Install the package with your favorite AUR helper:
