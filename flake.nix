@@ -15,49 +15,63 @@
       flake-utils,
       ...
     }:
-    flake-utils.lib.eachDefaultSystem (
+    let
+      # Define the overlay function that can be used across systems
+      iwmenuOverlay =
+        final: prev:
+        let
+          cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
+          cargoPackageVersion = cargoToml.package.version;
+          commitHash = self.shortRev or self.dirtyShortRev or "unknown";
+          version = "${cargoPackageVersion}-unstable-${commitHash}";
+        in
+        {
+          iwmenu = final.rustPlatform.buildRustPackage {
+            pname = "iwmenu";
+            inherit version;
+
+            src = ./.;
+
+            cargoLock = {
+              lockFile = ./Cargo.lock;
+            };
+
+            doCheck = true;
+            CARGO_BUILD_INCREMENTAL = "false";
+            RUST_BACKTRACE = "full";
+
+            meta = {
+              description = "Launcher-driven Wi-Fi manager for Linux";
+              homepage = "https://github.com/e-tho/iwmenu";
+              license = final.lib.licenses.gpl3;
+              maintainers = [
+                {
+                  github = "e-tho";
+                }
+              ];
+              mainProgram = "iwmenu";
+            };
+          };
+        };
+    in
+    {
+      # Export the overlay at the top level
+      overlays.default = iwmenuOverlay;
+    }
+    // (flake-utils.lib.eachDefaultSystem (
       system:
       let
-        overlays = [ (import rust-overlay) ];
+        overlays = [
+          (import rust-overlay)
+          iwmenuOverlay
+        ];
 
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-
-        cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
-        cargoPackageVersion = cargoToml.package.version;
-
-        commitHash = self.shortRev or self.dirtyShortRev or "unknown";
-
-        version = "${cargoPackageVersion}-unstable-${commitHash}";
       in
       {
-        packages.default = pkgs.rustPlatform.buildRustPackage {
-          pname = "iwmenu";
-          inherit version;
-
-          src = ./.;
-
-          cargoLock = {
-            lockFile = ./Cargo.lock;
-          };
-
-          doCheck = true;
-          CARGO_BUILD_INCREMENTAL = "false";
-          RUST_BACKTRACE = "full";
-
-          meta = {
-            description = "Launcher-driven Wi-Fi manager for Linux";
-            homepage = "https://github.com/e-tho/iwmenu";
-            license = pkgs.lib.licenses.gpl3;
-            maintainers = [
-              {
-                github = "e-tho";
-              }
-            ];
-            mainProgram = "iwmenu";
-          };
-        };
+        packages.default = pkgs.iwmenu;
 
         devShells.default =
           with pkgs;
@@ -68,8 +82,8 @@
               })
             ];
 
-            inherit (self.packages.${system}.default) CARGO_BUILD_INCREMENTAL RUST_BACKTRACE;
+            inherit (pkgs.iwmenu) CARGO_BUILD_INCREMENTAL RUST_BACKTRACE;
           };
       }
-    );
+    ));
 }

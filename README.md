@@ -68,6 +68,8 @@ An executable file will be generated at `target/release/iwmenu`, which you can t
 
 ### Nix
 
+#### Using Flake Input (Recommended)
+
 Add the flake as an input:
 
 ```nix
@@ -80,6 +82,27 @@ Install the package:
 { inputs, ... }:
 {
   environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
+}
+```
+
+#### Using Overlay
+
+Add the flake as an input and apply the overlay:
+
+```nix
+inputs.iwmenu.url = "github:e-tho/iwmenu";
+```
+
+Apply the overlay in your system configuration:
+
+```nix
+{ inputs, ... }:
+{
+  nixpkgs.overlays = [ inputs.iwmenu.overlays.default ];
+  
+  environment.systemPackages = with pkgs; [
+    iwmenu
+  ];
 }
 ```
 
