@@ -68,7 +68,7 @@ An executable file will be generated at `target/release/iwmenu`, which you can t
 
 ### Nix
 
-Install the package from nixpkgs:
+Install from nixpkgs:
 
 ```nix
 { pkgs, ... }:
@@ -80,13 +80,13 @@ Install the package from nixpkgs:
 <details>
 <summary>Alternative: Install from flake</summary>
 
-Add the flake as an input:
+Add flake as an input:
 
 ```nix
 inputs.iwmenu.url = "github:e-tho/iwmenu";
 ```
 
-Install the package:
+Install from flake:
 
 ```nix
 { inputs, ... }:
@@ -99,7 +99,7 @@ Install the package:
 
 ### Alpine Linux
 
-Install the package from the testing repository:
+Install from the testing repository:
 
 ```shell
 apk add iwmenu
@@ -107,7 +107,7 @@ apk add iwmenu
 
 ### Arch Linux
 
-Install the package with your favorite AUR helper:
+Install from AUR with your favorite helper:
 
 ```shell
 paru -S iwmenu # or iwmenu-git
@@ -115,7 +115,7 @@ paru -S iwmenu # or iwmenu-git
 
 ### Gentoo
 
-Install the package from [GURU overlay](https://wiki.gentoo.org/wiki/Project:GURU):
+Install from GURU overlay:
 
 ```shell
 sudo eselect repository enable guru
