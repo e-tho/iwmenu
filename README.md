@@ -68,6 +68,18 @@ An executable file will be generated at `target/release/iwmenu`, which you can t
 
 ### Nix
 
+Install the package from nixpkgs:
+
+```nix
+{ pkgs, ... }:
+{
+  environment.systemPackages = [ pkgs.iwmenu ];
+}
+```
+
+<details>
+<summary>Alternative: Install from flake</summary>
+
 Add the flake as an input:
 
 ```nix
@@ -82,6 +94,8 @@ Install the package:
   environment.systemPackages = [ inputs.iwmenu.packages.${pkgs.system}.default ];
 }
 ```
+
+</details>
 
 ### Alpine Linux
 
