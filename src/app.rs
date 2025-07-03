@@ -253,7 +253,7 @@ impl App {
                 ApMenuOptions::SetSsid => {
                     if let Some(ssid) = menu.prompt_ap_ssid(menu_command, icon_type) {
                         ap.set_ssid(ssid.clone());
-                        try_send_log!(self.log_sender, format!("SSID set to {}", ssid));
+                        try_send_log!(self.log_sender, format!("SSID set to {ssid}"));
                     }
                 }
                 ApMenuOptions::SetPassword => {
@@ -667,7 +667,7 @@ impl App {
 
         try_send_log!(
             self.log_sender,
-            format!("Disconnecting from network: {}", connected_network_name)
+            format!("Disconnecting from network: {connected_network_name}")
         );
 
         station.disconnect().await?;

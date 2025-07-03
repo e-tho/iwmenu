@@ -44,7 +44,7 @@ impl NotificationManager {
         let mut handles = self
             .handles
             .lock()
-            .map_err(|e| anyhow!("Failed to acquire lock on notification handles: {}", e))?;
+            .map_err(|e| anyhow!("Failed to acquire lock on notification handles: {e}"))?;
         handles.insert(id, handle);
 
         Ok(id)
@@ -54,13 +54,13 @@ impl NotificationManager {
         let mut handles = self
             .handles
             .lock()
-            .map_err(|e| anyhow!("Failed to acquire lock on notification handles: {}", e))?;
+            .map_err(|e| anyhow!("Failed to acquire lock on notification handles: {e}"))?;
 
         if let Some(handle) = handles.remove(&id) {
             handle.close();
             Ok(())
         } else {
-            Err(anyhow!("Notification ID {} not found", id))
+            Err(anyhow!("Notification ID {id} not found"))
         }
     }
 }

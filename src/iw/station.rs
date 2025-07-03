@@ -44,7 +44,7 @@ impl Station {
                     Network::new(n.clone())
                         .await
                         .map(|network| (network, *signal))
-                        .map_err(|e| anyhow!("Failed to create network: {:?}", e))
+                        .map_err(|e| anyhow!("Failed to create network: {e:?}"))
                 })
                 .collect::<Vec<_>>();
 
@@ -113,7 +113,7 @@ impl Station {
                 Network::new(n.clone())
                     .await
                     .map(|network| (network, signal))
-                    .map_err(|e| anyhow!("Failed to process network: {:?}", e))
+                    .map_err(|e| anyhow!("Failed to process network: {e:?}"))
             })
             .collect::<Vec<_>>();
 
@@ -153,7 +153,7 @@ impl Station {
         station
             .scan()
             .await
-            .map_err(|e| anyhow!("Failed to start scan: {:?}", e))
+            .map_err(|e| anyhow!("Failed to start scan: {e:?}"))
     }
 
     pub async fn disconnect(&mut self) -> Result<()> {
@@ -165,6 +165,6 @@ impl Station {
         station
             .disconnect()
             .await
-            .map_err(|e| anyhow!("Failed to disconnect: {:?}", e))
+            .map_err(|e| anyhow!("Failed to disconnect: {e:?}"))
     }
 }

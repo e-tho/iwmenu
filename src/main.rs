@@ -145,7 +145,7 @@ async fn run_app_loop(
                 eprintln!("Error during app execution: {err:?}");
 
                 if !app.reset_mode {
-                    return Err(anyhow!("Fatal error in application: {}", err));
+                    return Err(anyhow!("Fatal error in application: {err}"));
                 }
             }
         }

@@ -56,7 +56,7 @@ impl Device {
             Some(_) => match Station::new(session).await {
                 Ok(station) => Some(station),
                 Err(e) => {
-                    try_send_log!(sender, format!("Failed to initialize Station: {}", e));
+                    try_send_log!(sender, format!("Failed to initialize Station: {e}"));
                     None
                 }
             },
@@ -72,7 +72,7 @@ impl Device {
             Some(_) => match AccessPoint::new(session).await {
                 Ok(access_point) => Some(access_point),
                 Err(e) => {
-                    try_send_log!(sender, format!("Failed to initialize AccessPoint: {}", e));
+                    try_send_log!(sender, format!("Failed to initialize AccessPoint: {e}"));
                     None
                 }
             },
