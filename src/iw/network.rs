@@ -1,6 +1,6 @@
 use crate::iw::known_network::KnownNetwork;
 use anyhow::{anyhow, Context, Result};
-use iwdrs::netowrk::Network as IwdNetwork;
+use iwdrs::network::Network as IwdNetwork;
 
 #[derive(Debug, Clone)]
 pub struct Network {
