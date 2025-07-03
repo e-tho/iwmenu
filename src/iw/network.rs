@@ -29,10 +29,7 @@ impl Network {
             ),
             Ok(None) => None,
             Err(e) => {
-                eprintln!(
-                    "Warning: Failed to retrieve known network information: {}",
-                    e
-                );
+                eprintln!("Warning: Failed to retrieve known network information: {e}");
                 None
             }
         };

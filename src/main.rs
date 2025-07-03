@@ -115,7 +115,7 @@ async fn main() -> Result<()> {
 
     tokio::spawn(async move {
         while let Some(log) = log_receiver.recv().await {
-            println!("LOG: {}", log);
+            println!("LOG: {log}");
         }
     });
 
@@ -142,7 +142,7 @@ async fn run_app_loop(
                 }
             }
             Err(err) => {
-                eprintln!("Error during app execution: {:?}", err);
+                eprintln!("Error during app execution: {err:?}");
 
                 if !app.reset_mode {
                     return Err(anyhow!("Fatal error in application: {}", err));

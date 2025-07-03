@@ -68,7 +68,7 @@ impl App {
             .device
             .set_mode(mode.clone())
             .await
-            .with_context(|| format!("Failed to set mode to {:?} during reset", mode))?;
+            .with_context(|| format!("Failed to set mode to {mode:?} during reset"))?;
 
         self.adapter = adapter;
         self.session = session;
