@@ -365,13 +365,13 @@ impl Menu {
         for (network, signal_strength) in &station.known_networks {
             let network_info =
                 self.format_network_display(network, *signal_strength, icon_type, spaces);
-            input.push_str(&format!("\n{}", network_info));
+            input.push_str(&format!("\n{network_info}"));
         }
 
         for (network, signal_strength) in &station.new_networks {
             let network_info =
                 self.format_network_display(network, *signal_strength, icon_type, spaces);
-            input.push_str(&format!("\n{}", network_info));
+            input.push_str(&format!("\n{network_info}"));
         }
 
         let settings_text = MainMenuOptions::Settings.to_str();
@@ -380,7 +380,7 @@ impl Menu {
         let settings_input = self
             .icons
             .get_icon_text(options_after_networks, icon_type, spaces);
-        input.push_str(&format!("\n{}", settings_input));
+        input.push_str(&format!("\n{settings_input}"));
 
         let menu_output = self.run_launcher(menu_command, Some(&input), icon_type, None, false)?;
 
@@ -444,7 +444,7 @@ impl Menu {
                     spaces,
                 ),
             };
-            input.push_str(&format!("{}\n", option_text));
+            input.push_str(&format!("{option_text}\n"));
         }
 
         let prompt = t!("menus.known_network.prompt", ssid = network_ssid);

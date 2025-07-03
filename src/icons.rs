@@ -286,7 +286,7 @@ impl Icons {
                 let text = text.as_ref();
                 match icon_type {
                     "font" => format!("{}{}{}", icon, " ".repeat(spaces), text),
-                    "xdg" => format!("{}\0icon\x1f{}", text, icon),
+                    "xdg" => format!("{text}\0icon\x1f{icon}"),
                     _ => text.to_string(),
                 }
             })
@@ -310,7 +310,7 @@ impl Icons {
         spaces: usize,
     ) -> String {
         match icon_type {
-            "xdg" => format!("{}\0icon\x1f{}", name, icon),
+            "xdg" => format!("{name}\0icon\x1f{icon}"),
             "font" | "generic" => format!("{}{}{}", icon, " ".repeat(spaces), name),
             _ => name.to_string(),
         }
