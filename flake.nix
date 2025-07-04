@@ -49,7 +49,7 @@
           meta = {
             description = "Launcher-driven Wi-Fi manager for Linux";
             homepage = "https://github.com/e-tho/iwmenu";
-            license = pkgs.lib.licenses.gpl3;
+            license = pkgs.lib.licenses.gpl3Plus;
             maintainers = [
               {
                 github = "e-tho";

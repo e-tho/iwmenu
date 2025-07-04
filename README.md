@@ -180,7 +180,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines.
 
 ## License
 
-GPLv3
+This project is licensed under the terms of the GNU General Public License version 3, or (at your option) any later version.
 
 ## Support this project
 
