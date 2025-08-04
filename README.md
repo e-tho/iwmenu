@@ -143,10 +143,10 @@ iwmenu -l custom --launcher-command "my_custom_launcher --flag"
 
 #### Prompt and Placeholder support
 
-Use either `{prompt}` or `{placeholder}` as the value for the relevant flag in your command; each will be replaced with the appropriate text as needed. They return the same string, with `{prompt}` adding a colon at the end.
+Use `{hint}` as the value for the relevant flag in your command; it will be substituted with the appropriate text as needed.
 
 ```shell
-iwmenu -l custom --launcher-command "my_custom_launcher --prompt-flag '{prompt}'" # or --placeholder-flag '{placeholder}'
+iwmenu -l custom --launcher-command "my_custom_launcher --placeholder-flag '{hint}'" # or --prompt-flag '{hint}:'
 ```
 
 #### Password obfuscation support
@@ -162,7 +162,7 @@ iwmenu -l custom --launcher-command "my_custom_launcher {password_flag:--my-pass
 This example demonstrates enabling all available features in custom mode with `fuzzel`.
 
 ```shell
-iwmenu -l custom --launcher-command "fuzzel -d -p '{prompt}' {password_flag:--password}"
+iwmenu -l custom --launcher-command "fuzzel -d --placeholder {hint} {password_flag:--password}"
 ```
 
 ### Available Options
