@@ -15,11 +15,11 @@ menus:
         name:
           en: "Network"
           fr: "Réseau"
-        prompt:
+        hint:
           en: "Enter passphrase for %{ssid}"
           fr: "Entrez la passphrase pour %{ssid}"
   known_network:
-    prompt:
+    hint:
       en: "Manage %{ssid}"
       fr: "Gérer %{ssid}"
     options:
@@ -67,14 +67,14 @@ menus:
         name:
           en: "Set Network Name"
           fr: "Définir le nom du réseau"
-        prompt:
+        hint:
           en: "Enter Network Name"
           fr: "Saisissez le nom du réseau"
       set_passphrase:
         name:
           en: "Set Network Passphrase"
           fr: "Définir la phrase secrète du réseau"
-        prompt:
+        hint:
           en: "Enter Network Passphrase"
           fr: "Saisissez la phrase secrète du réseau"
       settings:

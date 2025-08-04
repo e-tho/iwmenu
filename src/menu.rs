@@ -224,17 +224,11 @@ impl Menu {
         menu_command: &Option<String>,
         input: Option<&str>,
         icon_type: &str,
-        prompt: Option<&str>,
+        hint: Option<&str>,
         obfuscate: bool,
     ) -> Result<Option<String>> {
-        let cmd = Launcher::create_command(
-            &self.menu_type,
-            menu_command,
-            icon_type,
-            prompt,
-            prompt,
-            obfuscate,
-        )?;
+        let cmd =
+            Launcher::create_command(&self.menu_type, menu_command, icon_type, hint, obfuscate)?;
 
         Launcher::run(cmd, input)
     }
@@ -447,10 +441,10 @@ impl Menu {
             input.push_str(&format!("{option_text}\n"));
         }
 
-        let prompt = t!("menus.known_network.prompt", ssid = network_ssid);
+        let hint = t!("menus.known_network.hint", ssid = network_ssid);
 
         let menu_output =
-            self.run_launcher(menu_command, Some(&input), icon_type, Some(&prompt), false)?;
+            self.run_launcher(menu_command, Some(&input), icon_type, Some(&hint), false)?;
 
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
@@ -602,15 +596,15 @@ impl Menu {
         ssid: &str,
         icon_type: &str,
     ) -> Option<String> {
-        let prompt_text = t!("menus.main.options.network.prompt", ssid = ssid);
-        self.run_launcher(menu_command, None, icon_type, Some(&prompt_text), true)
+        let hint_text = t!("menus.main.options.network.hint", ssid = ssid);
+        self.run_launcher(menu_command, None, icon_type, Some(&hint_text), true)
             .ok()
             .flatten()
     }
 
     pub fn prompt_ap_ssid(&self, menu_command: &Option<String>, icon_type: &str) -> Option<String> {
-        let prompt_text = t!("menus.ap.options.set_ssid.prompt");
-        self.run_launcher(menu_command, None, icon_type, Some(&prompt_text), false)
+        let hint_text = t!("menus.ap.options.set_ssid.hint");
+        self.run_launcher(menu_command, None, icon_type, Some(&hint_text), false)
             .ok()
             .flatten()
     }
@@ -620,8 +614,8 @@ impl Menu {
         menu_command: &Option<String>,
         icon_type: &str,
     ) -> Option<String> {
-        let prompt_text = t!("menus.ap.options.set_passphrase.prompt");
-        self.run_launcher(menu_command, None, icon_type, Some(&prompt_text), true)
+        let hint_text = t!("menus.ap.options.set_passphrase.hint");
+        self.run_launcher(menu_command, None, icon_type, Some(&hint_text), true)
             .ok()
             .flatten()
     }
