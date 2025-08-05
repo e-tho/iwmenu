@@ -23,18 +23,11 @@
         pkgs = import nixpkgs {
           inherit system overlays;
         };
-
-        cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
-        cargoPackageVersion = cargoToml.package.version;
-
-        commitHash = self.shortRev or self.dirtyShortRev or "unknown";
-
-        version = "${cargoPackageVersion}-unstable-${commitHash}";
       in
       {
         packages.default = pkgs.rustPlatform.buildRustPackage {
           pname = "iwmenu";
-          inherit version;
+          version = self.shortRev or self.dirtyShortRev or "unknown";
 
           src = ./.;
 
