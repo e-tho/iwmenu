@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use futures::future::join_all;
+use futures_util::future::join_all;
 use iwdrs::session::Session;
 use std::{collections::HashMap, sync::Arc};
 use tokio::time::Duration;

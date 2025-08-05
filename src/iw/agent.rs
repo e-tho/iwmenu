@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-use futures::FutureExt;
+use futures_util::FutureExt;
 use iwdrs::{agent::Agent, session::Session};
 use std::sync::{
     atomic::{AtomicBool, Ordering::Relaxed},
