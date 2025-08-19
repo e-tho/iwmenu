@@ -1,12 +1,12 @@
 use anyhow::{anyhow, Result};
 use clap::{builder::EnumValueParser, Arg, Command};
 use iwmenu::{app::App, icons::Icons, launcher::LauncherType, menu::Menu};
-use rust_i18n::{available_locales, i18n, set_locale};
+use rust_i18n::{i18n, set_locale};
 use std::{env, sync::Arc};
 use sys_locale::get_locale;
 use tokio::sync::mpsc::unbounded_channel;
 
-i18n!("locales");
+i18n!("locales", fallback = "en");
 
 fn validate_launcher_command(command: &str) -> Result<String, String> {
     if command.contains("{placeholder}") {
@@ -22,14 +22,10 @@ fn validate_launcher_command(command: &str) -> Result<String, String> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let locale = get_locale().unwrap_or_else(|| {
-        eprintln!("Locale not detected, defaulting to 'en-US'.");
-        String::from("en-US")
+        eprintln!("Locale not detected, defaulting to 'en'.");
+        String::from("en")
     });
-    if available_locales!().iter().any(|&x| x == locale) {
-        set_locale(&locale);
-    } else {
-        set_locale("en");
-    }
+    set_locale(&locale);
 
     let matches = Command::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
