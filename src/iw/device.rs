@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use iwdrs::{device::Device as IwdDevice, modes::Mode, session::Session};
+use log::warn;
 use std::sync::Arc;
-use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
 use crate::iw::{access_point::AccessPoint, station::Station};
 
@@ -18,7 +18,7 @@ pub struct Device {
 }
 
 impl Device {
-    pub async fn new(session: Arc<Session>, sender: UnboundedSender<String>) -> Result<Self> {
+    pub async fn new(session: Arc<Session>) -> Result<Self> {
         let device = session.device().context("No device found")?;
 
         let name = device.name().await?;
@@ -33,8 +33,8 @@ impl Device {
             .await
             .context("Failed to check if the device is powered")?;
 
-        let station = Self::initialize_station(session.clone(), sender.clone()).await;
-        let access_point = Self::initialize_access_point(session.clone(), sender.clone()).await;
+        let station = Self::initialize_station(session.clone()).await;
+        let access_point = Self::initialize_access_point(session.clone()).await;
 
         Ok(Self {
             session,
@@ -48,15 +48,12 @@ impl Device {
         })
     }
 
-    async fn initialize_station(
-        session: Arc<Session>,
-        sender: UnboundedSender<String>,
-    ) -> Option<Station> {
+    async fn initialize_station(session: Arc<Session>) -> Option<Station> {
         match session.station() {
             Some(_) => match Station::new(session).await {
                 Ok(station) => Some(station),
                 Err(e) => {
-                    try_send_log!(sender, format!("Failed to initialize Station: {e}"));
+                    warn!("Failed to initialize Station: {e}");
                     None
                 }
             },
@@ -64,15 +61,12 @@ impl Device {
         }
     }
 
-    async fn initialize_access_point(
-        session: Arc<Session>,
-        sender: UnboundedSender<String>,
-    ) -> Option<AccessPoint> {
+    async fn initialize_access_point(session: Arc<Session>) -> Option<AccessPoint> {
         match session.access_point() {
             Some(_) => match AccessPoint::new(session).await {
                 Ok(access_point) => Some(access_point),
                 Err(e) => {
-                    try_send_log!(sender, format!("Failed to initialize AccessPoint: {e}"));
+                    warn!("Failed to initialize AccessPoint: {e}");
                     None
                 }
             },
@@ -128,8 +122,7 @@ impl Device {
                     }
                 } else {
                     self.access_point = None;
-                    self.station =
-                        Self::initialize_station(self.session.clone(), unbounded_channel().0).await;
+                    self.station = Self::initialize_station(self.session.clone()).await;
                 }
             }
             Mode::Ap => {
@@ -142,9 +135,7 @@ impl Device {
                     }
                 } else {
                     self.station = None;
-                    self.access_point =
-                        Self::initialize_access_point(self.session.clone(), unbounded_channel().0)
-                            .await;
+                    self.access_point = Self::initialize_access_point(self.session.clone()).await;
                 }
             }
             _ => {}

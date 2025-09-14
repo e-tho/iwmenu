@@ -19,12 +19,3 @@ macro_rules! try_send_notification_with_id {
         }
     }};
 }
-
-#[macro_export]
-macro_rules! try_send_log {
-    ($log_sender:expr, $msg:expr) => {{
-        $log_sender
-            .send($msg)
-            .unwrap_or_else(|err| println!("Failed to send log message: {err}"));
-    }};
-}

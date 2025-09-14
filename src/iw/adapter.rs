@@ -1,8 +1,8 @@
 use crate::iw::device::Device;
 use anyhow::{anyhow, Context, Result};
 use iwdrs::{adapter::Adapter as IwdAdapter, session::Session};
+use log::warn;
 use std::sync::Arc;
-use tokio::sync::mpsc::UnboundedSender;
 
 #[derive(Debug, Clone)]
 pub struct Adapter {
@@ -16,7 +16,7 @@ pub struct Adapter {
 }
 
 impl Adapter {
-    pub async fn new(session: Arc<Session>, sender: UnboundedSender<String>) -> Result<Self> {
+    pub async fn new(session: Arc<Session>) -> Result<Self> {
         let adapter = session
             .adapter()
             .ok_or_else(|| anyhow!("No adapter found"))?;
@@ -32,8 +32,7 @@ impl Adapter {
             .model()
             .await
             .map_err(|e| {
-                let msg = format!("Failed to get adapter model: {e}");
-                try_send_log!(sender, msg);
+                warn!("Failed to get adapter model: {e}");
             })
             .ok();
 
@@ -41,14 +40,13 @@ impl Adapter {
             .vendor()
             .await
             .map_err(|e| {
-                let msg = format!("Failed to get adapter vendor: {e}");
-                try_send_log!(sender, msg);
+                warn!("Failed to get adapter vendor: {e}");
             })
             .ok();
 
         let supported_modes = adapter.supported_modes().await?;
 
-        let device = Device::new(session.clone(), sender.clone())
+        let device = Device::new(session.clone())
             .await
             .context("Failed to initialize device")?;
 
