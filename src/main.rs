@@ -133,7 +133,7 @@ async fn run_app_loop(
     spaces: usize,
     icons: Arc<Icons>,
 ) -> Result<()> {
-    let mut app = App::new(menu.clone(), icons.clone()).await?;
+    let mut app = App::new(icons.clone()).await?;
 
     loop {
         match app.run(menu, command_str, icon_type, spaces).await {
@@ -152,7 +152,7 @@ async fn run_app_loop(
         }
 
         if app.reset_mode {
-            app = App::new(menu.clone(), icons.clone()).await?;
+            app = App::new(icons.clone()).await?;
             app.reset_mode = false;
         }
     }

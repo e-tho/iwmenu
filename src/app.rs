@@ -26,7 +26,7 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new(_menu: Menu, icons: Arc<Icons>) -> Result<Self> {
+    pub async fn new(icons: Arc<Icons>) -> Result<Self> {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
         let adapter = Adapter::new(session.clone()).await?;
