@@ -8,9 +8,8 @@
     <img src="./assets/demo.gif" alt="Demonstration of iwmenu: a launcher-driven Wi-Fi manager for Linux" width="800">
   </p>
   <p>
-    <a href="https://github.com/e-tho/bzmenu" title="Try bzmenu: a launcher-driven Bluetooth manager for Linux">
-      <img src="https://custom-icon-badges.demolab.com/badge/Try-bzmenu-1565C0?style=for-the-badge&logo=bluetooth&logoSource=feather&logoColor=white" alt="bzmenu: a launcher-driver Bluetooth manager for Linux" />
-    </a>
+    <a href="https://github.com/e-tho/bzmenu" title="Try bzmenu: a launcher-driven Bluetooth manager for Linux"><img src="https://custom-icon-badges.demolab.com/badge/bzmenu-1565C0?style=for-the-badge&logo=bluetooth&logoSource=feather&logoColor=white" alt="bzmenu: a launcher-driver Bluetooth manager for Linux" /></a>
+    <a href="https://github.com/e-tho/pwmenu" title="Try pwmenu: a launcher-driven audio manager for Linux"><img src="https://custom-icon-badges.demolab.com/badge/pwmenu-DC6338?style=for-the-badge&logo=volume-2&logoSource=feather&logoColor=white" alt="pwmenu: a launcher-driven audio manager for Linux" /></a>
   </p>
 </div>
 
