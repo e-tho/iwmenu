@@ -1,6 +1,6 @@
 [package]
 name = "iwmenu"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2018"
 description = "Launcher-driven Wi-Fi manager for Linux"
 authors = ["e-tho"]
