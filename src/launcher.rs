@@ -112,9 +112,6 @@ impl Launcher {
                 if let Some(hint_text) = placeholder {
                     cmd.arg("-p").arg(hint_text);
                 }
-                if password_mode {
-                    cmd.arg("-y");
-                }
                 cmd
             }
             LauncherCommand::Custom { program, args } => {
