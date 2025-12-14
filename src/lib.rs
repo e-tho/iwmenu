@@ -4,7 +4,7 @@ extern crate rust_i18n;
 #[macro_use]
 mod macros;
 
-i18n!("locales");
+i18n!("locales", fallback = "en");
 
 pub mod app;
 pub mod icons;
