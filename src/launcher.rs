@@ -65,7 +65,7 @@ impl Launcher {
                 password_mode,
             } => {
                 let mut cmd = Command::new("fuzzel");
-                cmd.arg("-d");
+                cmd.arg("-d").arg("--minimal-lines");
                 if icon_type == "font" {
                     cmd.arg("-I");
                 }
