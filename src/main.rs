@@ -22,10 +22,7 @@ fn validate_launcher_command(command: &str) -> Result<String, String> {
 async fn main() -> Result<()> {
     env_logger::init();
 
-    let locale = get_locale().unwrap_or_else(|| {
-        eprintln!("Locale not detected, defaulting to 'en'.");
-        String::from("en")
-    });
+    let locale = get_locale().unwrap_or_else(|| String::from("en"));
     set_locale(&locale);
 
     let matches = Command::new(env!("CARGO_PKG_NAME"))
