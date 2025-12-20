@@ -23,6 +23,7 @@ pub enum LauncherType {
     Rofi,
     Dmenu,
     Walker,
+    Bemenu,
     Custom,
 }
 
@@ -43,6 +44,10 @@ pub enum LauncherCommand {
     },
     Walker {
         placeholder: Option<String>,
+        password_mode: bool,
+    },
+    Bemenu {
+        prompt: Option<String>,
         password_mode: bool,
     },
     Custom {
@@ -114,6 +119,19 @@ impl Launcher {
                 }
                 if password_mode {
                     cmd.arg("-y");
+                }
+                cmd
+            }
+            LauncherCommand::Bemenu {
+                prompt,
+                password_mode,
+            } => {
+                let mut cmd = Command::new("bemenu");
+                if let Some(hint_text) = prompt {
+                    cmd.arg("-p").arg(format!("{hint_text}: "));
+                }
+                if password_mode {
+                    cmd.arg("--password").arg("indicator");
                 }
                 cmd
             }
@@ -274,6 +292,10 @@ impl Launcher {
             LauncherType::Dmenu => Ok(LauncherCommand::Dmenu { prompt: hint_text }),
             LauncherType::Walker => Ok(LauncherCommand::Walker {
                 placeholder: hint_text,
+                password_mode,
+            }),
+            LauncherType::Bemenu => Ok(LauncherCommand::Bemenu {
+                prompt: hint_text,
                 password_mode,
             }),
             LauncherType::Custom => {
