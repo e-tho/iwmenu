@@ -43,6 +43,7 @@
 | [Rofi](https://github.com/davatorium/rofi)    |     ✅     |    🔄     | XDG icon support pending via [PR #2122](https://github.com/davatorium/rofi/pull/2122) |
 | [Walker](https://github.com/abenz1267/walker) |     ✅     |    ✅     | XDG icons supported since v0.12.21                                                    |
 | [dmenu](https://tools.suckless.org/dmenu)     |     ✅     |    ❌     | No XDG icon support                                                                   |
+| [bemenu](https://github.com/Cloudef/bemenu)   |     ✅     |    ❌     | No XDG icon support                                                                   |
 | Custom (stdin)                                |     ✅     |    ❔     | Depends on launcher implementation                                                    |
 
 > [!TIP]
@@ -163,12 +164,12 @@ iwmenu -l custom --launcher-command "fuzzel -d --placeholder '{hint}' {password_
 
 ### Available Options
 
-| Flag                 | Description                                               | Supported Values                              | Default Value |
-| -------------------- | --------------------------------------------------------- | --------------------------------------------- | ------------- |
-| `-l`, `--launcher`   | Specify the launcher to use (**required**).               | `dmenu`, `rofi`, `fuzzel`, `walker`, `custom` | `None`        |
-| `--launcher-command` | Specify the command to use when `custom` launcher is set. | Any valid shell command                       | `None`        |
-| `-i`, `--icon`       | Specify the icon type to use.                             | `font`, `xdg`                                 | `font`        |
-| `-s`, `--spaces`     | Specify icon to text space count (font icons only).       | Any positive integer                          | `1`           |
+| Flag                 | Description                                               | Supported Values                                        | Default Value |
+| -------------------- | --------------------------------------------------------- | ------------------------------------------------------- | ------------- |
+| `-l`, `--launcher`   | Specify the launcher to use (**required**).               | `dmenu`, `rofi`, `fuzzel`, `walker`, `bemenu`, `custom` | `None`        |
+| `--launcher-command` | Specify the command to use when `custom` launcher is set. | Any valid shell command                                 | `None`        |
+| `-i`, `--icon`       | Specify the icon type to use.                             | `font`, `xdg`                                           | `font`        |
+| `-s`, `--spaces`     | Specify icon to text space count (font icons only).       | Any positive integer                                    | `1`           |
 
 ## Contributing
 
