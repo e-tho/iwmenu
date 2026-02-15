@@ -52,4 +52,8 @@ impl Network {
             }
         })
     }
+
+    pub fn is_secure(&self) -> bool {
+        matches!(self.network_type.as_str(), "wep" | "psk" | "8021x")
+    }
 }

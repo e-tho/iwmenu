@@ -607,13 +607,15 @@ impl App {
 
         info!(target: "network", "Connecting to new network: {}", network.name);
 
-        if let Some(passphrase) =
-            menu.prompt_station_passphrase(menu_command, &network.name, icon_type)
-        {
-            self.agent_manager.send_passkey(passphrase)?;
-        } else {
-            self.agent_manager.cancel_auth()?;
-            return Ok(None);
+        if network.is_secure() {
+            if let Some(passphrase) =
+                menu.prompt_station_passphrase(menu_command, &network.name, icon_type)
+            {
+                self.agent_manager.send_passkey(passphrase)?;
+            } else {
+                self.agent_manager.cancel_auth()?;
+                return Ok(None);
+            }
         }
 
         network
