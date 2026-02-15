@@ -68,6 +68,7 @@ impl Icons {
         font_icons.insert("forget_network", '\u{f0377}');
         font_icons.insert("station", '\u{f059f}');
         font_icons.insert("access_point", '\u{f0003}');
+        font_icons.insert("back", '\u{f004d}');
 
         font_icons.insert("ok", '\u{f05e1}');
         font_icons.insert("error", '\u{f05d6}');
@@ -226,6 +227,7 @@ impl Icons {
             "access_point",
             IconDefinition::simple("network-wireless-hotspot-symbolic"),
         );
+        xdg_icons.insert("back", IconDefinition::simple("go-previous-symbolic"));
         xdg_icons.insert("ok", IconDefinition::simple("emblem-default-symbolic"));
         xdg_icons.insert("error", IconDefinition::simple("dialog-error-symbolic"));
         xdg_icons.insert(

@@ -169,6 +169,7 @@ iwmenu -l custom --launcher-command "fuzzel -d --placeholder '{hint}' {password_
 | `--launcher-command` | Specify the command to use when `custom` launcher is set. | Any valid shell command                       | `None`        |
 | `-i`, `--icon`       | Specify the icon type to use.                             | `font`, `xdg`                                 | `font`        |
 | `-s`, `--spaces`     | Specify icon to text space count (font icons only).       | Any positive integer                          | `1`           |
+| `--back-on-escape`   | Return to previous menu on escape.                        | N/A                                           | `false`       |
 
 ## Contributing
 

@@ -83,6 +83,12 @@ async fn main() -> Result<()> {
                 .default_value("1")
                 .help("Number of spaces between icon and text when using font icons"),
         )
+        .arg(
+            Arg::new("back_on_escape")
+                .long("back-on-escape")
+                .takes_value(false)
+                .help("Return to previous menu on escape instead of exiting"),
+        )
         .get_matches();
 
     let launcher_type: LauncherType = if matches.contains_id("launcher") {
@@ -109,6 +115,7 @@ async fn main() -> Result<()> {
     };
 
     let icon_type = matches.get_one::<String>("icon").cloned().unwrap();
+    let back_on_escape = matches.contains_id("back_on_escape");
 
     let icons = Arc::new(Icons::new());
     let menu = Menu::new(launcher_type, icons.clone());
@@ -118,7 +125,15 @@ async fn main() -> Result<()> {
         .and_then(|s| s.parse::<usize>().ok())
         .ok_or_else(|| anyhow!("Invalid value for --spaces. Must be a positive integer."))?;
 
-    run_app_loop(&menu, &command_str, &icon_type, spaces, icons).await?;
+    run_app_loop(
+        &menu,
+        &command_str,
+        &icon_type,
+        spaces,
+        icons,
+        back_on_escape,
+    )
+    .await?;
 
     Ok(())
 }
@@ -129,8 +144,9 @@ async fn run_app_loop(
     icon_type: &str,
     spaces: usize,
     icons: Arc<Icons>,
+    back_on_escape: bool,
 ) -> Result<()> {
-    let mut app = App::new(icons.clone()).await?;
+    let mut app = App::new(icons.clone(), back_on_escape).await?;
 
     loop {
         match app.run(menu, command_str, icon_type, spaces).await {
@@ -149,7 +165,7 @@ async fn run_app_loop(
         }
 
         if app.reset_mode {
-            app = App::new(icons.clone()).await?;
+            app = App::new(icons.clone(), back_on_escape).await?;
             app.reset_mode = false;
         }
     }

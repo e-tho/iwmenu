@@ -18,6 +18,7 @@ use tokio::time::sleep;
 pub struct App {
     pub running: bool,
     pub reset_mode: bool,
+    pub back_on_escape: bool,
     pub session: Arc<Session>,
     pub current_mode: Mode,
     adapter: Adapter,
@@ -26,7 +27,7 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new(icons: Arc<Icons>) -> Result<Self> {
+    pub async fn new(icons: Arc<Icons>, back_on_escape: bool) -> Result<Self> {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
         let adapter = Adapter::new(session.clone()).await?;
@@ -50,6 +51,7 @@ impl App {
             session,
             current_mode,
             reset_mode: false,
+            back_on_escape,
         })
     }
 
@@ -247,11 +249,19 @@ impl App {
                 }
                 ApMenuOptions::Settings => {
                     if let Some(option) = menu
-                        .show_settings_menu(menu_command, &self.current_mode, icon_type, spaces)
+                        .show_settings_menu(
+                            menu_command,
+                            &self.current_mode,
+                            icon_type,
+                            spaces,
+                            self.back_on_escape,
+                        )
                         .await?
                     {
                         self.handle_settings_options(option, menu, menu_command, icon_type, spaces)
                             .await?;
+                    } else if !self.back_on_escape {
+                        self.running = false;
                     }
                 }
             }
@@ -290,10 +300,12 @@ impl App {
                 spaces,
                 available_options,
                 &known_network.name,
+                self.back_on_escape,
             )
             .await?
         {
             match option {
+                KnownNetworkOptions::Back => Ok(false),
                 KnownNetworkOptions::DisableAutoconnect => {
                     self.perform_toggle_autoconnect(known_network, false)
                         .await?;
@@ -329,7 +341,12 @@ impl App {
             }
         } else {
             debug!("Exited network menu for {}", known_network.name);
-            Ok(false)
+            if self.back_on_escape {
+                Ok(false)
+            } else {
+                self.running = false;
+                Ok(false)
+            }
         }
     }
 
@@ -346,7 +363,13 @@ impl App {
             self.adapter.refresh().await?;
 
             if let Some(option) = menu
-                .show_settings_menu(menu_command, &self.current_mode, icon_type, spaces)
+                .show_settings_menu(
+                    menu_command,
+                    &self.current_mode,
+                    icon_type,
+                    spaces,
+                    self.back_on_escape,
+                )
                 .await?
             {
                 let should_stay = self
@@ -358,6 +381,9 @@ impl App {
                 }
             } else {
                 debug!("Exited settings menu");
+                if !self.back_on_escape {
+                    self.running = false;
+                }
                 stay_in_settings_menu = false;
             }
         }
@@ -374,6 +400,7 @@ impl App {
         spaces: usize,
     ) -> Result<bool> {
         match option {
+            SettingsMenuOptions::Back => Ok(false),
             SettingsMenuOptions::DisableAdapter => {
                 self.perform_adapter_disable(menu, menu_command, icon_type, spaces)
                     .await?;

@@ -39,6 +39,7 @@ pub enum KnownNetworkOptions {
     ForgetNetwork,
     Disconnect,
     Connect,
+    Back,
 }
 
 impl KnownNetworkOptions {
@@ -59,6 +60,7 @@ impl KnownNetworkOptions {
             s if s == t!("menus.known_network.options.connect.name") => {
                 Some(KnownNetworkOptions::Connect)
             }
+            s if s == t!("menus.common.back") => Some(KnownNetworkOptions::Back),
             _ => None,
         }
     }
@@ -80,6 +82,7 @@ impl KnownNetworkOptions {
             KnownNetworkOptions::Connect => {
                 t!("menus.known_network.options.connect.name")
             }
+            KnownNetworkOptions::Back => t!("menus.common.back"),
         }
     }
 }
@@ -88,6 +91,7 @@ impl KnownNetworkOptions {
 pub enum SettingsMenuOptions {
     DisableAdapter,
     SwitchMode,
+    Back,
 }
 
 impl SettingsMenuOptions {
@@ -95,6 +99,7 @@ impl SettingsMenuOptions {
         match id {
             "disable_adapter" => Some(SettingsMenuOptions::DisableAdapter),
             "switch_mode" => Some(SettingsMenuOptions::SwitchMode),
+            "back" => Some(SettingsMenuOptions::Back),
             _ => None,
         }
     }
@@ -103,6 +108,7 @@ impl SettingsMenuOptions {
         match self {
             SettingsMenuOptions::DisableAdapter => "disable_adapter",
             SettingsMenuOptions::SwitchMode => "switch_mode",
+            SettingsMenuOptions::Back => "back",
         }
     }
 
@@ -112,6 +118,7 @@ impl SettingsMenuOptions {
                 t!("menus.settings.options.disable_adapter.name")
             }
             SettingsMenuOptions::SwitchMode => t!("menus.settings.options.switch_mode.name"),
+            SettingsMenuOptions::Back => t!("menus.common.back"),
         }
     }
 }
@@ -395,6 +402,7 @@ impl Menu {
         spaces: usize,
         available_options: Vec<KnownNetworkOptions>,
         network_ssid: &str,
+        back_on_escape: bool,
     ) -> Result<Option<KnownNetworkOptions>> {
         let mut input = String::new();
 
@@ -437,8 +445,22 @@ impl Menu {
                     icon_type,
                     spaces,
                 ),
+                KnownNetworkOptions::Back => self.icons.get_icon_text(
+                    vec![("back", t!("menus.common.back"))],
+                    icon_type,
+                    spaces,
+                ),
             };
             input.push_str(&format!("{option_text}\n"));
+        }
+
+        if !back_on_escape {
+            let back_text = self.icons.get_icon_text(
+                vec![("back", t!("menus.common.back"))],
+                icon_type,
+                spaces,
+            );
+            input.push_str(&format!("{back_text}\n"));
         }
 
         let hint = t!("menus.known_network.hint", ssid = network_ssid);
@@ -460,6 +482,7 @@ impl Menu {
         current_mode: &Mode,
         icon_type: &str,
         spaces: usize,
+        back_on_escape: bool,
     ) -> Result<Option<SettingsMenuOptions>> {
         let target_mode = match current_mode {
             Mode::Station => Mode::Ap,
@@ -481,7 +504,7 @@ impl Menu {
             _ => "switch_mode",
         };
 
-        let options = vec![
+        let mut options = vec![
             (
                 SettingsMenuOptions::DisableAdapter.to_id(),
                 self.icons.format_display_with_icon(
@@ -502,6 +525,18 @@ impl Menu {
             ),
         ];
 
+        if !back_on_escape {
+            options.push((
+                SettingsMenuOptions::Back.to_id(),
+                self.icons.format_display_with_icon(
+                    &t!("menus.common.back"),
+                    &self.icons.get_icon("back", icon_type),
+                    icon_type,
+                    spaces,
+                ),
+            ));
+        }
+
         let input = options
             .into_iter()
             .map(|(_, formatted_text)| formatted_text)
@@ -517,6 +552,8 @@ impl Menu {
                 return Ok(Some(SettingsMenuOptions::DisableAdapter));
             } else if cleaned_output == switch_mode_text {
                 return Ok(Some(SettingsMenuOptions::SwitchMode));
+            } else if cleaned_output == t!("menus.common.back") {
+                return Ok(Some(SettingsMenuOptions::Back));
             }
         }
 
