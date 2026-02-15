@@ -1,12 +1,15 @@
 use crate::iw::known_network::KnownNetwork;
 use anyhow::{anyhow, Context, Result};
-use iwdrs::network::Network as IwdNetwork;
+use iwdrs::{
+    error::{network::ConnectError, IWDError},
+    network::{Network as IwdNetwork, NetworkType},
+};
 
 #[derive(Debug, Clone)]
 pub struct Network {
     pub n: IwdNetwork,
     pub name: String,
-    pub network_type: String,
+    pub network_type: NetworkType,
     pub is_connected: bool,
     pub known_network: Option<KnownNetwork>,
 }
@@ -44,16 +47,18 @@ impl Network {
     }
 
     pub async fn connect(&self) -> Result<()> {
-        self.n.connect().await.map_err(|e| {
-            if e.to_string().contains("net.connman.iwd.Aborted") {
+        self.n.connect().await.map_err(|e| match e {
+            IWDError::OperationError(ConnectError::Aborted) => {
                 anyhow!(t!("notifications.network.connection_canceled"))
-            } else {
-                e
             }
+            other => other.into(),
         })
     }
 
     pub fn is_secure(&self) -> bool {
-        matches!(self.network_type.as_str(), "wep" | "psk" | "8021x")
+        matches!(
+            self.network_type,
+            NetworkType::Wep | NetworkType::Psk | NetworkType::Eap
+        )
     }
 }

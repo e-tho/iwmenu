@@ -18,10 +18,17 @@ pub struct AccessPoint {
 
 impl AccessPoint {
     pub async fn new(session: Arc<Session>) -> Result<Self> {
-        let iwd_access_point = session
-            .access_point()
+        let access_points = session.access_points().await?;
+        let iwd_access_point = access_points
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("No access point available"))?;
-        let iwd_access_point_diagnostic = session.access_point_diagnostic();
+
+        let iwd_access_point_diagnostic = session
+            .access_points_diagnostics()
+            .await
+            .ok()
+            .and_then(|v| v.into_iter().next());
 
         let has_started = iwd_access_point
             .has_started()
@@ -61,11 +68,18 @@ impl AccessPoint {
     }
 
     pub async fn refresh(&mut self) -> Result<()> {
-        let iwd_access_point = self
-            .session
-            .access_point()
+        let access_points = self.session.access_points().await?;
+        let iwd_access_point = access_points
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("No access point available for refresh"))?;
-        let iwd_access_point_diagnostic = self.session.access_point_diagnostic();
+
+        let iwd_access_point_diagnostic = self
+            .session
+            .access_points_diagnostics()
+            .await
+            .ok()
+            .and_then(|v| v.into_iter().next());
 
         self.has_started = iwd_access_point.has_started().await?;
         self.name = iwd_access_point.name().await?;
@@ -88,9 +102,10 @@ impl AccessPoint {
     }
 
     pub async fn scan(&self) -> Result<()> {
-        let iwd_access_point = self
-            .session
-            .access_point()
+        let access_points = self.session.access_points().await?;
+        let iwd_access_point = access_points
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("No access point available for scanning"))?;
 
         iwd_access_point
@@ -100,9 +115,10 @@ impl AccessPoint {
     }
 
     pub async fn start(&self) -> Result<()> {
-        let iwd_access_point = self
-            .session
-            .access_point()
+        let access_points = self.session.access_points().await?;
+        let iwd_access_point = access_points
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("No access point available to start"))?;
 
         iwd_access_point
@@ -112,9 +128,10 @@ impl AccessPoint {
     }
 
     pub async fn stop(&self) -> Result<()> {
-        let iwd_access_point = self
-            .session
-            .access_point()
+        let access_points = self.session.access_points().await?;
+        let iwd_access_point = access_points
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("No access point available to stop"))?;
 
         iwd_access_point

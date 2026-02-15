@@ -1,4 +1,4 @@
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use iwdrs::{device::Device as IwdDevice, modes::Mode, session::Session};
 use log::warn;
 use std::sync::Arc;
@@ -19,7 +19,11 @@ pub struct Device {
 
 impl Device {
     pub async fn new(session: Arc<Session>) -> Result<Self> {
-        let device = session.device().context("No device found")?;
+        let devices = session.devices().await?;
+        let device = devices
+            .into_iter()
+            .next()
+            .ok_or_else(|| anyhow!("No device found"))?;
 
         let name = device.name().await?;
         let address = device.address().await?;
@@ -49,28 +53,30 @@ impl Device {
     }
 
     async fn initialize_station(session: Arc<Session>) -> Option<Station> {
-        match session.station() {
-            Some(_) => match Station::new(session).await {
+        match session.stations().await {
+            Ok(stations) if !stations.is_empty() => match Station::new(session).await {
                 Ok(station) => Some(station),
                 Err(e) => {
                     warn!("Failed to initialize Station: {e}");
                     None
                 }
             },
-            None => None,
+            _ => None,
         }
     }
 
     async fn initialize_access_point(session: Arc<Session>) -> Option<AccessPoint> {
-        match session.access_point() {
-            Some(_) => match AccessPoint::new(session).await {
-                Ok(access_point) => Some(access_point),
-                Err(e) => {
-                    warn!("Failed to initialize AccessPoint: {e}");
-                    None
+        match session.access_points().await {
+            Ok(access_points) if !access_points.is_empty() => {
+                match AccessPoint::new(session).await {
+                    Ok(access_point) => Some(access_point),
+                    Err(e) => {
+                        warn!("Failed to initialize AccessPoint: {e}");
+                        None
+                    }
                 }
-            },
-            None => None,
+            }
+            _ => None,
         }
     }
 
@@ -104,7 +110,7 @@ impl Device {
             .await
             .context("Failed to retrieve current device mode")?;
 
-        self.update_mode(current_mode.clone()).await?;
+        self.update_mode(current_mode).await?;
 
         self.mode = current_mode;
         Ok(())
@@ -138,7 +144,6 @@ impl Device {
                     self.access_point = Self::initialize_access_point(self.session.clone()).await;
                 }
             }
-            _ => {}
         }
         Ok(())
     }

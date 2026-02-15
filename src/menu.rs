@@ -1,7 +1,7 @@
 use crate::icons::Icons;
 use crate::iw::{access_point::AccessPoint, network::Network, station::Station};
 use crate::launcher::{Launcher, LauncherType};
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use iwdrs::modes::Mode;
 use rust_i18n::t;
 use std::borrow::Cow;
@@ -483,9 +483,6 @@ impl Menu {
         let target_mode = match current_mode {
             Mode::Station => Mode::Ap,
             Mode::Ap => Mode::Station,
-            _ => {
-                return Err(anyhow!("Unhandled mode"));
-            }
         };
 
         let target_mode_text = self.get_mode_text(&target_mode);
@@ -497,7 +494,6 @@ impl Menu {
         let switch_mode_icon = match target_mode {
             Mode::Station => "station",
             Mode::Ap => "access_point",
-            _ => "switch_mode",
         };
 
         let mut options = vec![
@@ -560,7 +556,6 @@ impl Menu {
         match mode {
             Mode::Station => t!("modes.station").to_string(),
             Mode::Ap => t!("modes.access_point").to_string(),
-            _ => t!("modes.unknown").to_string(),
         }
     }
 

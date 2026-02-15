@@ -1,11 +1,12 @@
 use anyhow::{Context, Result};
-use iwdrs::known_netowk::KnownNetwork as IwdKnownNetwork;
+use iwdrs::known_network::KnownNetwork as IwdKnownNetwork;
+use iwdrs::network::NetworkType;
 
 #[derive(Debug, Clone)]
 pub struct KnownNetwork {
     pub n: IwdKnownNetwork,
     pub name: String,
-    pub network_type: String,
+    pub network_type: NetworkType,
     pub is_autoconnect: bool,
     pub is_hidden: bool,
 }

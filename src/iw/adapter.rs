@@ -17,8 +17,10 @@ pub struct Adapter {
 
 impl Adapter {
     pub async fn new(session: Arc<Session>) -> Result<Self> {
-        let adapter = session
-            .adapter()
+        let adapters = session.adapters().await?;
+        let adapter = adapters
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("No adapter found"))?;
 
         let is_powered = adapter

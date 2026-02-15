@@ -31,7 +31,7 @@ impl App {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
         let adapter = Adapter::new(session.clone()).await?;
-        let current_mode = adapter.device.mode.clone();
+        let current_mode = adapter.device.mode;
 
         let notification_manager = Arc::new(NotificationManager::new(icons.clone()));
 
@@ -63,7 +63,7 @@ impl App {
 
         adapter
             .device
-            .set_mode(mode.clone())
+            .set_mode(mode)
             .await
             .with_context(|| format!("Failed to set mode to {mode:?} during reset"))?;
 
@@ -111,10 +111,6 @@ impl App {
                 Mode::Ap => {
                     self.run_ap_mode(menu, menu_command, icon_type, spaces)
                         .await?;
-                }
-                _ => {
-                    error!("{}", t!("notifications.app.unknown_mode"));
-                    self.running = false;
                 }
             }
         }
@@ -426,7 +422,7 @@ impl App {
             match option {
                 AdapterMenuOptions::PowerOnDevice => {
                     self.adapter.device.power_on().await?;
-                    self.reset(self.current_mode.clone()).await?;
+                    self.reset(self.current_mode).await?;
                     info!("{}", t!("notifications.app.adapter_enabled"));
                     try_send_notification!(
                         self.notification_manager,
@@ -801,13 +797,9 @@ impl App {
         let new_mode = match self.current_mode {
             Mode::Station => Mode::Ap,
             Mode::Ap => Mode::Station,
-            _ => {
-                error!("{}", t!("notifications.app.unknown_mode"));
-                return Err(anyhow!("Unsupported mode"));
-            }
         };
 
-        self.reset(new_mode.clone())
+        self.reset(new_mode)
             .await
             .context("Failed to reset application state during mode switch")?;
 
@@ -819,7 +811,6 @@ impl App {
         let icon = match new_mode {
             Mode::Ap => "access_point",
             Mode::Station => "station",
-            _ => "unknown",
         };
 
         try_send_notification!(self.notification_manager, None, Some(msg), Some(icon), None);

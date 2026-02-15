@@ -1,6 +1,10 @@
 use anyhow::{anyhow, Context, Result};
-use futures_util::FutureExt;
-use iwdrs::{agent::Agent, session::Session};
+use iwdrs::{
+    agent::{Agent, CancellationReason},
+    error::agent::Canceled,
+    network::Network,
+    session::Session,
+};
 use std::sync::{
     atomic::{AtomicBool, Ordering::Relaxed},
     Arc,
@@ -32,27 +36,10 @@ impl AgentManager {
         let cancel_signal_receiver = Arc::new(Mutex::new(cancel_signal_receiver));
         let authentication_required = Arc::new(AtomicBool::new(false));
 
-        let agent = {
-            let authentication_required_clone = authentication_required.clone();
-            let passkey_receiver_clone = passkey_receiver.clone();
-            let cancel_signal_receiver_clone = cancel_signal_receiver.clone();
-
-            Agent {
-                request_passphrase_fn: Box::new(move || {
-                    let authentication_required = authentication_required_clone.clone();
-                    let passkey_receiver = passkey_receiver_clone.clone();
-                    let cancel_signal_receiver = cancel_signal_receiver_clone.clone();
-
-                    async move {
-                        let mut rx_key = passkey_receiver.lock().await;
-                        let mut rx_cancel = cancel_signal_receiver.lock().await;
-                        request_confirmation(authentication_required, &mut rx_key, &mut rx_cancel)
-                            .await
-                            .map_err(Box::<dyn std::error::Error>::from)
-                    }
-                    .boxed()
-                }),
-            }
+        let agent = CustomAgent {
+            authentication_required: authentication_required.clone(),
+            passkey_receiver: passkey_receiver.clone(),
+            cancel_signal_receiver: cancel_signal_receiver.clone(),
         };
 
         session
@@ -91,6 +78,83 @@ impl AgentManager {
     }
 }
 
+struct CustomAgent {
+    authentication_required: Arc<AtomicBool>,
+    passkey_receiver: Arc<Mutex<UnboundedReceiver<String>>>,
+    cancel_signal_receiver: Arc<Mutex<UnboundedReceiver<()>>>,
+}
+
+impl Agent for CustomAgent {
+    async fn request_passphrase(&self, _network: &Network) -> Result<String, Canceled> {
+        let mut rx_key = self.passkey_receiver.lock().await;
+        let mut rx_cancel = self.cancel_signal_receiver.lock().await;
+
+        request_confirmation(
+            self.authentication_required.clone(),
+            &mut rx_key,
+            &mut rx_cancel,
+        )
+        .await
+        .map_err(|_| Canceled())
+    }
+
+    async fn request_private_key_passphrase(&self, _network: &Network) -> Result<String, Canceled> {
+        let mut rx_key = self.passkey_receiver.lock().await;
+        let mut rx_cancel = self.cancel_signal_receiver.lock().await;
+
+        request_confirmation(
+            self.authentication_required.clone(),
+            &mut rx_key,
+            &mut rx_cancel,
+        )
+        .await
+        .map_err(|_| Canceled())
+    }
+
+    async fn request_user_name_and_passphrase(
+        &self,
+        _network: &Network,
+    ) -> Result<(String, String), Canceled> {
+        let mut rx_key = self.passkey_receiver.lock().await;
+        let mut rx_cancel = self.cancel_signal_receiver.lock().await;
+
+        let passphrase = request_confirmation(
+            self.authentication_required.clone(),
+            &mut rx_key,
+            &mut rx_cancel,
+        )
+        .await
+        .map_err(|_| Canceled())?;
+
+        Ok((String::new(), passphrase))
+    }
+
+    async fn request_user_password(
+        &self,
+        _network: &Network,
+        _user_name: Option<&String>,
+    ) -> Result<String, Canceled> {
+        let mut rx_key = self.passkey_receiver.lock().await;
+        let mut rx_cancel = self.cancel_signal_receiver.lock().await;
+
+        request_confirmation(
+            self.authentication_required.clone(),
+            &mut rx_key,
+            &mut rx_cancel,
+        )
+        .await
+        .map_err(|_| Canceled())
+    }
+
+    fn cancel(&self, _reason: CancellationReason) {
+        self.authentication_required.store(false, Relaxed);
+    }
+
+    fn release(&self) {
+        self.authentication_required.store(false, Relaxed);
+    }
+}
+
 pub async fn request_confirmation(
     authentication_required: Arc<AtomicBool>,
     rx_key: &mut UnboundedReceiver<String>,
@@ -100,8 +164,7 @@ pub async fn request_confirmation(
 
     let result = tokio::select! {
         received_key = rx_key.recv() => {
-            received_key
-                .context("No key received")
+            received_key.context("No key received")
         }
         received_cancel = rx_cancel.recv() => {
             received_cancel

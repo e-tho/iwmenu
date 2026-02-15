@@ -1,7 +1,7 @@
 use anyhow::{anyhow, Result};
 use futures_util::future::join_all;
-use iwdrs::session::Session;
-use std::{collections::HashMap, sync::Arc};
+use iwdrs::{session::Session, station::State};
+use std::sync::Arc;
 use tokio::time::Duration;
 
 use crate::iw::network::Network;
@@ -9,21 +9,27 @@ use crate::iw::network::Network;
 #[derive(Debug, Clone)]
 pub struct Station {
     pub session: Arc<Session>,
-    pub state: String,
+    pub state: State,
     pub is_scanning: bool,
     pub connected_network: Option<Network>,
     pub new_networks: Vec<(Network, i16)>,
     pub known_networks: Vec<(Network, i16)>,
-    pub diagnostic: HashMap<String, String>,
+    pub diagnostic: Option<iwdrs::station::diagnostics::ActiveStationDiagnostics>,
 }
 
 impl Station {
     pub async fn new(session: Arc<Session>) -> Result<Self> {
-        let iwd_station = session
-            .station()
+        let stations = session.stations().await?;
+        let iwd_station = stations
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
 
-        let iwd_station_diagnostic = session.station_diagnostic();
+        let iwd_station_diagnostic = session
+            .stations_diagnostics()
+            .await
+            .ok()
+            .and_then(|v| v.into_iter().next());
 
         let state = iwd_station.state().await?;
 
@@ -66,12 +72,11 @@ impl Station {
             .filter(|(net, _)| net.known_network.is_some())
             .collect();
 
-        let mut diagnostic = HashMap::new();
-        if let Some(station_diagnostic) = iwd_station_diagnostic {
-            if let Ok(d) = station_diagnostic.get().await {
-                diagnostic = d;
-            }
-        }
+        let diagnostic = if let Some(station_diagnostic) = iwd_station_diagnostic {
+            station_diagnostic.get().await.ok()
+        } else {
+            None
+        };
 
         Ok(Self {
             session,
@@ -85,9 +90,10 @@ impl Station {
     }
 
     pub async fn refresh(&mut self) -> Result<()> {
-        let station = self
-            .session
-            .station()
+        let stations = self.session.stations().await?;
+        let station = stations
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
 
         self.state = station.state().await?;
@@ -135,9 +141,9 @@ impl Station {
             .cloned()
             .collect();
 
-        if let Some(diagnostic) = self.session.station_diagnostic() {
-            if let Ok(d) = diagnostic.get().await {
-                self.diagnostic = d;
+        if let Ok(diagnostics) = self.session.stations_diagnostics().await {
+            if let Some(diagnostic) = diagnostics.into_iter().next() {
+                self.diagnostic = diagnostic.get().await.ok();
             }
         }
 
@@ -145,9 +151,10 @@ impl Station {
     }
 
     pub async fn scan(&self) -> Result<()> {
-        let station = self
-            .session
-            .station()
+        let stations = self.session.stations().await?;
+        let station = stations
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
 
         station
@@ -157,9 +164,10 @@ impl Station {
     }
 
     pub async fn disconnect(&mut self) -> Result<()> {
-        let station = self
-            .session
-            .station()
+        let stations = self.session.stations().await?;
+        let station = stations
+            .into_iter()
+            .next()
             .ok_or_else(|| anyhow!("Failed to retrieve station from session"))?;
 
         station
