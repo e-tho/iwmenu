@@ -5,7 +5,7 @@ use nix::{
     sys::signal::{kill, killpg, Signal},
     unistd::Pid,
 };
-use process_wrap::std::{ProcessGroup, StdCommandWrap};
+use process_wrap::std::{CommandWrap, ProcessGroup};
 use signal_hook::iterator::Signals;
 use std::{
     io::Write,
@@ -209,7 +209,7 @@ impl Launcher {
     fn run_command(mut command: Command, input: Option<&str>) -> Result<Option<String>> {
         command.stdin(Stdio::piped()).stdout(Stdio::piped());
 
-        let mut command_wrap = StdCommandWrap::from(command);
+        let mut command_wrap = CommandWrap::from(command);
         command_wrap.wrap(ProcessGroup::leader());
 
         let mut child = command_wrap

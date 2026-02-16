@@ -27,7 +27,7 @@ futures-util = { version = "0.3", default-features = false, features = [
 clap = { version = "4", features = ["derive"] }
 nix = { version = "0.31", features = ["process", "signal"] }
 libc = "0.2"
-process-wrap = { version = "8.2", features = ["std"] }
+process-wrap = { version = "9", features = ["std"] }
 signal-hook = "0.3"
 notify-rust = "4"
 shlex = "1.3"
