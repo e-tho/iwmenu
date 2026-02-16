@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Context, Result};
-use clap::ArgEnum;
+use clap::ValueEnum;
 use nix::{
     libc,
     sys::signal::{kill, killpg, Signal},
@@ -17,7 +17,7 @@ use std::{
     thread,
 };
 
-#[derive(Debug, Clone, ArgEnum)]
+#[derive(Debug, Clone, ValueEnum)]
 pub enum LauncherType {
     Fuzzel,
     Rofi,

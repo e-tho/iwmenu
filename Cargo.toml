@@ -24,7 +24,7 @@ futures-util = { version = "0.3", default-features = false, features = [
     "alloc",
     "async-await",
 ] }
-clap = { version = "3", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 nix = { version = "0.29", features = ["process", "signal"] }
 libc = "0.2"
 process-wrap = { version = "8.2", features = ["std"] }

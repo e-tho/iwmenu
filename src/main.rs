@@ -1,5 +1,5 @@
 use anyhow::{anyhow, Result};
-use clap::{builder::EnumValueParser, Arg, Command};
+use clap::{Arg, Command};
 use iwmenu::{app::App, icons::Icons, launcher::LauncherType, menu::Menu};
 use rust_i18n::{i18n, set_locale};
 use std::{env, sync::Arc};
@@ -34,8 +34,7 @@ async fn main() -> Result<()> {
                 .short('l')
                 .long("launcher")
                 .required(true)
-                .takes_value(true)
-                .value_parser(EnumValueParser::<LauncherType>::new())
+                .value_parser(clap::value_parser!(LauncherType))
                 .conflicts_with("menu")
                 .help("Launcher to use (replaces deprecated --menu)"),
         )
@@ -43,15 +42,13 @@ async fn main() -> Result<()> {
             Arg::new("menu") // deprecated
                 .short('m')
                 .long("menu")
-                .takes_value(true)
-                .value_parser(EnumValueParser::<LauncherType>::new())
+                .value_parser(clap::value_parser!(LauncherType))
                 .hide(true)
                 .help("DEPRECATED: use --launcher instead"),
         )
         .arg(
             Arg::new("launcher_command")
                 .long("launcher-command")
-                .takes_value(true)
                 .required_if_eq("launcher", "custom")
                 .conflicts_with("menu_command")
                 .value_parser(validate_launcher_command)
@@ -60,7 +57,6 @@ async fn main() -> Result<()> {
         .arg(
             Arg::new("menu_command") // deprecated
                 .long("menu-command")
-                .takes_value(true)
                 .required_if_eq("menu", "custom")
                 .hide(true)
                 .value_parser(validate_launcher_command)
@@ -70,8 +66,7 @@ async fn main() -> Result<()> {
             Arg::new("icon")
                 .short('i')
                 .long("icon")
-                .takes_value(true)
-                .possible_values(["font", "xdg"])
+                .value_parser(["font", "xdg"])
                 .default_value("font")
                 .help("Choose the type of icons to use"),
         )
@@ -79,26 +74,22 @@ async fn main() -> Result<()> {
             Arg::new("spaces")
                 .short('s')
                 .long("spaces")
-                .takes_value(true)
                 .default_value("1")
                 .help("Number of spaces between icon and text when using font icons"),
         )
         .arg(
             Arg::new("back_on_escape")
                 .long("back-on-escape")
-                .takes_value(false)
+                .action(clap::ArgAction::SetTrue)
                 .help("Return to previous menu on escape instead of exiting"),
         )
         .get_matches();
 
     let launcher_type: LauncherType = if matches.contains_id("launcher") {
-        matches
-            .get_one::<LauncherType>("launcher")
-            .cloned()
-            .unwrap()
+        matches.get_one::<LauncherType>("launcher").unwrap().clone()
     } else if matches.contains_id("menu") {
         eprintln!("WARNING: --menu flag is deprecated. Please use --launcher instead.");
-        matches.get_one::<LauncherType>("menu").cloned().unwrap()
+        matches.get_one::<LauncherType>("menu").unwrap().clone()
     } else {
         LauncherType::Dmenu
     };
@@ -114,8 +105,8 @@ async fn main() -> Result<()> {
         None
     };
 
-    let icon_type = matches.get_one::<String>("icon").cloned().unwrap();
-    let back_on_escape = matches.contains_id("back_on_escape");
+    let icon_type = matches.get_one::<String>("icon").unwrap().clone();
+    let back_on_escape = matches.get_flag("back_on_escape");
 
     let icons = Arc::new(Icons::new());
     let menu = Menu::new(launcher_type, icons.clone());
