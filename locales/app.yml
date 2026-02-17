@@ -131,6 +131,18 @@ notifications:
     connection_canceled:
       en: "Connection canceled"
       fr: "Connexion annulée"
+    invalid_passphrase:
+      en: "Invalid passphrase for %{network_name}"
+      fr: "Phrase secrète invalide pour %{network_name}"
+    no_agent:
+      en: "Authentication agent not available"
+      fr: "Agent d'authentification non disponible"
+    not_configured:
+      en: "Network %{network_name} is not configured"
+      fr: "Le réseau %{network_name} n'est pas configuré"
+    connection_failed:
+      en: "Failed to connect to %{network_name}"
+      fr: "Échec de connexion à %{network_name}"
   known_networks:
     disable_autoconnect:
       en: "Autoconnect disabled for %{network_name}"

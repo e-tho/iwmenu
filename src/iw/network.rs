@@ -51,6 +51,27 @@ impl Network {
             IWDError::OperationError(ConnectError::Aborted) => {
                 anyhow!(t!("notifications.network.connection_canceled"))
             }
+            IWDError::OperationError(ConnectError::InvalidFormat) => {
+                anyhow!(t!(
+                    "notifications.network.invalid_passphrase",
+                    network_name = self.name
+                ))
+            }
+            IWDError::OperationError(ConnectError::NoAgent) => {
+                anyhow!(t!("notifications.network.no_agent"))
+            }
+            IWDError::OperationError(ConnectError::NotConfigured) => {
+                anyhow!(t!(
+                    "notifications.network.not_configured",
+                    network_name = self.name
+                ))
+            }
+            IWDError::OperationError(ConnectError::Failed) => {
+                anyhow!(t!(
+                    "notifications.network.connection_failed",
+                    network_name = self.name
+                ))
+            }
             other => other.into(),
         })
     }

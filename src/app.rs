@@ -565,26 +565,36 @@ impl App {
 
         info!(target: "network", "Connecting to known network: {}", network.name);
 
-        network
-            .connect()
-            .await
-            .with_context(|| format!("Failed to connect to known network: {}", network.name))?;
-
-        let msg = t!(
-            "notifications.network.connected",
-            network_name = network.name
-        );
-        info!("{msg}");
-        try_send_notification!(
-            self.notification_manager,
-            None,
-            Some(msg.to_string()),
-            Some("connected"),
-            None
-        );
-
-        station.refresh().await?;
-        Ok(Some(network.name.clone()))
+        match network.connect().await {
+            Ok(()) => {
+                let msg = t!(
+                    "notifications.network.connected",
+                    network_name = network.name
+                );
+                info!("{msg}");
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg.to_string()),
+                    Some("connected"),
+                    None
+                );
+                station.refresh().await?;
+                Ok(Some(network.name.clone()))
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                info!("{msg}");
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg),
+                    Some("error"),
+                    None
+                );
+                Ok(None)
+            }
+        }
     }
 
     async fn perform_new_network_connection(
@@ -614,26 +624,36 @@ impl App {
             }
         }
 
-        network
-            .connect()
-            .await
-            .with_context(|| format!("Failed to connect to new network: {}", network.name))?;
-
-        let msg = t!(
-            "notifications.network.connected",
-            network_name = network.name
-        );
-        info!("{msg}");
-        try_send_notification!(
-            self.notification_manager,
-            None,
-            Some(msg.to_string()),
-            Some("connected"),
-            None
-        );
-
-        station.refresh().await?;
-        Ok(Some(network.name.clone()))
+        match network.connect().await {
+            Ok(()) => {
+                let msg = t!(
+                    "notifications.network.connected",
+                    network_name = network.name
+                );
+                info!("{msg}");
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg.to_string()),
+                    Some("connected"),
+                    None
+                );
+                station.refresh().await?;
+                Ok(Some(network.name.clone()))
+            }
+            Err(e) => {
+                let msg = e.to_string();
+                info!("{msg}");
+                try_send_notification!(
+                    self.notification_manager,
+                    None,
+                    Some(msg),
+                    Some("error"),
+                    None
+                );
+                Ok(None)
+            }
+        }
     }
 
     pub async fn perform_network_disconnection(&mut self) -> Result<()> {
