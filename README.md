@@ -42,6 +42,7 @@
 | [Fuzzel](https://codeberg.org/dnkl/fuzzel) |     ✅     |    ✅     | XDG icons supported since v1.13.0                                                     |
 | [Rofi](https://github.com/davatorium/rofi) |     ✅     |    🔄     | XDG icon support pending via [PR #2122](https://github.com/davatorium/rofi/pull/2122) |
 | [dmenu](https://tools.suckless.org/dmenu)  |     ✅     |    ❌     | No XDG icon support                                                                   |
+| [bemenu](https://github.com/Cloudef/bemenu)|     ✅     |    ❌     | No XDG icon support                                                                   |
 | Custom (stdin)                             |     ✅     |    ❔     | Depends on launcher implementation                                                    |
 
 > [!TIP]
@@ -162,13 +163,13 @@ iwmenu -l custom --launcher-command "fuzzel -d --placeholder '{hint}' {password_
 
 ### Available Options
 
-| Flag                 | Description                                               | Supported Values                    | Default Value |
-| -------------------- | --------------------------------------------------------- | ----------------------------------- | ------------- |
-| `-l`, `--launcher`   | Specify the launcher to use (**required**).               | `dmenu`, `rofi`, `fuzzel`, `custom` | `None`        |
-| `--launcher-command` | Specify the command to use when `custom` launcher is set. | Any valid shell command             | `None`        |
-| `-i`, `--icon`       | Specify the icon type to use.                             | `font`, `xdg`                       | `font`        |
-| `-s`, `--spaces`     | Specify icon to text space count (font icons only).       | Any positive integer                | `1`           |
-| `--back-on-escape`   | Return to previous menu on escape.                        | N/A                                 | `false`       |
+| Flag                 | Description                                               | Supported Values                              | Default Value |
+| -------------------- | --------------------------------------------------------- | --------------------------------------------- | ------------- |
+| `-l`, `--launcher`   | Specify the launcher to use (**required**).               | `dmenu`, `rofi`, `fuzzel`, `bemenu`, `custom` | `None`        |
+| `--launcher-command` | Specify the command to use when `custom` launcher is set. | Any valid shell command                       | `None`        |
+| `-i`, `--icon`       | Specify the icon type to use.                             | `font`, `xdg`                                 | `font`        |
+| `-s`, `--spaces`     | Specify icon to text space count (font icons only).       | Any positive integer                          | `1`           |
+| `--back-on-escape`   | Return to previous menu on escape.                        | N/A                                           | `false`       |
 
 ## Contributing
 
