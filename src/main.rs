@@ -83,6 +83,12 @@ async fn main() -> Result<()> {
                 .action(clap::ArgAction::SetTrue)
                 .help("Stay in menus after actions and return to previous menu on escape"),
         )
+        .arg(
+            Arg::new("no_auto_power_on")
+                .long("no-auto-power-on")
+                .action(clap::ArgAction::SetTrue)
+                .help("Don't automatically power on adapter device when iwmenu launches"),
+        )
         .get_matches();
 
     let launcher_type: LauncherType = if matches.contains_id("launcher") {
@@ -107,6 +113,7 @@ async fn main() -> Result<()> {
 
     let icon_type = matches.get_one::<String>("icon").unwrap().clone();
     let interactive = matches.get_flag("interactive");
+    let no_auto_power_on = matches.get_flag("no_auto_power_on");
 
     let icons = Arc::new(Icons::new());
     let menu = Menu::new(launcher_type, icons.clone());
@@ -116,7 +123,7 @@ async fn main() -> Result<()> {
         .and_then(|s| s.parse::<usize>().ok())
         .ok_or_else(|| anyhow!("Invalid value for --spaces. Must be a positive integer."))?;
 
-    run_app_loop(&menu, &command_str, &icon_type, spaces, icons, interactive).await?;
+    run_app_loop(&menu, &command_str, &icon_type, spaces, icons, interactive, no_auto_power_on).await?;
 
     Ok(())
 }
@@ -128,8 +135,9 @@ async fn run_app_loop(
     spaces: usize,
     icons: Arc<Icons>,
     interactive: bool,
+    no_auto_power_on: bool,
 ) -> Result<()> {
-    let mut app = App::new(icons.clone(), interactive).await?;
+    let mut app = App::new(icons.clone(), interactive, no_auto_power_on).await?;
 
     loop {
         match app.run(menu, command_str, icon_type, spaces).await {
@@ -148,7 +156,7 @@ async fn run_app_loop(
         }
 
         if app.reset_mode {
-            app = App::new(icons.clone(), interactive).await?;
+            app = App::new(icons.clone(), interactive, no_auto_power_on).await?;
             app.reset_mode = false;
         }
     }

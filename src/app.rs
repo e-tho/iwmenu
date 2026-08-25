@@ -19,6 +19,7 @@ pub struct App {
     pub running: bool,
     pub reset_mode: bool,
     pub interactive: bool,
+    pub no_auto_power_on: bool,
     pub session: Arc<Session>,
     pub current_mode: Mode,
     adapter: Adapter,
@@ -27,13 +28,13 @@ pub struct App {
 }
 
 impl App {
-    pub async fn new(icons: Arc<Icons>, interactive: bool) -> Result<Self> {
+    pub async fn new(icons: Arc<Icons>, interactive: bool, no_auto_power_on: bool) -> Result<Self> {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
         let adapter = Adapter::new(session.clone()).await?;
         let notification_manager = Arc::new(NotificationManager::new(icons.clone()));
 
-        if !adapter.device.is_powered {
+        if !no_auto_power_on && !adapter.device.is_powered {
             adapter
                 .device
                 .power_on()
@@ -52,6 +53,7 @@ impl App {
             current_mode,
             reset_mode: false,
             interactive,
+            no_auto_power_on,
         })
     }
 

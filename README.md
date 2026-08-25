@@ -170,6 +170,7 @@ iwmenu -l custom --launcher-command "fuzzel -d --placeholder '{hint}' {password_
 | `-i`, `--icon`       | Specify the icon type to use.                                      | `font`, `xdg`                                 | `font`        |
 | `-s`, `--spaces`     | Specify icon to text space count (font icons only).                | Any positive integer                          | `1`           |
 | `--interactive`      | Stay in menus after actions and return to previous menu on escape. | N/A                                           | `false`       |
+| `--no-auto-power-on` | Don't automatically power on adapter device when iwmenu launches.  | N/A                                           | `false`       |
 
 ## Contributing
 
