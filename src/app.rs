@@ -404,6 +404,9 @@ impl App {
                         self.running = false;
                         stay_in_settings_menu = false;
                     }
+                    if !self.running {
+                        stay_in_settings_menu = false;
+                    }
                 }
             } else {
                 if !self.interactive {
