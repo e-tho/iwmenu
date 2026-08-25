@@ -31,8 +31,6 @@ impl App {
         let agent_manager = AgentManager::new().await?;
         let session = agent_manager.session();
         let adapter = Adapter::new(session.clone()).await?;
-        let current_mode = adapter.device.mode;
-
         let notification_manager = Arc::new(NotificationManager::new(icons.clone()));
 
         if !adapter.device.is_powered {
@@ -42,6 +40,8 @@ impl App {
                 .await
                 .with_context(|| "Failed to power on the adapter during initialization")?;
         }
+
+        let current_mode = adapter.device.mode;
 
         Ok(Self {
             running: true,
