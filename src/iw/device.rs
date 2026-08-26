@@ -87,18 +87,22 @@ impl Device {
             .context("Failed to set device mode")
     }
 
-    pub async fn power_off(&self) -> Result<()> {
+    pub async fn power_off(&mut self) -> Result<()> {
         self.device
             .set_power(false)
             .await
-            .context("Failed to power off the device")
+            .context("Failed to power off the device")?;
+        self.is_powered = false;
+        Ok(())
     }
 
-    pub async fn power_on(&self) -> Result<()> {
+    pub async fn power_on(&mut self) -> Result<()> {
         self.device
             .set_power(true)
             .await
-            .context("Failed to power on the device")
+            .context("Failed to power on the device")?;
+        self.is_powered = true;
+        Ok(())
     }
 
     pub async fn refresh(&mut self) -> Result<()> {
