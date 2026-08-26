@@ -79,21 +79,14 @@ impl App {
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<String>> {
-        if !self.adapter.device.is_powered {
-            self.handle_adapter_options(menu, menu_command, icon_type, spaces)
-                .await?;
-            if self.running {
-                self.adapter
-                    .refresh()
-                    .await
-                    .with_context(|| "Failed to refresh adapter state after power-on")?;
-            } else {
-                return Ok(None);
-            }
-        }
-
         while self.running {
             self.adapter.refresh().await?;
+
+            if !self.adapter.device.is_powered {
+                self.handle_adapter_options(menu, menu_command, icon_type, spaces)
+                    .await?;
+                continue;
+            }
 
             match self.adapter.device.mode {
                 Mode::Station => {
@@ -263,8 +256,7 @@ impl App {
                         )
                         .await?
                     {
-                        self.handle_settings_options(option, menu, menu_command, icon_type, spaces)
-                            .await?;
+                        self.handle_settings_options(option, menu).await?;
                         if !self.interactive {
                             self.running = false;
                         }
@@ -399,8 +391,7 @@ impl App {
                 if matches!(option, SettingsMenuOptions::Back) {
                     stay_in_settings_menu = false;
                 } else {
-                    self.handle_settings_options(option, menu, menu_command, icon_type, spaces)
-                        .await?;
+                    self.handle_settings_options(option, menu).await?;
                     if !self.interactive {
                         self.running = false;
                         stay_in_settings_menu = false;
@@ -424,15 +415,11 @@ impl App {
         &mut self,
         option: SettingsMenuOptions,
         menu: &Menu,
-        menu_command: &Option<String>,
-        icon_type: &str,
-        spaces: usize,
     ) -> Result<bool> {
         match option {
             SettingsMenuOptions::Back => Ok(false),
             SettingsMenuOptions::DisableAdapter => {
-                self.perform_adapter_disable(menu, menu_command, icon_type, spaces)
-                    .await?;
+                self.perform_adapter_disable().await?;
                 Ok(false)
             }
             SettingsMenuOptions::SwitchMode => {
@@ -875,13 +862,7 @@ impl App {
         Ok(())
     }
 
-    async fn perform_adapter_disable(
-        &mut self,
-        menu: &Menu,
-        menu_command: &Option<String>,
-        icon_type: &str,
-        spaces: usize,
-    ) -> Result<()> {
+    async fn perform_adapter_disable(&mut self) -> Result<()> {
         self.adapter.device.power_off().await?;
 
         let msg = t!("notifications.app.adapter_disabled").to_string();
@@ -893,9 +874,6 @@ impl App {
             Some("disable_adapter"),
             None
         );
-
-        self.handle_adapter_options(menu, menu_command, icon_type, spaces)
-            .await?;
 
         Ok(())
     }
