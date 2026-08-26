@@ -203,26 +203,35 @@ impl App {
         if let Some(ap) = self.adapter.device.access_point.as_mut() {
             match ap_menu_option {
                 ApMenuOptions::StartAp => {
-                    if ap.ssid.is_empty() || ap.psk.is_empty() {
-                        debug!("SSID or Password not set");
-                        if ap.ssid.is_empty() {
-                            if let Some(ssid) = menu.prompt_ap_ssid(menu_command, icon_type) {
-                                ap.set_ssid(ssid);
-                            }
-                        }
-                        if ap.psk.is_empty() {
-                            if let Some(password) =
-                                menu.prompt_ap_passphrase(menu_command, icon_type)
-                            {
-                                ap.set_psk(password);
+                    if ap.ssid.is_empty() {
+                        match menu.prompt_ap_ssid(menu_command, icon_type) {
+                            Some(ssid) => ap.set_ssid(ssid),
+                            None => {
+                                debug!("Access point start canceled: no network name provided");
+                                if !self.interactive {
+                                    self.running = false;
+                                }
+                                return Ok(());
                             }
                         }
                     }
-                    if !ap.ssid.is_empty() && !ap.psk.is_empty() {
-                        self.perform_ap_start(menu, menu_command, icon_type).await?;
-                        if !self.interactive {
-                            self.running = false;
+
+                    if ap.psk.is_empty() {
+                        match menu.prompt_ap_passphrase(menu_command, icon_type) {
+                            Some(psk) => ap.set_psk(psk),
+                            None => {
+                                debug!("Access point start canceled: no passphrase provided");
+                                if !self.interactive {
+                                    self.running = false;
+                                }
+                                return Ok(());
+                            }
                         }
+                    }
+
+                    self.perform_ap_start(menu, menu_command, icon_type).await?;
+                    if !self.interactive {
+                        self.running = false;
                     }
                 }
                 ApMenuOptions::StopAp => {
@@ -905,15 +914,25 @@ impl App {
             }
 
             let ssid = if ap.ssid.is_empty() {
-                menu.prompt_ap_ssid(menu_command, icon_type)
-                    .unwrap_or_else(|| "MySSID".to_string())
+                match menu.prompt_ap_ssid(menu_command, icon_type) {
+                    Some(ssid) => ssid,
+                    None => {
+                        debug!("Access point start canceled: no network name provided");
+                        return Ok(());
+                    }
+                }
             } else {
                 ap.ssid.clone()
             };
 
             let psk = if ap.psk.is_empty() {
-                menu.prompt_ap_passphrase(menu_command, icon_type)
-                    .unwrap_or_else(|| "MyPassword".to_string())
+                match menu.prompt_ap_passphrase(menu_command, icon_type) {
+                    Some(psk) => psk,
+                    None => {
+                        debug!("Access point start canceled: no passphrase provided");
+                        return Ok(());
+                    }
+                }
             } else {
                 ap.psk.clone()
             };
