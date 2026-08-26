@@ -2,7 +2,7 @@ use crate::{
     icons::Icons,
     iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork, network::Network},
     menu::{
-        AdapterMenuOptions, ApMenuOptions, KnownNetworkOptions, MainMenuOptions, Menu,
+        ApMenuOptions, DeviceMenuOptions, KnownNetworkOptions, MainMenuOptions, Menu,
         SettingsMenuOptions,
     },
     notification::NotificationManager,
@@ -83,7 +83,7 @@ impl App {
             self.adapter.refresh().await?;
 
             if !self.adapter.device.is_powered {
-                self.handle_adapter_options(menu, menu_command, icon_type, spaces)
+                self.handle_device_options(menu, menu_command, icon_type, spaces)
                     .await?;
                 continue;
             }
@@ -418,8 +418,8 @@ impl App {
     ) -> Result<bool> {
         match option {
             SettingsMenuOptions::Back => Ok(false),
-            SettingsMenuOptions::DisableAdapter => {
-                self.perform_adapter_disable().await?;
+            SettingsMenuOptions::DisableDevice => {
+                self.perform_device_disable().await?;
                 Ok(false)
             }
             SettingsMenuOptions::SwitchMode => {
@@ -431,30 +431,30 @@ impl App {
         }
     }
 
-    async fn handle_adapter_options(
+    async fn handle_device_options(
         &mut self,
         menu: &Menu,
         menu_command: &Option<String>,
         icon_type: &str,
         spaces: usize,
     ) -> Result<()> {
-        if let Some(option) = menu.prompt_enable_adapter(menu_command, icon_type, spaces) {
+        if let Some(option) = menu.prompt_enable_device(menu_command, icon_type, spaces) {
             match option {
-                AdapterMenuOptions::PowerOnDevice => {
+                DeviceMenuOptions::EnableDevice => {
                     self.adapter.device.power_on().await?;
                     self.reset(self.current_mode).await?;
-                    info!("{}", t!("notifications.app.adapter_enabled"));
+                    info!("{}", t!("notifications.app.device_enabled"));
                     try_send_notification!(
                         self.notification_manager,
                         None,
-                        Some(t!("notifications.app.adapter_enabled").to_string()),
-                        Some("network_wireless"),
+                        Some(t!("notifications.app.device_enabled").to_string()),
+                        Some("enable_device"),
                         None
                     );
                 }
             }
         } else {
-            debug!("{}", t!("notifications.app.adapter_menu_exited"));
+            debug!("{}", t!("notifications.app.device_menu_exited"));
             self.running = false;
         }
 
@@ -862,16 +862,16 @@ impl App {
         Ok(())
     }
 
-    async fn perform_adapter_disable(&mut self) -> Result<()> {
+    async fn perform_device_disable(&mut self) -> Result<()> {
         self.adapter.device.power_off().await?;
 
-        let msg = t!("notifications.app.adapter_disabled").to_string();
+        let msg = t!("notifications.app.device_disabled").to_string();
         info!("{msg}");
         try_send_notification!(
             self.notification_manager,
             None,
             Some(msg),
-            Some("disable_adapter"),
+            Some("disable_device"),
             None
         );
 

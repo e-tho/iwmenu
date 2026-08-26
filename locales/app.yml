@@ -49,10 +49,10 @@ menus:
           fr: "Déconnexion"
   settings:
     options:
-      disable_adapter:
+      disable_device:
         name:
-          en: "Disable Adapter"
-          fr: "Désactiver l'adaptateur"
+          en: "Disable Wi-Fi"
+          fr: "Désactiver le Wi-Fi"
       switch_mode:
         name:
           en: "%{mode} Mode"
@@ -85,12 +85,12 @@ menus:
         name:
           en: "Settings"
           fr: "Paramètres"
-  adapter:
+  device:
     options:
-      power_on_device:
+      enable_device:
         name:
-          en: "Power On Device"
-          fr: "Activer l'adaptateur"
+          en: "Enable Wi-Fi"
+          fr: "Activer le Wi-Fi"
 
 notifications:
   station:
@@ -176,22 +176,19 @@ notifications:
     unknown_mode:
       en: "Unknown mode"
       fr: "Mode inconnu"
-    adapter_enabled:
-      en: "Adapter enabled"
-      fr: "Adaptateur activé"
-    adapter_disabled:
-      en: "Adapter disabled"
-      fr: "Adaptateur désactivé"
-    power_on_device:
-      en: "Power On Device"
-      fr: "Activer l'appareil"
+    device_enabled:
+      en: "Wi-Fi enabled"
+      fr: "Wi-Fi activé"
+    device_disabled:
+      en: "Wi-Fi disabled"
+      fr: "Wi-Fi désactivé"
     main_menu_exited:
       en: "Exited main menu"
       fr: "Sortie du menu principal"
     ap_menu_exited:
       en: "Exited Access Point menu"
       fr: "Sortie du menu Point d'accès"
-    adapter_menu_exited:
+    device_menu_exited:
       en: "Exited adapter menu"
       fr: "Sortie du menu de l'appareil"
 

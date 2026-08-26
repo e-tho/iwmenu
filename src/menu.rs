@@ -89,7 +89,7 @@ impl KnownNetworkOptions {
 
 #[derive(Debug, Clone, Copy)]
 pub enum SettingsMenuOptions {
-    DisableAdapter,
+    DisableDevice,
     SwitchMode,
     Back,
 }
@@ -97,7 +97,7 @@ pub enum SettingsMenuOptions {
 impl SettingsMenuOptions {
     pub fn from_id(id: &str) -> Option<Self> {
         match id {
-            "disable_adapter" => Some(SettingsMenuOptions::DisableAdapter),
+            "disable_device" => Some(SettingsMenuOptions::DisableDevice),
             "switch_mode" => Some(SettingsMenuOptions::SwitchMode),
             "back" => Some(SettingsMenuOptions::Back),
             _ => None,
@@ -106,7 +106,7 @@ impl SettingsMenuOptions {
 
     pub fn to_id(&self) -> &'static str {
         match self {
-            SettingsMenuOptions::DisableAdapter => "disable_adapter",
+            SettingsMenuOptions::DisableDevice => "disable_device",
             SettingsMenuOptions::SwitchMode => "switch_mode",
             SettingsMenuOptions::Back => "back",
         }
@@ -114,8 +114,8 @@ impl SettingsMenuOptions {
 
     pub fn to_str(&self) -> Cow<'static, str> {
         match self {
-            SettingsMenuOptions::DisableAdapter => {
-                t!("menus.settings.options.disable_adapter.name")
+            SettingsMenuOptions::DisableDevice => {
+                t!("menus.settings.options.disable_device.name")
             }
             SettingsMenuOptions::SwitchMode => t!("menus.settings.options.switch_mode.name"),
             SettingsMenuOptions::Back => t!("menus.common.back"),
@@ -182,27 +182,27 @@ impl ApMenuOptions {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum AdapterMenuOptions {
-    PowerOnDevice,
+pub enum DeviceMenuOptions {
+    EnableDevice,
 }
 
-impl AdapterMenuOptions {
+impl DeviceMenuOptions {
     pub fn from_id(id: &str) -> Option<Self> {
         match id {
-            "power_on_device" => Some(AdapterMenuOptions::PowerOnDevice),
+            "enable_device" => Some(DeviceMenuOptions::EnableDevice),
             _ => None,
         }
     }
 
     pub fn to_id(&self) -> &'static str {
         match self {
-            AdapterMenuOptions::PowerOnDevice => "power_on_device",
+            DeviceMenuOptions::EnableDevice => "enable_device",
         }
     }
 
     pub fn from_string(option: &str) -> Option<Self> {
-        if option == t!("menus.adapter.options.power_on_device.name") {
-            Some(AdapterMenuOptions::PowerOnDevice)
+        if option == t!("menus.device.options.enable_device.name") {
+            Some(DeviceMenuOptions::EnableDevice)
         } else {
             None
         }
@@ -210,7 +210,7 @@ impl AdapterMenuOptions {
 
     pub fn to_str(&self) -> Cow<'static, str> {
         match self {
-            AdapterMenuOptions::PowerOnDevice => t!("menus.adapter.options.power_on_device.name"),
+            DeviceMenuOptions::EnableDevice => t!("menus.device.options.enable_device.name"),
         }
     }
 }
@@ -498,10 +498,10 @@ impl Menu {
 
         let mut options = vec![
             (
-                SettingsMenuOptions::DisableAdapter.to_id(),
+                SettingsMenuOptions::DisableDevice.to_id(),
                 self.icons.format_display_with_icon(
-                    &SettingsMenuOptions::DisableAdapter.to_str(),
-                    &self.icons.get_icon("disable_adapter", icon_type),
+                    &SettingsMenuOptions::DisableDevice.to_str(),
+                    &self.icons.get_icon("disable_device", icon_type),
                     icon_type,
                     spaces,
                 ),
@@ -540,8 +540,8 @@ impl Menu {
         if let Some(output) = menu_output {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
-            if cleaned_output == SettingsMenuOptions::DisableAdapter.to_str() {
-                return Ok(Some(SettingsMenuOptions::DisableAdapter));
+            if cleaned_output == SettingsMenuOptions::DisableDevice.to_str() {
+                return Ok(Some(SettingsMenuOptions::DisableDevice));
             } else if cleaned_output == switch_mode_text {
                 return Ok(Some(SettingsMenuOptions::SwitchMode));
             } else if cleaned_output == t!("menus.common.back") {
@@ -559,15 +559,15 @@ impl Menu {
         }
     }
 
-    pub fn prompt_enable_adapter(
+    pub fn prompt_enable_device(
         &self,
         menu_command: &Option<String>,
         icon_type: &str,
         spaces: usize,
-    ) -> Option<AdapterMenuOptions> {
+    ) -> Option<DeviceMenuOptions> {
         let options = vec![(
-            AdapterMenuOptions::PowerOnDevice.to_id(),
-            AdapterMenuOptions::PowerOnDevice.to_str(),
+            DeviceMenuOptions::EnableDevice.to_id(),
+            DeviceMenuOptions::EnableDevice.to_str(),
         )];
 
         let input = self.icons.get_icon_text(options, icon_type, spaces);
@@ -577,7 +577,7 @@ impl Menu {
         {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
-            if let Some(option) = AdapterMenuOptions::from_string(&cleaned_output) {
+            if let Some(option) = DeviceMenuOptions::from_string(&cleaned_output) {
                 return Some(option);
             }
         }
