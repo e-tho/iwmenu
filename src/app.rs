@@ -35,14 +35,6 @@ impl App {
 
         let notification_manager = Arc::new(NotificationManager::new(icons.clone()));
 
-        if !adapter.device.is_powered {
-            adapter
-                .device
-                .power_on()
-                .await
-                .with_context(|| "Failed to power on the adapter during initialization")?;
-        }
-
         Ok(Self {
             running: true,
             adapter,
