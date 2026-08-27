@@ -12,7 +12,7 @@ pub struct Device {
     pub name: String,
     pub address: String,
     pub mode: Mode,
-    pub is_powered: bool,
+    pub is_enabled: bool,
     pub station: Option<Station>,
     pub access_point: Option<AccessPoint>,
 }
@@ -32,10 +32,10 @@ impl Device {
             .get_mode()
             .await
             .context("Failed to retrieve device mode")?;
-        let is_powered = device
+        let is_enabled = device
             .is_powered()
             .await
-            .context("Failed to check if the device is powered")?;
+            .context("Failed to check if the device is enabled")?;
 
         let station = Self::initialize_station(session.clone()).await;
         let access_point = Self::initialize_access_point(session.clone()).await;
@@ -46,7 +46,7 @@ impl Device {
             name,
             address,
             mode,
-            is_powered,
+            is_enabled,
             station,
             access_point,
         })
@@ -87,26 +87,26 @@ impl Device {
             .context("Failed to set device mode")
     }
 
-    pub async fn power_off(&mut self) -> Result<()> {
+    pub async fn disable(&mut self) -> Result<()> {
         self.device
             .set_power(false)
             .await
-            .context("Failed to power off the device")?;
-        self.is_powered = false;
+            .context("Failed to disable the device")?;
+        self.is_enabled = false;
         Ok(())
     }
 
-    pub async fn power_on(&mut self) -> Result<()> {
+    pub async fn enable(&mut self) -> Result<()> {
         self.device
             .set_power(true)
             .await
-            .context("Failed to power on the device")?;
-        self.is_powered = true;
+            .context("Failed to enable the device")?;
+        self.is_enabled = true;
         Ok(())
     }
 
     pub async fn refresh(&mut self) -> Result<()> {
-        self.is_powered = self.device.is_powered().await?;
+        self.is_enabled = self.device.is_powered().await?;
 
         let current_mode = self
             .device

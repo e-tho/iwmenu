@@ -82,7 +82,7 @@ impl App {
         while self.running {
             self.adapter.refresh().await?;
 
-            if !self.adapter.device.is_powered {
+            if !self.adapter.device.is_enabled {
                 self.handle_device_options(menu, menu_command, icon_type, spaces)
                     .await?;
                 continue;
@@ -196,7 +196,7 @@ impl App {
         if let Some(ap) = self.adapter.device.access_point.as_mut() {
             match ap_menu_option {
                 ApMenuOptions::StartAp => {
-                    if ap.ssid.is_empty() {
+                        if ap.ssid.is_empty() {
                         match menu.prompt_ap_ssid(menu_command, icon_type) {
                             Some(ssid) => ap.set_ssid(ssid),
                             None => {
@@ -441,7 +441,7 @@ impl App {
         if let Some(option) = menu.prompt_enable_device(menu_command, icon_type, spaces) {
             match option {
                 DeviceMenuOptions::EnableDevice => {
-                    self.adapter.device.power_on().await?;
+                    self.adapter.device.enable().await?;
                     self.reset(self.current_mode).await?;
                     info!("{}", t!("notifications.app.device_enabled"));
                     try_send_notification!(
@@ -457,7 +457,7 @@ impl App {
             debug!("{}", t!("notifications.app.device_menu_exited"));
             self.running = false;
         }
-
+        
         Ok(())
     }
 
@@ -863,7 +863,7 @@ impl App {
     }
 
     async fn perform_device_disable(&mut self) -> Result<()> {
-        self.adapter.device.power_off().await?;
+        self.adapter.device.disable().await?;
 
         let msg = t!("notifications.app.device_disabled").to_string();
         info!("{msg}");
