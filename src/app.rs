@@ -79,14 +79,20 @@ impl App {
         icon_type: &str,
         spaces: usize,
     ) -> Result<Option<String>> {
+        if !self.adapter.is_powered {
+            self.handle_adapter_options(menu, menu_command, icon_type, spaces)
+                .await?;
+        }
+        if self.running && !self.adapter.device.is_enabled {
+            self.handle_device_options(menu, menu_command, icon_type, spaces)
+                .await?;
+        }
+        if !self.running {
+            return Ok(None);
+        }
+
         while self.running {
             self.adapter.refresh().await?;
-
-            if !self.adapter.device.is_enabled {
-                self.handle_device_options(menu, menu_command, icon_type, spaces)
-                    .await?;
-                continue;
-            }
 
             match self.adapter.device.mode {
                 Mode::Station => {
