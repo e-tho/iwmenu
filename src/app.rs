@@ -256,7 +256,8 @@ impl App {
                         )
                         .await?
                     {
-                        self.handle_settings_options(option, menu).await?;
+                        self.handle_settings_options(option, menu, menu_command, icon_type, spaces)
+                            .await?;
                         if !self.interactive {
                             self.running = false;
                         }
@@ -391,7 +392,8 @@ impl App {
                 if matches!(option, SettingsMenuOptions::Back) {
                     stay_in_settings_menu = false;
                 } else {
-                    self.handle_settings_options(option, menu).await?;
+                    self.handle_settings_options(option, menu, menu_command, icon_type, spaces)
+                        .await?;
                     if !self.interactive {
                         self.running = false;
                         stay_in_settings_menu = false;
@@ -415,11 +417,20 @@ impl App {
         &mut self,
         option: SettingsMenuOptions,
         menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
     ) -> Result<bool> {
         match option {
             SettingsMenuOptions::Back => Ok(false),
+            SettingsMenuOptions::PowerOffAdapter => {
+                self.perform_power_off_adapter(menu, menu_command, icon_type, spaces)
+                    .await?;
+                Ok(false)
+            }
             SettingsMenuOptions::DisableDevice => {
-                self.perform_device_disable().await?;
+                self.perform_device_disable(menu, menu_command, icon_type, spaces)
+                    .await?;
                 Ok(false)
             }
             SettingsMenuOptions::SwitchMode => {
@@ -468,26 +479,48 @@ impl App {
         icon_type: &str,
         spaces: usize,
     ) -> Result<()> {
-        if let Some(option) = menu.prompt_enable_device(menu_command, icon_type, spaces) {
-            match option {
-                DeviceMenuOptions::EnableDevice => {
-                    self.adapter.device.enable().await?;
-                    self.reset(self.current_mode).await?;
-                    info!("{}", t!("notifications.app.device_enabled"));
-                    try_send_notification!(
-                        self.notification_manager,
-                        None,
-                        Some(t!("notifications.app.device_enabled").to_string()),
-                        Some("enable_device"),
-                        None
-                    );
+        loop {
+            if let Some(option) = menu.prompt_enable_device(menu_command, icon_type, spaces) {
+                match option {
+                    DeviceMenuOptions::PowerOffAdapter => {
+                        self.adapter.power_off().await?;
+                        self.reset(self.current_mode).await?;
+                        info!("{}", t!("notifications.app.adapter_powered_off"));
+                        try_send_notification!(
+                            self.notification_manager,
+                            None,
+                            Some(t!("notifications.app.adapter_powered_off").to_string()),
+                            Some("power_off_adapter"),
+                            None
+                        );
+                    },
+                    DeviceMenuOptions::EnableDevice => {
+                        self.adapter.device.enable().await?;
+                        self.reset(self.current_mode).await?;
+                        info!("{}", t!("notifications.app.device_enabled"));
+                        try_send_notification!(
+                            self.notification_manager,
+                            None,
+                            Some(t!("notifications.app.device_enabled").to_string()),
+                            Some("enable_device"),
+                            None
+                        );
+                    }
                 }
+            } else {
+                debug!("{}", t!("notifications.app.device_menu_exited"));
+                self.running = false;
             }
-        } else {
-            debug!("{}", t!("notifications.app.device_menu_exited"));
-            self.running = false;
+            if !self.adapter.is_powered {
+                self.handle_adapter_options(menu, menu_command, icon_type, spaces).await?;
+            }
+            if !self.running {
+                break
+            }
+            if self.adapter.device.is_enabled {
+                break
+            }
         }
-        
         Ok(())
     }
 
@@ -892,7 +925,38 @@ impl App {
         Ok(())
     }
 
-    async fn perform_device_disable(&mut self) -> Result<()> {
+    async fn perform_power_off_adapter(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
+        self.adapter.power_off().await?;
+
+        let msg = t!("notifications.app.adapter_powered_off").to_string();
+        info!("{msg}");
+        try_send_notification!(
+            self.notification_manager,
+            None,
+            Some(msg),
+            Some("power_off_adapter"),
+            None
+        );
+
+        self.handle_adapter_options(menu, menu_command, icon_type, spaces)
+            .await?;
+
+        Ok(())
+    }
+
+    async fn perform_device_disable(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
         self.adapter.device.disable().await?;
 
         let msg = t!("notifications.app.device_disabled").to_string();
@@ -904,6 +968,9 @@ impl App {
             Some("disable_device"),
             None
         );
+
+        self.handle_device_options(menu, menu_command, icon_type, spaces)
+            .await?;
 
         Ok(())
     }
