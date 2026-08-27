@@ -56,8 +56,10 @@ impl Icons {
         font_icons.insert("disconnect", '\u{f0338}');
         font_icons.insert("scan", '\u{f46a}');
         font_icons.insert("settings", '\u{f0493}');
-        font_icons.insert("disable_device", '\u{f092d}');
-        font_icons.insert("enable_device", '\u{f0425}');
+        font_icons.insert("disable_device", '\u{f05aa}');
+        font_icons.insert("enable_device", '\u{f05a9}');
+        font_icons.insert("power_off_adapter", '\u{f0902}');
+        font_icons.insert("power_on_adapter", '\u{f0425}');
         font_icons.insert("switch_mode", '\u{f0fe2}');
         font_icons.insert("start_ap", '\u{f040d}');
         font_icons.insert("stop_ap", '\u{f0667}');
@@ -142,6 +144,12 @@ impl Icons {
         xdg_icons.insert("disable_device",
             IconDefinition::with_fallbacks(
                 Some("network-wireless-disabled-symbolic"),
+                "network-wireless-disabled-symbolic,network-wireless-off"
+            )
+        );
+        xdg_icons.insert("power_off_adapter",
+            IconDefinition::with_fallbacks(
+                Some("network-wireless-hardware-disabled-symbolic"),
                 "network-wireless-hardware-disabled-symbolic,network-wireless-disabled-symbolic,network-wireless-off"
             )
         );
@@ -232,6 +240,10 @@ impl Icons {
         xdg_icons.insert("error", IconDefinition::simple("dialog-error-symbolic"));
         xdg_icons.insert(
             "enable_device",
+            IconDefinition::simple("network-wireless-symbolic"),
+        );
+        xdg_icons.insert(
+            "power_on_adapter",
             IconDefinition::simple("network-wireless-symbolic"),
         );
 
