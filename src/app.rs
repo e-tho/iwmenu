@@ -2,7 +2,7 @@ use crate::{
     icons::Icons,
     iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork, network::Network},
     menu::{
-        ApMenuOptions, DeviceMenuOptions, KnownNetworkOptions, MainMenuOptions, Menu,
+        ApMenuOptions, DeviceMenuOptions, AdapterMenuOptions, KnownNetworkOptions, MainMenuOptions, Menu,
         SettingsMenuOptions,
     },
     notification::NotificationManager,
@@ -429,6 +429,36 @@ impl App {
                 Ok(false)
             }
         }
+    }
+
+    async fn handle_adapter_options(
+        &mut self,
+        menu: &Menu,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Result<()> {
+        if let Some(option) = menu.prompt_power_on_adapter(menu_command, icon_type, spaces) {
+            match option {
+                AdapterMenuOptions::PowerOnAdapter => {
+                    self.adapter.power_on().await?;
+                    self.reset(self.current_mode).await?;
+                    info!("{}", t!("notifications.app.adapter_powered_on"));
+                    try_send_notification!(
+                        self.notification_manager,
+                        None,
+                        Some(t!("notifications.app.adapter_powered_on").to_string()),
+                        Some("power_on_adapter"),
+                        None
+                    );
+                }
+            }
+        } else {
+            debug!("{}", t!("notifications.app.adapter_menu_exited"));
+            self.running = false;
+        }
+
+        Ok(())
     }
 
     async fn handle_device_options(

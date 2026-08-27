@@ -182,6 +182,40 @@ impl ApMenuOptions {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub enum AdapterMenuOptions {
+    PowerOnAdapter,
+}
+
+impl AdapterMenuOptions {
+    pub fn from_id(id: &str) -> Option<Self> {
+        match id {
+            "power_on_adapter" => Some(AdapterMenuOptions::PowerOnAdapter),
+            _ => None,
+        }
+    }
+
+    pub fn to_id(&self) -> &'static str {
+        match self {
+            AdapterMenuOptions::PowerOnAdapter => "power_on_adapter"
+        }
+    }
+
+    pub fn from_string(option: &str) -> Option<Self> {
+        if option == t!("menus.adapter.options.power_on_adapter.name") {
+            Some(AdapterMenuOptions::PowerOnAdapter)
+        } else {
+            None
+        }
+    }
+
+    pub fn to_str(&self) -> Cow<'static, str> {
+        match self {
+            AdapterMenuOptions::PowerOnAdapter => t!("menus.adapter.options.power_on_adapter.name"),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub enum DeviceMenuOptions {
     EnableDevice,
 }
@@ -578,6 +612,32 @@ impl Menu {
             let cleaned_output = self.clean_menu_output(&output, icon_type);
 
             if let Some(option) = DeviceMenuOptions::from_string(&cleaned_output) {
+                return Some(option);
+            }
+        }
+
+        None
+    }
+
+    pub fn prompt_power_on_adapter(
+        &self,
+        menu_command: &Option<String>,
+        icon_type: &str,
+        spaces: usize,
+    ) -> Option<AdapterMenuOptions> {
+        let options = vec![(
+            AdapterMenuOptions::PowerOnAdapter.to_id(),
+            AdapterMenuOptions::PowerOnAdapter.to_str(),
+        )];
+
+        let input = self.icons.get_icon_text(options, icon_type, spaces);
+
+        if let Ok(Some(output)) =
+            self.run_launcher(menu_command, Some(&input), icon_type, None, false)
+        {
+            let cleaned_output = self.clean_menu_output(&output, icon_type);
+
+            if let Some(option) = AdapterMenuOptions::from_string(&cleaned_output) {
                 return Some(option);
             }
         }
