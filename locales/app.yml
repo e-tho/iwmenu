@@ -49,10 +49,14 @@ menus:
           fr: "Déconnexion"
   settings:
     options:
+      power_off_adapter:
+        name:
+          en: "Power Off Adapter"
+          fr: "Mettre l'adaptateur hors tension"
       disable_device:
         name:
-          en: "Disable Wi-Fi"
-          fr: "Désactiver le Wi-Fi"
+          en: "Disable Wi-Fi/AP Device"
+          fr: "Désactiver le périphérique Wi-Fi/AP"
       switch_mode:
         name:
           en: "%{mode} Mode"
@@ -85,12 +89,22 @@ menus:
         name:
           en: "Settings"
           fr: "Paramètres"
+  adapter:
+    options:
+      power_on_adapter:
+        name:
+          en: "Power On Adapter"
+          fr: "Mettre l'adaptateur sous tension"
   device:
     options:
+      power_off_adapter:
+        name:
+          en: "Power Off Adapter"
+          fr: "Mettre l'adaptateur hors tension"
       enable_device:
         name:
-          en: "Enable Wi-Fi"
-          fr: "Activer le Wi-Fi"
+          en: "Enable Wifi/AP Device"
+          fr: "Activer le périphérique Wi-Fi/AP"
 
 notifications:
   station:
@@ -176,20 +190,29 @@ notifications:
     unknown_mode:
       en: "Unknown mode"
       fr: "Mode inconnu"
+    adapter_powered_on:
+      en: "Adapter Powered On"
+      fr: "Adaptateur sous tension"
+    adapter_powered_off:
+      en: "Adapter Powered Off"
+      fr: "Adaptateur hors tension"
     device_enabled:
-      en: "Wi-Fi enabled"
-      fr: "Wi-Fi activé"
+      en: "Wi-Fi/AP device enabled"
+      fr: "Périphérique Wi-Fi/AP activé"
     device_disabled:
-      en: "Wi-Fi disabled"
-      fr: "Wi-Fi désactivé"
+      en: "Wi-Fi/AP device disabled"
+      fr: "Périphérique Wi-Fi/AP désactivé"
     main_menu_exited:
       en: "Exited main menu"
       fr: "Sortie du menu principal"
     ap_menu_exited:
       en: "Exited Access Point menu"
       fr: "Sortie du menu Point d'accès"
-    device_menu_exited:
+    adapter_menu_exited:
       en: "Exited adapter menu"
+      fr: "Sortie du menu de l'adaptateur"
+    device_menu_exited:
+      en: "Exited device menu"
       fr: "Sortie du menu de l'appareil"
 
 modes:
