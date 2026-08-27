@@ -103,7 +103,7 @@ menus:
           fr: "Mettre l'adaptateur hors tension"
       enable_device:
         name:
-          en: "Enable Wifi/AP Device"
+          en: "Enable Wi-Fi/AP Device"
           fr: "Activer le périphérique Wi-Fi/AP"
 
 notifications:
