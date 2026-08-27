@@ -7,6 +7,7 @@ use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub struct Adapter {
     pub adapter: IwdAdapter,
+    pub is_powered: bool,
     pub name: String,
     pub model: Option<String>,
     pub vendor: Option<String>,
@@ -21,6 +22,11 @@ impl Adapter {
             .into_iter()
             .next()
             .ok_or_else(|| anyhow!("No adapter found"))?;
+
+        let is_powered = adapter
+            .is_powered()
+            .await
+            .context("Failed to get adapter power state")?;
 
         let name = adapter.name().await?;
 
@@ -48,6 +54,7 @@ impl Adapter {
 
         Ok(Self {
             adapter,
+            is_powered,
             name,
             model,
             vendor,
@@ -56,7 +63,27 @@ impl Adapter {
         })
     }
 
+    pub async fn power_off(&mut self) -> Result<()> {
+        self.adapter
+            .set_power(false)
+            .await
+            .context("Failed to power off the adapter")?;
+        self.is_powered = false;
+        Ok(())
+    }
+
+    pub async fn power_on(&mut self) -> Result<()> {
+        self.adapter
+            .set_power(true)
+            .await
+            .context("Failed to power on the adapter")?;
+        self.is_powered = true;
+        Ok(())
+    }
+
     pub async fn refresh(&mut self) -> Result<()> {
+        self.is_powered = self.adapter.is_powered().await?;
+
         self.device
             .refresh()
             .await
