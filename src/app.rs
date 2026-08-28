@@ -2,8 +2,8 @@ use crate::{
     icons::Icons,
     iw::{adapter::Adapter, agent::AgentManager, known_network::KnownNetwork, network::Network},
     menu::{
-        ApMenuOptions, DeviceMenuOptions, AdapterMenuOptions, KnownNetworkOptions, MainMenuOptions, Menu,
-        SettingsMenuOptions,
+        AdapterMenuOptions, ApMenuOptions, DeviceMenuOptions, KnownNetworkOptions, MainMenuOptions,
+        Menu, SettingsMenuOptions,
     },
     notification::NotificationManager,
 };
@@ -202,7 +202,7 @@ impl App {
         if let Some(ap) = self.adapter.device.access_point.as_mut() {
             match ap_menu_option {
                 ApMenuOptions::StartAp => {
-                        if ap.ssid.is_empty() {
+                    if ap.ssid.is_empty() {
                         match menu.prompt_ap_ssid(menu_command, icon_type) {
                             Some(ssid) => ap.set_ssid(ssid),
                             None => {
@@ -499,7 +499,7 @@ impl App {
                             Some("power_off_adapter"),
                             None
                         );
-                    },
+                    }
                     DeviceMenuOptions::EnableDevice => {
                         self.adapter.device.enable().await?;
                         self.reset(self.current_mode).await?;
@@ -518,13 +518,14 @@ impl App {
                 self.running = false;
             }
             if !self.adapter.is_powered {
-                self.handle_adapter_options(menu, menu_command, icon_type, spaces).await?;
+                self.handle_adapter_options(menu, menu_command, icon_type, spaces)
+                    .await?;
             }
             if !self.running {
-                break
+                break;
             }
             if self.adapter.device.is_enabled {
-                break
+                break;
             }
         }
         Ok(())

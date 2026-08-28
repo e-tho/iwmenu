@@ -119,10 +119,10 @@ impl SettingsMenuOptions {
         match self {
             SettingsMenuOptions::PowerOffAdapter => {
                 t!("menus.settings.options.power_off_adapter.name")
-            },
+            }
             SettingsMenuOptions::DisableDevice => {
                 t!("menus.settings.options.disable_device.name")
-            },
+            }
             SettingsMenuOptions::SwitchMode => t!("menus.settings.options.switch_mode.name"),
             SettingsMenuOptions::Back => t!("menus.common.back"),
         }
@@ -202,7 +202,7 @@ impl AdapterMenuOptions {
 
     pub fn to_id(&self) -> &'static str {
         match self {
-            AdapterMenuOptions::PowerOnAdapter => "power_on_adapter"
+            AdapterMenuOptions::PowerOnAdapter => "power_on_adapter",
         }
     }
 

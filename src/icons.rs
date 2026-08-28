@@ -141,11 +141,12 @@ impl Icons {
             "scan_in_progress",
             IconDefinition::simple("network-wireless-acquiring-symbolic"),
         );
-        xdg_icons.insert("disable_device",
+        xdg_icons.insert(
+            "disable_device",
             IconDefinition::with_fallbacks(
                 Some("network-wireless-disabled-symbolic"),
-                "network-wireless-disabled-symbolic,network-wireless-off"
-            )
+                "network-wireless-disabled-symbolic,network-wireless-off",
+            ),
         );
         xdg_icons.insert("power_off_adapter",
             IconDefinition::with_fallbacks(
