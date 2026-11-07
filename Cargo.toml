@@ -3,7 +3,6 @@ name = "iwmenu"
 version = "0.4.0"
 edition = "2018"
 description = "Launcher-driven Wi-Fi manager for Linux"
-authors = ["e-tho"]
 license = "GPL-3.0-or-later"
 readme = "README.md"
 homepage = "https://github.com/e-tho/iwmenu"
